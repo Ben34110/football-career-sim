@@ -62,23 +62,27 @@ export const BASE_ATTRS: Record<Position, Attributes> = {
   LW: { finishing: 56, composure: 50, vision: 56, stamina: 62 },
 };
 
-export function calcOvr(attrs: Attributes, pos: Position): number {
+/** Unrounded overall: attributes plus the partial progress already earned toward the next point. */
+export function rawOvr(attrs: Attributes, pos: Position, xp?: Attributes): number {
   const w = POSITION_WEIGHTS[pos];
-  const raw = ATTR_KEYS.reduce((s, k) => s + attrs[k] * w[k], 0);
-  return clamp(Math.round(raw), 55, 99);
+  return ATTR_KEYS.reduce((s, k) => s + (attrs[k] + (xp?.[k] ?? 0)) * w[k], 0);
 }
 
-export const ovrOf = (p: Pick<Player, 'attrs' | 'position'>) => calcOvr(p.attrs, p.position);
+export function calcOvr(attrs: Attributes, pos: Position, xp?: Attributes): number {
+  return clamp(Math.round(rawOvr(attrs, pos, xp)), 55, 99);
+}
+
+export const ovrOf = (p: Pick<Player, 'attrs' | 'position'> & { xp?: Attributes }) => calcOvr(p.attrs, p.position, p.xp);
 
 /**
  * How far you are between your current OVR and the next one (0..1).
  * Counts the partial progress already earned toward the next attribute point.
  */
 export function ovrProgress(attrs: Attributes, xp: Attributes | undefined, pos: Position): { ovr: number; next: number | null; pct: number } {
-  const ovr = calcOvr(attrs, pos);
+  // the displayed OVR already counts partial progress, so the bar and the number always agree
+  const ovr = calcOvr(attrs, pos, xp);
   if (ovr >= 99) return { ovr, next: null, pct: 1 };
-  const w = POSITION_WEIGHTS[pos];
-  const raw = ATTR_KEYS.reduce((s, k) => s + (attrs[k] + (xp?.[k] ?? 0)) * w[k], 0);
+  const raw = rawOvr(attrs, pos, xp);
   // OVR rounds to the nearest integer, so the segment for `ovr` spans [ovr − 0.5, ovr + 0.5)
   return { ovr, next: ovr + 1, pct: clamp(raw - (ovr - 0.5), 0, 1) };
 }

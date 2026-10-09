@@ -53,7 +53,7 @@ export function PlayerCard({ name, nationality, position, attrs, xp, age, clubId
   };
   const nat = getNationality(nationality);
   const club = getClub(clubId);
-  const ovr = calcOvr(attrs, position);
+  const ovr = calcOvr(attrs, position, xp);
   const value = marketValue(ovr, age);
   const elite = ovr >= 85;
   const prog = xp ? ovrProgress(attrs, xp, position) : null;

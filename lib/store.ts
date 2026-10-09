@@ -647,7 +647,6 @@ function finishSeason(set: Setter, get: Getter) {
     contract: p.contract ? { ...p.contract, yearsLeft: p.contract.yearsLeft - 1 } : null,
     rep: applyRep(p.rep, pos <= 3 ? { fanPopularity: 4, coachTrust: 2 } : pos >= 9 ? { fanPopularity: -3, coachTrust: -2 } : {}),
     morale: clamp(p.morale + (pos <= 3 ? 8 : pos >= 9 ? -6 : 0), 0, 100),
-    xp: { finishing: 0, composure: 0, vision: 0, stamina: 0 },
     strikes: Math.max(0, (p.strikes ?? 0) - 1),
   };
   const ovrAfter = ovrOf(p);

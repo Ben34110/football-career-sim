@@ -71,6 +71,18 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
 };
 
+/** One short line above the frozen first frame. */
+const HINT: Record<MiniKind, string> = {
+  power: 'Stop the cursor in the gold zone.',
+  header: 'Tap when the ring closes on the ball.',
+  tackle: 'Tap only on the green flash.',
+  dribble: 'Press the arrow’s direction — red means opposite.',
+  sprint: 'Tap fast to fill the bar.',
+  memory: 'Watch the passes, then repeat them.',
+  aim: 'Tap when the crosshair is on the target.',
+  charge: 'Hold, then release on the gold line.',
+};
+
 const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
   perfect: { text: 'PERFECT!', color: 'text-gold-300' },
   good: { text: 'GOOD', color: 'text-neon-300' },
@@ -127,6 +139,11 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         </Chip>
       </div>
 
+      <p className="-mt-1 text-center text-[13px] font-semibold text-zinc-300">
+        {t(HINT[kind])}
+        {!running && <span className="ml-1.5 font-normal text-zinc-500">{t('Tap to begin.')}</span>}
+      </p>
+
       <div className="relative">
         {kind === 'power' && <PowerBar {...game} />}
         {kind === 'header' && <RingGame {...game} />}
@@ -137,24 +154,18 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         {kind === 'aim' && <AimGame {...game} />}
         {kind === 'charge' && <ChargeGame {...game} />}
 
-        {/* Freezes the first frame: the first tap anywhere starts the game and is not counted as a move */}
+        {/* The first frame stays frozen: the first tap anywhere starts the game (and is not a move) */}
         {!running && (
-          <motion.button
+          <button
             type="button"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: armed ? 1 : 0.6 }}
             onClick={() => {
               if (!armed) return;
               haptic(15);
               setRunning(true);
             }}
-            className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-black/35 backdrop-blur-[1px]"
-            aria-label={t('Tap to start')}
-          >
-            <span className="flex items-center gap-2 rounded-full border border-gold-400/50 bg-zinc-950/80 px-5 py-3 font-display text-2xl font-extrabold uppercase tracking-wide text-gold-300 shadow-gold">
-              <Play className="h-5 w-5 fill-current" /> {t('Tap to start')}
-            </span>
-          </motion.button>
+            className="absolute inset-0 z-20 cursor-pointer rounded-3xl"
+            aria-label={t(HINT[kind])}
+          />
         )}
 
         <AnimatePresence>

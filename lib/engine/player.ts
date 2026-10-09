@@ -70,6 +70,19 @@ export function calcOvr(attrs: Attributes, pos: Position): number {
 
 export const ovrOf = (p: Pick<Player, 'attrs' | 'position'>) => calcOvr(p.attrs, p.position);
 
+/**
+ * How far you are between your current OVR and the next one (0..1).
+ * Counts the partial progress already earned toward the next attribute point.
+ */
+export function ovrProgress(attrs: Attributes, xp: Attributes | undefined, pos: Position): { ovr: number; next: number | null; pct: number } {
+  const ovr = calcOvr(attrs, pos);
+  if (ovr >= 99) return { ovr, next: null, pct: 1 };
+  const w = POSITION_WEIGHTS[pos];
+  const raw = ATTR_KEYS.reduce((s, k) => s + (attrs[k] + (xp?.[k] ?? 0)) * w[k], 0);
+  // OVR rounds to the nearest integer, so the segment for `ovr` spans [ovr − 0.5, ovr + 0.5)
+  return { ovr, next: ovr + 1, pct: clamp(raw - (ovr - 0.5), 0, 1) };
+}
+
 /** Market value in €M */
 export function marketValue(ovr: number, age: number): number {
   const ageMul = age <= 20 ? 1.6 : age <= 23 ? 1.3 : age <= 28 ? 1 : age <= 31 ? 0.7 : 0.4;

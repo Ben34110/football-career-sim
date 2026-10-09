@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/Toaster';
+import { SigningCeremony } from './SigningCeremony';
 import { useHydrated } from '@/lib/hooks';
 
 /** Phone-sized column on desktop, full-bleed on mobile. Waits for the save to load. */
@@ -22,6 +23,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </div>
+      <SigningCeremony />
       <Toaster />
     </div>
   );

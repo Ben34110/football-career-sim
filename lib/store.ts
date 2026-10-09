@@ -7,6 +7,7 @@ import { getNationality } from './data/nationalities';
 import type { StanceEffect } from './data/speeches';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
+import { useUiStore } from './ui';
 import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } from './data/shop';
 import {
   applyRep,
@@ -29,6 +30,7 @@ import { clamp, uid } from './engine/rng';
 import { runBallonDor } from './engine/awards';
 import { ordinalOf, translate as tr } from './i18n';
 import {
+  applyDraw,
   applyFixtureResult,
   generateSeason,
   leaguePosition,
@@ -89,6 +91,8 @@ interface GameActions {
   retireNow: () => void;
   /** Spends one bolt; returns false if the player is exhausted. */
   beginMatch: () => boolean;
+  /** The player picks a ball in the cup / tournament draw */
+  drawFixture: (fixtureId: string, index: number) => void;
   applyStance: (s: StanceEffect) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult) => void;
@@ -158,6 +162,15 @@ export const useGameStore = create<GameStore>()(
           season,
           news: [mkNews(tr('{name} signs for {club}. The journey begins.', { name: player.name, club: club.name }), 'gold')],
         });
+        useUiStore.getState().showSigning({
+          kind: 'signed',
+          clubId: club.id,
+          playerName: player.name,
+          position: player.position,
+          wage: player.contract?.wage ?? 0,
+          years: player.contract?.yearsLeft ?? 3,
+          fee: 0,
+        });
       },
 
       resetCareer: () => set({ ...initial }),
@@ -175,6 +188,12 @@ export const useGameStore = create<GameStore>()(
         if (!e) return false;
         set({ player: { ...player, energy: e } });
         return true;
+      },
+
+      drawFixture: (fixtureId, index) => {
+        const { season } = get();
+        if (!season) return;
+        set({ season: applyDraw(season, fixtureId, index) });
       },
 
       applyStance: (s) => {
@@ -466,6 +485,15 @@ export const useGameStore = create<GameStore>()(
             pendingMove: offer,
             news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Agreed: new deal at {club} next season.' : 'Agreed: joining {club} next season.', { club: club.name }), 'gold')),
           });
+          useUiStore.getState().showSigning({
+            kind: offer.source === 'renewal' ? 'renewal' : 'agreed',
+            clubId: club.id,
+            playerName: player.name,
+            position: player.position,
+            wage: offer.wage,
+            years: offer.years,
+            fee: offer.fee,
+          });
           return { ok: true, msg: tr('Deal agreed — it takes effect next season.') };
         }
 
@@ -478,6 +506,15 @@ export const useGameStore = create<GameStore>()(
           offers: [],
           pendingMove: null,
           news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold')),
+        });
+        useUiStore.getState().showSigning({
+          kind: offer.source === 'renewal' ? 'renewal' : 'signed',
+          clubId: club.id,
+          playerName: player.name,
+          position: player.position,
+          wage: offer.wage,
+          years: offer.years,
+          fee: offer.fee,
         });
         return { ok: true, msg: tr('Welcome to {club}!', { club: club.name }) };
       },
@@ -497,6 +534,18 @@ export const useGameStore = create<GameStore>()(
 
         if (pendingMove) {
           p = applyMove(p, pendingMove);
+          if (pendingMove.source !== 'renewal') {
+            // the pre-agreed move becomes official: time for the welcome ceremony
+            useUiStore.getState().showSigning({
+              kind: 'signed',
+              clubId: pendingMove.clubId,
+              playerName: p.name,
+              position: p.position,
+              wage: pendingMove.wage,
+              years: pendingMove.years,
+              fee: pendingMove.fee,
+            });
+          }
         } else if (p.contract && p.contract.yearsLeft <= 0) {
           const club = getClub(p.clubId);
           if (club && p.rep.coachTrust >= 35) {

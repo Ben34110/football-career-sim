@@ -69,7 +69,7 @@ export function HomeScreen() {
         </Card>
       )}
 
-      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} age={player.age} clubId={player.clubId} look={player.look} />
+      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
 
       {/* Next fixture */}
       {fixture && (
@@ -86,6 +86,15 @@ export function HomeScreen() {
                 <div className="font-display text-xl font-extrabold text-zinc-600">VS</div>
                 <div className="text-[11px] text-zinc-500">{fixture.home ? t('Home') : t('Away')}</div>
               </div>
+              {fixture.drawn === false ? (
+                <div className="flex items-center justify-end gap-3 text-right">
+                  <div>
+                    <div className="text-sm font-bold leading-tight">{t('Opponent to be drawn')}</div>
+                    <div className="text-[11px] text-zinc-500">{t('You take part in the draw')}</div>
+                  </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-xl">🎱</div>
+                </div>
+              ) : (
               <div className="text-right">
                 <div className="flex items-center justify-end gap-3">
                   <div>
@@ -95,11 +104,12 @@ export function HomeScreen() {
                   <Crest short={crestShort(fixture.opponentShort)} color={fixture.opponentColor} size={44} />
                 </div>
               </div>
+              )}
             </div>
             <Link href="/match" className="mt-4 block">
               <Button block size="lg">
                 <Play className="h-5 w-5 fill-current" />
-                {bolts < 1 ? t('Exhausted · {time}', { time: fmtCountdown(msToNext) }) : t('Go to match day')}
+                {fixture.drawn === false ? t('Take part in the draw') : bolts < 1 ? t('Exhausted · {time}', { time: fmtCountdown(msToNext) }) : t('Go to match day')}
               </Button>
             </Link>
           </Card>

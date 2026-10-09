@@ -243,6 +243,7 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
             finishing={finishing}
             composure={composure}
             keeperLevel={ctx.oppStr}
+            wallColor={opp.color}
             pressure={pressureFor(m, ctx)}
             title={kick === 'penalty' ? 'Spot Kick' : 'Dead Ball'}
             subtitle={`${m.minute}' · ${homeBadge.name} ${homeScore}–${awayScore} ${awayBadge.name}`}

@@ -18,7 +18,7 @@ import type {
   Reputation,
 } from '../types';
 import { translate as tr } from '../i18n';
-import { clamp, randInt, weightedPick, type Rng } from './rng';
+import { clamp, randInt, shuffle, weightedPick, type Rng } from './rng';
 
 /** Everything the engine needs to know about the context of a match. */
 export interface MatchCtx {
@@ -118,6 +118,9 @@ const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] || name;
 
 /* ───────────── Setup ───────────── */
 
+/** The last situations shown: they are far less likely to come back soon. */
+let recentMoments: string[] = [];
+
 function scheduleClutches(startMinute: number, starter: boolean, rng: Rng): ClutchMoment[] {
   const count = starter ? (rng() < 0.5 ? 3 : 4) : 3;
   const lo = startMinute + 7;
@@ -126,12 +129,14 @@ function scheduleClutches(startMinute: number, starter: boolean, rng: Rng): Clut
   const pool = [...CLUTCH_DECK];
   const out: ClutchMoment[] = [];
   for (let i = 0; i < count; i++) {
-    const tpl = weightedPick(pool, (t) => t.weight, rng);
+    const tpl = weightedPick(pool, (t) => t.weight * (recentMoments.includes(t.id) ? 0.12 : 1), rng);
     pool.splice(pool.indexOf(tpl), 1);
     const minute = Math.floor(lo + span * i + rng() * Math.max(0, span - 8));
     const { weight: _w, ...rest } = tpl;
     void _w;
-    out.push({ ...rest, id: `${tpl.id}-${i}`, minute });
+    // the order of the choices changes every time, so no answer sits in a fixed spot
+    out.push({ ...rest, options: shuffle(rest.options, rng), id: `${tpl.id}-${i}`, minute });
+    recentMoments = [...recentMoments, tpl.id].slice(-9);
   }
   return out;
 }

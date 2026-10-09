@@ -3,8 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Footprints, Gauge, Hand, Play, Swords, Target, Users, Wind, Zap, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Chip, Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Card';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import type { MiniKind, MiniQuality } from '@/lib/types';
@@ -80,10 +79,9 @@ const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
 
 export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const t = useT();
-  // intro (frozen) → short countdown → play
-  const [phase, setPhase] = useState<'intro' | 'count' | 'play'>('intro');
-  const [count, setCount] = useState(3);
-  // a tap that arrives the instant the screen opens (the one that chose this skill moment) must not start it
+  // The first frame stays frozen until the player taps once; that first tap only starts the game.
+  const [running, setRunning] = useState(false);
+  // ignore the tap that chose this skill moment, which can land on the freshly opened screen
   const [armed, setArmed] = useState(false);
   const [result, setResult] = useState<MiniQuality | null>(null);
   const done = useRef(false);
@@ -96,20 +94,9 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const bonus = Math.max(-0.02, Math.min(0.08, (skill - 68) / 400));
 
   useEffect(() => {
-    const id = setTimeout(() => setArmed(true), 700);
+    const id = setTimeout(() => setArmed(true), 500);
     return () => clearTimeout(id);
   }, []);
-
-  useEffect(() => {
-    if (phase !== 'count') return;
-    if (count <= 0) {
-      setPhase('play');
-      return;
-    }
-    haptic(8);
-    const id = setTimeout(() => setCount((c) => c - 1), 420);
-    return () => clearTimeout(id);
-  }, [phase, count]);
 
   useEffect(
     () => () => {
@@ -126,7 +113,7 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
     timer.current = setTimeout(() => onDoneRef.current(q), 1100);
   }, []);
 
-  const game: GameProps = { bonus, pressure, difficulty, locked: !!result, onStop: finish };
+  const game: GameProps = { bonus, pressure, difficulty, locked: !!result, running, onStop: finish };
 
   return (
     <div className="space-y-4">
@@ -140,80 +127,51 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         </Chip>
       </div>
 
-      {phase === 'intro' ? (
-        /* Frozen explanation — nothing moves until the player taps START */
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-          <Card strong className="space-y-3 p-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-gold-400/40 bg-gold-400/10 text-gold-300 shadow-gold">
-              <Icon className="h-8 w-8" />
-            </div>
-            <div className="eyebrow">{t('How to play')}</div>
-            <ul className="space-y-2">
-              {meta.how.map((line) => (
-                <li key={line} className="flex gap-2 text-[14px] leading-snug text-zinc-200">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neon-400" />
-                  {t(line)}
-                </li>
-              ))}
-            </ul>
-            <p className="rounded-xl bg-black/30 px-3 py-2 text-xs text-zinc-400">💡 {t(meta.tip)}</p>
-          </Card>
-          <Button
-            block
-            size="lg"
-            disabled={!armed}
+      <div className="relative">
+        {kind === 'power' && <PowerBar {...game} />}
+        {kind === 'header' && <RingGame {...game} />}
+        {kind === 'tackle' && <ReactionGame {...game} />}
+        {kind === 'dribble' && <DribbleGame {...game} />}
+        {kind === 'sprint' && <SprintGame {...game} />}
+        {kind === 'memory' && <MemoryGame {...game} />}
+        {kind === 'aim' && <AimGame {...game} />}
+        {kind === 'charge' && <ChargeGame {...game} />}
+
+        {/* Freezes the first frame: the first tap anywhere starts the game and is not counted as a move */}
+        {!running && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: armed ? 1 : 0.6 }}
             onClick={() => {
               if (!armed) return;
               haptic(15);
-              setCount(3);
-              setPhase('count');
+              setRunning(true);
             }}
+            className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-black/35 backdrop-blur-[1px]"
+            aria-label={t('Tap to start')}
           >
-            <Play className="h-5 w-5 fill-current" /> {t('Start')}
-          </Button>
-        </motion.div>
-      ) : phase === 'count' ? (
-        <div className="flex h-[260px] items-center justify-center rounded-3xl border border-white/10 bg-black/40">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={count}
-              initial={{ scale: 1.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.6, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              className="font-display text-8xl font-extrabold text-gold-300 drop-shadow-[0_0_24px_rgba(242,193,78,0.7)]"
-            >
-              {count > 0 ? count : t('GO!')}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-      ) : (
-        <div className="relative">
-          {kind === 'power' && <PowerBar {...game} />}
-          {kind === 'header' && <RingGame {...game} />}
-          {kind === 'tackle' && <ReactionGame {...game} />}
-          {kind === 'dribble' && <DribbleGame {...game} />}
-          {kind === 'sprint' && <SprintGame {...game} />}
-          {kind === 'memory' && <MemoryGame {...game} />}
-          {kind === 'aim' && <AimGame {...game} />}
-          {kind === 'charge' && <ChargeGame {...game} />}
+            <span className="flex items-center gap-2 rounded-full border border-gold-400/50 bg-zinc-950/80 px-5 py-3 font-display text-2xl font-extrabold uppercase tracking-wide text-gold-300 shadow-gold">
+              <Play className="h-5 w-5 fill-current" /> {t('Tap to start')}
+            </span>
+          </motion.button>
+        )}
 
-          <AnimatePresence>
-            {result && (
-              <motion.div
-                initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
-                animate={{ scale: 1, opacity: 1, rotate: -3 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 16 }}
-                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
-              >
-                <span className={cn('font-display text-6xl font-extrabold italic tracking-tight drop-shadow-[0_0_18px_rgba(0,0,0,0.8)]', QUALITY_COPY[result].color)}>
-                  {t(QUALITY_COPY[result].text)}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
+              animate={{ scale: 1, opacity: 1, rotate: -3 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 16 }}
+              className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+            >
+              <span className={cn('font-display text-6xl font-extrabold italic tracking-tight drop-shadow-[0_0_18px_rgba(0,0,0,0.8)]', QUALITY_COPY[result].color)}>
+                {t(QUALITY_COPY[result].text)}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -223,22 +181,24 @@ interface GameProps {
   pressure: number;
   difficulty: number;
   locked: boolean;
+  /** false until the first tap: the first frame is frozen */
+  running: boolean;
   onStop: (q: MiniQuality) => void;
 }
 
 /* ───────── Power shot: sweet-spot bar with a restless cursor ───────── */
 
-function PowerBar({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function PowerBar({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const [pos, setPos] = useState(0);
   const posRef = useRef(0);
   const [center] = useState(() => 0.25 + Math.random() * 0.5);
-  const perfect = (0.05 + bonus * 0.25) * (1 - 0.25 * difficulty);
-  const good = (0.145 + bonus * 0.8) * (1 - 0.2 * difficulty);
+  const perfect = (0.06 + bonus * 0.25) * (1 - 0.15 * difficulty);
+  const good = (0.17 + bonus * 0.8) * (1 - 0.12 * difficulty);
 
   useEffect(() => {
-    if (locked) return;
-    const base = 0.78 + pressure * 0.45 + difficulty * 0.3; // traversals per second
+    if (locked || !running) return;
+    const base = 0.72 + pressure * 0.3 + difficulty * 0.2; // traversals per second
     let raf = 0;
     let last = performance.now();
     let phase = Math.random();
@@ -254,7 +214,7 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [locked, pressure, difficulty]);
+  }, [locked, running, pressure, difficulty]);
 
   const stop = () => {
     if (locked) return;
@@ -282,18 +242,18 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
 
 /* ───────── Header: closing ring ───────── */
 
-function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function RingGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const [r, setR] = useState(1);
   const rRef = useRef(1);
-  const total = 1700 - pressure * 350 - difficulty * 200;
-  const perfect = (0.05 + bonus * 0.3) * (1 - 0.3 * difficulty);
-  const good = (0.14 + bonus * 0.8) * (1 - 0.25 * difficulty);
+  const total = 1750 - pressure * 250 - difficulty * 150;
+  const perfect = (0.065 + bonus * 0.3) * (1 - 0.2 * difficulty);
+  const good = (0.18 + bonus * 0.8) * (1 - 0.15 * difficulty);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     let raf = 0;
-    const start = performance.now() + 700;
+    const start = performance.now() + 500;
     const loop = (now: number) => {
       const p = Math.max(0, (now - start) / total);
       const v = 1 - p;
@@ -307,7 +267,7 @@ function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [locked, total, onStop]);
+  }, [locked, running, total, onStop]);
 
   const stop = () => {
     if (locked) return;
@@ -333,13 +293,13 @@ function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
 
 /* ───────── Tackle: reaction time with decoys ───────── */
 
-function ReactionGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function ReactionGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const [light, setLight] = useState<'wait' | 'decoy' | 'go'>('wait');
   const goAt = useRef(0);
   const lightRef = useRef<'wait' | 'decoy' | 'go'>('wait');
-  const perfect = 200 + bonus * 700 - difficulty * 30;
-  const good = 400 + bonus * 900 - pressure * 80 - difficulty * 60;
+  const perfect = 240 + bonus * 700 - difficulty * 20;
+  const good = 470 + bonus * 900 - pressure * 60 - difficulty * 40;
 
   const setBoth = (v: 'wait' | 'decoy' | 'go') => {
     lightRef.current = v;
@@ -347,11 +307,11 @@ function ReactionGame({ bonus, pressure, difficulty, onStop, locked }: GameProps
   };
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     const ids: ReturnType<typeof setTimeout>[] = [];
     let wait = 900 + Math.random() * 1500;
     // a yellow decoy flash comes first about half of the time
-    if (Math.random() < 0.5 + difficulty * 0.2) {
+    if (Math.random() < 0.4 + difficulty * 0.15) {
       ids.push(setTimeout(() => setBoth('decoy'), wait));
       ids.push(setTimeout(() => setBoth('wait'), wait + 380));
       wait += 380 + 700 + Math.random() * 900;
@@ -363,7 +323,7 @@ function ReactionGame({ bonus, pressure, difficulty, onStop, locked }: GameProps
       }, wait),
     );
     return () => ids.forEach(clearTimeout);
-  }, [locked, difficulty]);
+  }, [locked, running, difficulty]);
 
   useEffect(() => {
     if (light !== 'go' || locked) return;
@@ -404,15 +364,15 @@ const ARROWS: Record<Dir, LucideIcon> = { L: ArrowLeft, U: ArrowUp, R: ArrowRigh
 const OPPOSITE: Record<Dir, Dir> = { L: 'R', R: 'L', U: 'D', D: 'U' };
 const DIRS: Dir[] = ['L', 'U', 'D', 'R'];
 
-function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const STEPS = 5;
   // generous windows; the first arrow gets a little extra time to read the screen
-  const window = 1950 - pressure * 300 - difficulty * 250 + bonus * 1500;
+  const window = 1600 - pressure * 250 - difficulty * 150 + bonus * 1200;
   const [seq] = useState(() =>
     Array.from({ length: STEPS }, (_, i) => ({
       dir: DIRS[Math.floor(Math.random() * 4)],
-      inverted: i >= 2 && Math.random() < 0.25,
+      inverted: i >= 2 && Math.random() < 0.2,
     })),
   );
   const [step, setStep] = useState(0);
@@ -439,10 +399,10 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps)
   );
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     const id = setTimeout(() => advance(false), window + (key === 0 ? 700 : 0));
     return () => clearTimeout(id);
-  }, [key, locked, window, advance]);
+  }, [key, locked, running, window, advance]);
 
   const press = (d: Dir) => {
     if (locked) return;
@@ -505,18 +465,18 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps)
 
 /* ───────── Sprint: button mashing against a draining bar ───────── */
 
-function SprintGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function SprintGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const TOTAL = 3300 - pressure * 300;
-  const tapValue = 7.4 - difficulty * 1.6 + bonus * 10;
-  const drain = 15 + difficulty * 5 + pressure * 4; // per second
+  const tapValue = 8.2 - difficulty * 1.2 + bonus * 10;
+  const drain = 13 + difficulty * 4 + pressure * 3; // per second
   const [fill, setFill] = useState(0);
   const [left, setLeft] = useState(TOTAL);
   const fillRef = useRef(0);
   const doneRef = useRef(false);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     let raf = 0;
     let last = performance.now();
     const start = last;
@@ -534,14 +494,14 @@ function SprintGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) 
       }
       if (remaining <= 0) {
         doneRef.current = true;
-        onStop(fillRef.current >= 72 ? 'good' : 'miss');
+        onStop(fillRef.current >= 66 ? 'good' : 'miss');
         return;
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [locked, TOTAL, drain, onStop]);
+  }, [locked, running, TOTAL, drain, onStop]);
 
   const tap = () => {
     if (locked || doneRef.current) return;
@@ -572,9 +532,9 @@ function SprintGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) 
 
 /* ───────── Memory: repeat the passing sequence ───────── */
 
-function MemoryGame({ pressure, difficulty, onStop, locked }: GameProps) {
+function MemoryGame({ pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
-  const N = 3 + (difficulty > 0.55 ? 1 : 0) + (pressure > 0.6 ? 1 : 0);
+  const N = 3 + (difficulty > 0.7 ? 1 : 0) + (pressure > 0.75 ? 1 : 0);
   const [seq] = useState(() => {
     const out: number[] = [];
     while (out.length < N) {
@@ -590,16 +550,16 @@ function MemoryGame({ pressure, difficulty, onStop, locked }: GameProps) {
   const [flash, setFlash] = useState<{ cell: number; ok: boolean } | null>(null);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     const ids: ReturnType<typeof setTimeout>[] = [];
-    const gap = 720 - difficulty * 160;
+    const gap = 780 - difficulty * 120;
     seq.forEach((c, i) => {
       ids.push(setTimeout(() => setLit(c), 500 + i * gap));
       ids.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.62));
     });
     ids.push(setTimeout(() => setPhase('repeat'), 500 + seq.length * gap + 150));
     return () => ids.forEach(clearTimeout);
-  }, [seq, locked, difficulty]);
+  }, [seq, locked, running, difficulty]);
 
   const tap = (cell: number) => {
     if (locked || phase !== 'repeat') return;
@@ -648,7 +608,7 @@ function MemoryGame({ pressure, difficulty, onStop, locked }: GameProps) {
 
 /* ───────── Aim: a drifting crosshair ───────── */
 
-function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function AimGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const [target] = useState(() => ({ x: 0.22 + Math.random() * 0.56, y: 0.25 + Math.random() * 0.5 }));
   const [cross, setCross] = useState({ x: 0.5, y: 0.5 });
@@ -658,7 +618,7 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const good = (0.2 + bonus * 0.5) * (1 - 0.15 * difficulty);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     const speed = 0.9 + pressure * 0.4 + difficulty * 0.3;
     const [fa, fb, pa, pb] = [1.1 + Math.random() * 0.4, 1.5 + Math.random() * 0.5, Math.random() * 6, Math.random() * 6];
     let raf = 0;
@@ -672,7 +632,7 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [locked, pressure, difficulty]);
+  }, [locked, running, pressure, difficulty]);
 
   const shoot = () => {
     if (locked) return;
@@ -707,16 +667,16 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
 
 /* ───────── Charge: hold, then release on the marker ───────── */
 
-function ChargeGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
+function ChargeGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
   const t = useT();
   const [target] = useState(() => 0.55 + Math.random() * 0.33);
   const [level, setLevel] = useState(0);
   const [holding, setHolding] = useState(false);
   const levelRef = useRef(0);
   const holdRef = useRef(false);
-  const perfect = (0.04 + bonus * 0.25) * (1 - 0.25 * difficulty);
-  const good = (0.1 + bonus * 0.7) * (1 - 0.2 * difficulty);
-  const fillMs = 1500 - pressure * 350 - difficulty * 250;
+  const perfect = (0.05 + bonus * 0.25) * (1 - 0.15 * difficulty);
+  const good = (0.125 + bonus * 0.7) * (1 - 0.12 * difficulty);
+  const fillMs = 1650 - pressure * 250 - difficulty * 200;
 
   const release = useCallback(() => {
     if (!holdRef.current || locked) return;
@@ -727,7 +687,7 @@ function ChargeGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) 
   }, [locked, onStop, target, perfect, good]);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || !running) return;
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
@@ -755,7 +715,7 @@ function ChargeGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) 
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
     };
-  }, [locked, fillMs, onStop, release]);
+  }, [locked, running, fillMs, onStop, release]);
 
   return (
     <div className="space-y-4">

@@ -65,6 +65,13 @@ export interface FixtureResult {
   clutchTotal?: number;
 }
 
+export interface DrawCandidate {
+  opponent: string;
+  opponentShort: string;
+  opponentStrength: number;
+  opponentColor: string;
+}
+
 export interface Fixture {
   id: string;
   kind: FixtureKind;
@@ -77,6 +84,10 @@ export interface Fixture {
   home: boolean;
   /** Draws are settled by a penalty shootout */
   knockout: boolean;
+  /** false until the player has taken part in the draw (cup rounds, tournament stages) */
+  drawn?: boolean;
+  /** The balls in the pot: one of them becomes the opponent */
+  pool?: DrawCandidate[];
   status: 'upcoming' | 'played' | 'skipped';
   result?: FixtureResult;
 }

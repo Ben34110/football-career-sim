@@ -27,7 +27,7 @@ export function CareerEnd() {
           {t('{n} seasons · peak OVR {m}', { n: history.length, m: player.peakOvr })}
         </p>
       </div>
-      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} age={player.age} clubId={player.clubId} look={player.look} />
+      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
       <ShareCardButton player={player} />
       <div className="grid grid-cols-4 gap-2 text-center">
         {[

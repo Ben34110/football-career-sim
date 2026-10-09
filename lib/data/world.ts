@@ -7,11 +7,11 @@ import type { Confederation } from '../types';
  * France, Senegal, Spain, England and Brazil keep their hand-written clubs (no towns).
  */
 const RAW = `
-FRA|FR|France|France|UEFA|86|||fr|
-ESP|ES|Spain|Espagne|UEFA|86|||es|
-ENG|GB|England|Angleterre|UEFA|85|||en|
-BRA|BR|Brazil|Brésil|CONMEBOL|85|||pt|
-SEN|SN|Senegal|Sénégal|CAF|79|||faf|
+FRA|FR|France|France|UEFA|86|||fr|Rouen,Dijon,Le Mans,Nancy,Brest,Quimper,Annecy,Grenoble,Perpignan,Cherbourg,Pau,Troyes,Épinal,Nîmes,Amiens,Metz,Caen,Clermont,Angers,Tours,Limoges,Poitiers,Valence,Avignon,Montpellier,Toulon,Nantes,Strasbourg,Lorient
+ESP|ES|Spain|Espagne|UEFA|86|||es|Gijón,Badajoz,Cádiz,Córdoba,Granada,Almería,Málaga,Alicante,Elche,Valladolid,Burgos,León,Salamanca,Pamplona,Santander,Zaragoza,Huesca,Tarragona,Girona,Castellón,Albacete,Jaén,Vigo,Lugo,Alcalá
+ENG|GB|England|Angleterre|UEFA|85|||en|Sheffield,Bristol,Norwich,Stoke,Hull,Leicester,Derby,Nottingham,Coventry,Southampton,Portsmouth,Plymouth,Bolton,Preston,Blackburn,Burnley,Sunderland,Middlesbrough,Reading,Oxford,Cambridge,Ipswich,Luton,Watford,Exeter,Bournemouth,Huddersfield,Wigan
+BRA|BR|Brazil|Brésil|CONMEBOL|85|||pt|Curitiba,Porto Alegre,Recife,Fortaleza,Salvador,Belo Horizonte,Brasília,Campinas,Santos,Londrina,Joinville,Maringá,Natal,Belém,Manaus,São Luís,Teresina,Vitória,Florianópolis,Cuiabá,Campo Grande,Uberlândia,Ribeirão Preto,Sorocaba
+SEN|SN|Senegal|Sénégal|CAF|79|||faf|Dakar,Thiès,Saint-Louis,Kaolack,Ziguinchor,Touba,Mbour,Louga,Tambacounda,Diourbel,Kolda,Rufisque,Fatick,Saly,Matam,Kédougou,Joal,Richard-Toll,Pikine,Guédiawaye
 POR|PT|Portugal|Portugal|UEFA|84|Liga 3|Liga Portugal|pt|Braga,Guimarães,Porto,Lisboa,Coimbra,Faro,Setúbal,Aveiro,Viseu,Leiria,Évora,Funchal,Portimão,Chaves,Barcelos,Santarém
 GER|DE|Germany|Allemagne|UEFA|83|3. Liga|Bundesliga|de|Kiel,Rostock,Dresden,Leipzig,Münster,Osnabrück,Freiburg,Mainz,Kassel,Ulm,Aachen,Bielefeld,Magdeburg,Würzburg,Regensburg,Lübeck
 NED|NL|Netherlands|Pays-Bas|UEFA|82|Eerste Divisie|Eredivisie|nl|Groningen,Eindhoven,Utrecht,Zwolle,Almere,Breda,Tilburg,Maastricht,Venlo,Emmen,Den Bosch,Dordrecht,Deventer,Leiden,Roda,Alkmaar

@@ -1,7 +1,8 @@
-import { getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
+import { COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
 import { OPPONENT_NATIONS, tournamentFor } from '../data/nationalities';
 import type {
   Club,
+  DrawCandidate,
   Fixture,
   FixtureResult,
   Nationality,
@@ -23,8 +24,9 @@ const LEAGUE_MATCHES = 10;
 export function generateSeason(year: number, club: Club, rng: Rng): SeasonState {
   const tier = club.tier;
   // Starter leagues are played against clubs named after towns of that country
-  const local = LOCAL_RIVALS[`${club.country}|${club.league}`] ?? LOCAL_RIVALS[club.league];
-  const pool = shuffle(local ?? LEAGUE_RIVALS[tier], rng);
+  // Opponents always come from the club's own country: first its league, then any town of the country
+  const local = LOCAL_RIVALS[`${club.country}|${club.league}`] ?? LOCAL_RIVALS[club.league] ?? COUNTRY_RIVALS[club.country];
+  const pool = shuffle((local ?? LEAGUE_RIVALS[tier]).filter((n) => n !== club.name), rng);
   const names = pool.slice(0, LEAGUE_MATCHES);
   const rivals = names.map((name, i) => ({
     id: `${year}-r${i}`,
@@ -64,23 +66,37 @@ export function generateSeason(year: number, club: Club, rng: Rng): SeasonState 
     status: 'upcoming',
   }));
 
-  const cupNames = local
-    ? pool.slice(LEAGUE_MATCHES, LEAGUE_MATCHES + 3)
-    : shuffle(LEAGUE_RIVALS[clamp(tier - 1, 1, 5) as 1 | 2 | 3 | 4 | 5], rng).slice(0, 3);
   const cupLabels = ['Cup Quarter-Final', 'Cup Semi-Final', 'Cup Final'];
   const cupBoost = [rand(-3, 2, rng), rand(0, 5, rng), rand(2, 7, rng)];
-  const cup: Fixture[] = cupLabels.map((label, i) => ({
-    id: `${year}-C${i + 1}`,
-    kind: 'cup',
-    label,
-    opponent: cupNames[i],
-    opponentShort: shortOf(cupNames[i]),
-    opponentStrength: clamp(Math.round(club.strength + cupBoost[i]), 45, 94),
-    opponentColor: RIVAL_COLORS[(i + 3) % RIVAL_COLORS.length],
-    home: i === 1 ? false : true,
-    knockout: true,
-    status: 'upcoming',
-  }));
+  // The opponent of each round is only known after the draw: four balls, four possible clubs
+  const cupSource = local ? pool : shuffle(LEAGUE_RIVALS[clamp(tier - 1, 1, 5) as 1 | 2 | 3 | 4 | 5], rng);
+  const usedCup = new Set<string>();
+  const cup: Fixture[] = cupLabels.map((label, i) => {
+    const names: string[] = [];
+    for (const n of cupSource) {
+      if (names.length === 4) break;
+      if (!usedCup.has(n)) names.push(n);
+    }
+    names.forEach((n) => usedCup.add(n));
+    const spread = shuffle([-5, -1, 2, 6], rng);
+    const pool: DrawCandidate[] = names.map((n, k) => ({
+      opponent: n,
+      opponentShort: shortOf(n),
+      opponentStrength: clamp(Math.round(club.strength + cupBoost[i] + spread[k]), 45, 94),
+      opponentColor: RIVAL_COLORS[(i * 4 + k + 3) % RIVAL_COLORS.length],
+    }));
+    return {
+      id: `${year}-C${i + 1}`,
+      kind: 'cup' as const,
+      label,
+      ...pool[0],
+      home: i === 1 ? false : true,
+      knockout: true,
+      status: 'upcoming' as const,
+      drawn: false,
+      pool,
+    };
+  });
 
   // Interleave cup rounds with the league run
   const fixtures: Fixture[] = [
@@ -169,6 +185,18 @@ function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng:
       pts: row.pts + (won ? 3 : drawn ? 1 : 0),
     };
   });
+}
+
+/** The player picks a ball: the opponent of this round becomes known. */
+export function applyDraw(season: SeasonState, fixtureId: string, index: number): SeasonState {
+  return {
+    ...season,
+    fixtures: season.fixtures.map((f) => {
+      if (f.id !== fixtureId || !f.pool) return f;
+      const pick = f.pool[Math.max(0, Math.min(f.pool.length - 1, index))];
+      return { ...f, ...pick, drawn: true };
+    }),
+  };
 }
 
 export function applyFixtureResult(season: SeasonState, result: FixtureResult, rng: Rng): SeasonState {
@@ -269,7 +297,16 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
       ['Semi-Final', 2, true],
       ['Final', 4, true],
     ];
-    const extra = stages.map(([label, boost, ko], i) => nationOpponent(nat, boost, label, `${next.year}-T${i + 1}`, 'tournament', ko, rng));
+    const extra = stages.map(([label, boost, ko], i) => {
+      // four possible opponents per stage, of different strength
+      const spread = shuffle([-5, -1, 2, 6], rng);
+      const options = Array.from({ length: 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng));
+      const names = new Set<string>();
+      const pool: DrawCandidate[] = options
+        .filter((o) => !names.has(o.opponent) && names.add(o.opponent))
+        .map((o) => ({ opponent: o.opponent, opponentShort: o.opponentShort, opponentStrength: o.opponentStrength, opponentColor: o.opponentColor }));
+      return { ...options[0], ...pool[0], drawn: false, pool };
+    });
     next = {
       ...next,
       fixtures: [...next.fixtures, ...extra],

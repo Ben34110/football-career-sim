@@ -27,7 +27,7 @@ export function ProfileScreen() {
 
   return (
     <div className="space-y-5">
-      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} age={player.age} clubId={player.clubId} look={player.look} />
+      <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
       <ShareCardButton player={player} />
 
       <div className="flex flex-wrap gap-2">

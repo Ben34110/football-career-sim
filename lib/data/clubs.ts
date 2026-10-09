@@ -83,10 +83,18 @@ function clubNames(w: WorldCountry, count = 26): string[] {
 }
 
 const GENERATED_RIVALS: Record<string, string[]> = {};
+/** Domestic opposition for any league of a country: towns of that country only. */
+export const COUNTRY_RIVALS: Record<string, string[]> = {};
 
 function generate(w: WorldCountry & { flag: string }): Club[] {
   const names = clubNames(w);
   if (names.length < 8) return [];
+  // hand-written countries keep their curated clubs but still get a full set of local opponents
+  if (HAND_CRAFTED.has(w.code)) {
+    COUNTRY_RIVALS[w.name] = names;
+    return [];
+  }
+  COUNTRY_RIVALS[w.name] = names.slice(4);
   const id = w.code.toLowerCase();
   const rivals = names.slice(4, 4 + 16);
   GENERATED_RIVALS[`${w.name}|${w.lowLeague}`] = rivals;
@@ -122,7 +130,7 @@ function generate(w: WorldCountry & { flag: string }): Club[] {
   return [top, ...starters];
 }
 
-const GENERATED_CLUBS = WORLD.filter((w) => !HAND_CRAFTED.has(w.code)).flatMap(generate);
+const GENERATED_CLUBS = WORLD.flatMap(generate);
 
 export const CLUBS: Club[] = [...CURATED_CLUBS, ...GENERATED_CLUBS];
 

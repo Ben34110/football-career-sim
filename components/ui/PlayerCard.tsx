@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
-import { ATTR_LABEL, calcOvr, fmtMoneyM, marketValue } from '@/lib/engine/player';
+import { ATTR_LABEL, calcOvr, fmtMoneyM, marketValue, ovrProgress } from '@/lib/engine/player';
 import type { Look } from '@/lib/data/look';
 import { useT } from '@/lib/i18n';
 import type { AttrKey, Attributes, Position } from '@/lib/types';
@@ -17,6 +17,8 @@ interface Props {
   nationality: string;
   position: Position;
   attrs: Attributes;
+  /** Partial progress toward the next attribute point (enables the OVR progress bar) */
+  xp?: Attributes;
   age: number;
   clubId: string | null;
   look?: Look;
@@ -34,7 +36,7 @@ const ATTR_INFO: Record<AttrKey, string> = {
   stamina: 'Energy over 90 minutes. Helps you press, track back and win physical duels.',
 };
 
-export function PlayerCard({ name, nationality, position, attrs, age, clubId, look, className, compact }: Props) {
+export function PlayerCard({ name, nationality, position, attrs, xp, age, clubId, look, className, compact }: Props) {
   const t = useT();
   const [info, setInfo] = useState<AttrKey | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +56,7 @@ export function PlayerCard({ name, nationality, position, attrs, age, clubId, lo
   const ovr = calcOvr(attrs, position);
   const value = marketValue(ovr, age);
   const elite = ovr >= 85;
+  const prog = xp ? ovrProgress(attrs, xp, position) : null;
   return (
     <div
       className={cn(
@@ -124,6 +127,26 @@ export function PlayerCard({ name, nationality, position, attrs, age, clubId, lo
           </motion.div>
         )}
       </AnimatePresence>
+      {prog && (
+        <div className="relative mt-3" title={t('Progress to the next level')}>
+          <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+            <span>{t('Overall')}</span>
+            <span className="font-num text-[11px] normal-case tracking-normal text-gold-300/80">{prog.next === null ? 'MAX' : `${Math.round(prog.pct * 100)}%`}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-num text-sm font-extrabold text-zinc-100">{prog.ovr}</span>
+            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200 shadow-[0_0_10px_rgba(242,193,78,0.6)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${prog.pct * 100}%` }}
+                transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+              />
+            </div>
+            <span className="font-num text-sm font-extrabold text-zinc-500">{prog.next ?? '—'}</span>
+          </div>
+        </div>
+      )}
       <div className="relative mt-3 flex items-center justify-between text-xs">
         <span className="eyebrow">{t('Market value')}</span>
         <span className="font-num text-base font-bold text-gold-300">{fmtMoneyM(value)}</span>

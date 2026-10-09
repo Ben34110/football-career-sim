@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Brain, Eye, Flame, Gamepad2, Target, Zap, type LucideIcon } from 'lucide-react';
+import { Brain, Eye, Flame, Target, Zap, type LucideIcon } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Chip } from '@/components/ui/Card';
 import { ATTR_LABEL } from '@/lib/engine/player';
@@ -43,7 +43,8 @@ export function ClutchSheet({
           <div className="mt-4 space-y-2.5">
             {moment.options.map((o, i) => {
               const Icon = ATTR_ICON[o.attr];
-              const chance = successChance(o, ctx, match);
+              // every option shows a bar, so skill moments and kicks look just like the rest
+              const chance = o.base >= 1 ? 0.55 : successChance(o, ctx, match);
               return (
                 <motion.button
                   key={o.id}
@@ -62,14 +63,7 @@ export function ClutchSheet({
                       <div className="text-[15px] font-bold leading-tight">{t(o.label)}</div>
                       <div className="mt-0.5 text-xs text-zinc-400">{t(o.hint)}</div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Chip tone={RISK_TONE[o.risk]}>{t(o.risk)}</Chip>
-                      {o.mini && (
-                        <Chip tone="info">
-                          <Gamepad2 className="h-3 w-3" /> {t('Mini-game')}
-                        </Chip>
-                      )}
-                    </div>
+                    <Chip tone={RISK_TONE[o.risk]}>{t(o.risk)}</Chip>
                   </div>
                   <div className="mt-2.5 flex items-center gap-2.5">
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400">

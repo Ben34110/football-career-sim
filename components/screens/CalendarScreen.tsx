@@ -12,7 +12,7 @@ import { sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
-import type { SeasonState } from '@/lib/types';
+import type { Fixture, SeasonState } from '@/lib/types';
 import { cn, crestShort } from '@/lib/utils';
 
 const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe };
@@ -134,9 +134,16 @@ function Fixtures({ season }: { season: SeasonState }) {
   const t = useT();
   const { lang } = useLang();
   const { fixtures, cursor } = season;
+  // Later cup rounds / tournament stages stay hidden until the previous round is won
+  const firstOpen: Partial<Record<Fixture['kind'], string>> = {};
+  for (const f of fixtures) if (f.status === 'upcoming' && (f.kind === 'cup' || f.kind === 'tournament') && !firstOpen[f.kind]) firstOpen[f.kind] = f.id;
+  const visible = fixtures
+    .map((f, i) => ({ f, i }))
+    .filter(({ f }) => !((f.kind === 'cup' || f.kind === 'tournament') && f.status === 'upcoming' && firstOpen[f.kind] !== f.id));
   return (
     <ol className="relative space-y-2 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-white/10">
-      {fixtures.map((f, i) => {
+      {visible.map(({ f, i }) => {
+        const pending = f.drawn === false;
         const Icon = KIND_ICON[f.kind];
         const next = i === cursor;
         const r = f.result;
@@ -145,11 +152,11 @@ function Fixtures({ season }: { season: SeasonState }) {
             <div className={cn('relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border', next ? 'border-neon-400/60 bg-zinc-950 text-neon-300' : 'border-white/10 bg-zinc-900 text-zinc-500')}>
               <Icon className="h-4 w-4" />
             </div>
-            <Crest short={crestShort(f.opponentShort)} color={f.opponentColor} size={30} />
+            {pending ? <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-sm">🎱</span> : <Crest short={crestShort(f.opponentShort)} color={f.opponentColor} size={30} />}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-bold">{t(f.opponent)}</div>
+              <div className="truncate text-[13px] font-bold">{pending ? t('Opponent to be drawn') : t(f.opponent)}</div>
               <div className="text-[11px] text-zinc-500">
-                {fmtShortDate(fixtureDate(season, i), lang)} · {t(f.label)} · {f.home ? t('H') : t('A')} · {f.opponentStrength}
+                {fmtShortDate(fixtureDate(season, i), lang)} · {t(f.label)}{pending ? '' : ` · ${f.home ? t('H') : t('A')} · ${f.opponentStrength}`}
               </div>
             </div>
             {f.status === 'played' && r && (

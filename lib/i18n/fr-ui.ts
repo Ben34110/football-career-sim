@@ -155,6 +155,41 @@ export const FR_UI: Record<string, string> = {
   'Half-time: {home} {a}–{b} {away}.': 'Mi-temps : {home} {a}–{b} {away}.',
   'Full-time: {home} {a}–{b} {away}.': 'Fin du match : {home} {a}–{b} {away}.',
 
+  'The wall covers the left of the goal.': 'Le mur couvre la gauche du but.',
+  'The wall covers the right of the goal.': 'Le mur couvre la droite du but.',
+  'The wall covers the middle of the goal.': 'Le mur couvre le milieu du but.',
+
+  'Progress to the next level': 'Progression vers le niveau suivant',
+  Overall: 'Niveau général',
+
+  // draws
+  'Cup draw': 'Tirage de la coupe',
+  'Tournament draw': 'Tirage du tournoi',
+  'You are on stage. Pick a ball to reveal your opponent.': 'Tu es sur scène. Choisis une boule pour découvrir ton adversaire.',
+  'The ball opens…': 'La boule s’ouvre…',
+  'Your opponent is…': 'Ton adversaire sera…',
+  'The other balls held': 'Les autres boules contenaient',
+  Ball: 'Boule',
+  'To the match': 'Vers le match',
+  'Opponent to be drawn': 'Adversaire à tirer au sort',
+  'You take part in the draw': 'Tu participes au tirage',
+  'Take part in the draw': 'Participer au tirage',
+
+  // signing ceremony
+  Skip: 'Passer',
+  'Contract extension': 'Prolongation de contrat',
+  'Player contract': 'Contrat de joueur',
+  Player: 'Joueur',
+  Length: 'Durée',
+  Signature: 'Signature',
+  SIGNED: 'SIGNÉ',
+  'Contract extended': 'Contrat prolongé',
+  'Deal agreed': 'Accord conclu',
+  'You join at the start of next season.': 'Tu rejoins le club au début de la saison prochaine.',
+  'Your future is secured.': 'Ton avenir est assuré.',
+  'A new chapter begins.': 'Un nouveau chapitre commence.',
+  'Let’s go!': 'C’est parti !',
+
   // shop
   Shop: 'Boutique',
   'Club shop': 'Boutique du club',
@@ -217,6 +252,7 @@ export const FR_UI: Record<string, string> = {
   // mini-game intros
   'How to play': 'Comment jouer',
   'GO!': 'GO !',
+  'Tap to start': 'Touche pour commencer',
   Start: 'Commencer',
   'Steady…': 'Doucement…',
   'Inverted!': 'Inversé !',
@@ -283,7 +319,6 @@ export const FR_UI: Record<string, string> = {
   // nav & shell
   Play: 'Jouer',
   Market: 'Marché',
-  Player: 'Joueur',
   Hub: 'Accueil',
 
   // home

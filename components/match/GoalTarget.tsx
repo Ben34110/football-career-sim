@@ -22,6 +22,8 @@ interface Props {
   title: string;
   subtitle?: string;
   continueLabel?: string;
+  /** Colour of the wall's shirts (the opponent's colour) */
+  wallColor?: string;
   onDone: (outcome: KickOutcome) => void;
 }
 
@@ -50,7 +52,7 @@ const CURLS: { id: Curl; label: string; Icon: typeof MoveRight }[] = [
   { id: 'right', label: 'Curl right', Icon: MoveUpRight },
 ];
 
-export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, title, subtitle, continueLabel = 'Continue', onDone }: Props) {
+export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, title, subtitle, continueLabel = 'Continue', wallColor = '#2563eb', onDone }: Props) {
   const t = useT();
   const reduce = useReducedMotion();
   const [curl, setCurl] = useState<Curl>('straight');
@@ -91,7 +93,12 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
         ? { left: `${c.x + (zoneCol(outcome.shotZone) < 2 ? -3 : 3)}%`, top: '-2%', scale: 0.4 }
         : { left: zoneCol(outcome.shotZone) < 2 ? '-2%' : '102%', top: `${c.y}%`, scale: 0.45 };
     }
-    if (outcome.result === 'blocked') return { left: `${c.x}%`, top: '72%', scale: 0.7 };
+    if (outcome.result === 'blocked') {
+      // the ball smacks into a player of the wall: aim for the middle of the covered columns, chest height
+      const cols = WALL_COLS[wall];
+      const cx = GOAL.left + (GOAL.width * (cols[zoneCol(outcome.shotZone) === cols[0] ? 0 : 1] + 0.5)) / 4;
+      return { left: `${cx}%`, top: '60%', scale: 0.8 };
+    }
     return { left: `${c.x}%`, top: `${c.y}%`, scale: 0.5 };
   };
 
@@ -129,11 +136,8 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
       </div>
 
       {/* Scene */}
-      <div className="relative aspect-[16/11] w-full select-none overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_50%_100%,rgba(16,224,138,0.22),rgba(6,78,59,0.18)_45%,#050a08_85%)]">
-        <div aria-hidden className="pitch-lines absolute inset-0 opacity-40 [mask-image:linear-gradient(to_top,black,transparent_75%)]" />
-        {/* penalty spot & box lines */}
-        <div aria-hidden className="absolute left-[3%] right-[3%] top-[56%] h-px bg-white/15" />
-        <div aria-hidden className="absolute left-1/2 top-[88%] h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-white/30" />
+      <div className="relative aspect-[16/11] w-full select-none overflow-hidden rounded-3xl border border-white/10 bg-[#04120c]">
+        <PitchBackdrop kind={kind} />
 
         {/* Goal frame */}
         <div
@@ -188,31 +192,8 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
 
         </div>
 
-        {/* Wall (free kicks): five defenders in front of the goal, hiding two columns */}
-        {kind === 'freekick' && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute z-[8] flex items-end justify-between"
-            style={{
-              left: `${GOAL.left + (GOAL.width * WALL_COLS[wall][0]) / 4}%`,
-              width: `${GOAL.width / 2}%`,
-              top: `${GOAL.top + GOAL.height - 22}%`,
-              height: '30%',
-            }}
-          >
-            {[0, 1, 2, 3, 4].map((i) => (
-              <svg key={i} viewBox="0 0 20 42" className="h-full" style={{ width: '19%' }}>
-                <rect x="5" y="26" width="4" height="15" rx="2" fill="#18181b" />
-                <rect x="11" y="26" width="4" height="15" rx="2" fill="#18181b" />
-                <rect x="3" y="11" width="14" height="18" rx="5" fill={i % 2 ? '#3b82f6' : '#2563eb'} />
-                <rect x="1" y="12" width="3.500" height="12" rx="1.700" fill="#fcd9b6" />
-                <rect x="15.500" y="12" width="3.500" height="12" rx="1.700" fill="#fcd9b6" />
-                <circle cx="10" cy="6" r="5" fill="#fcd9b6" />
-                <path d="M5 5a5 5 0 0110 0c-3-2-7-2-10 0z" fill="#3f2a1d" />
-              </svg>
-            ))}
-          </div>
-        )}
+        {kind === 'freekick' && <Wall side={wall} color={wallColor} phase={phase} result={outcome?.result} />}
+        {kind === 'freekick' && phase === 'aim' && hover !== null && <TrajectoryPreview zone={hover} curl={curl} />}
 
         {/* Keeper */}
         <motion.div
@@ -315,7 +296,12 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
               {t('★ Corners are harder to save — but easier to miss.')}
               {kind === 'freekick' ? ` ${t('Low shots risk the wall.')}` : ''}
             </p>
-            {kind === 'freekick' && <p className="text-xs text-zinc-500">{t('Bend the ball toward the side you aim at to beat the wall and fool the keeper.')}</p>}
+            {kind === 'freekick' && (
+              <p className="text-xs text-zinc-500">
+                {t(wall === 'left' ? 'The wall covers the left of the goal.' : wall === 'right' ? 'The wall covers the right of the goal.' : 'The wall covers the middle of the goal.')}{' '}
+                {t('Bend the ball toward the side you aim at to beat the wall and fool the keeper.')}
+              </p>
+            )}
           </div>
         )}
         {phase === 'flying' && <p className="pt-3 text-center text-sm font-semibold text-zinc-400">{t('Struck… the keeper is diving…')}</p>}
@@ -332,5 +318,116 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
         )}
       </div>
     </div>
+  );
+}
+
+/* ───────── Scene pieces ───────── */
+
+/** Striped pitch in perspective with the penalty area, the goal line and (free kicks) the referee's spray. */
+function PitchBackdrop({ kind }: { kind: KickKind }) {
+  return (
+    <svg aria-hidden viewBox="0 0 160 110" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+      <defs>
+        <linearGradient id="gt-stand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0c0c10" />
+          <stop offset="1" stopColor="#14141a" />
+        </linearGradient>
+        <linearGradient id="gt-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#000" stopOpacity=".55" />
+          <stop offset=".5" stopColor="#000" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* stands and advertising boards */}
+      <rect width="160" height="9" fill="url(#gt-stand)" />
+      <g opacity=".9">
+        {Array.from({ length: 8 }, (_, i) => (
+          <rect key={i} x={i * 20 + 1} y="5.200" width="18" height="3.200" rx=".6" fill={['#064e3b', '#78350f', '#1e3a8a', '#4c1d95'][i % 4]} />
+        ))}
+      </g>
+      {/* grass bands: they get taller toward the viewer */}
+      <rect y="9" width="160" height="101" fill="#0b3b27" />
+      {[
+        [9, 7],
+        [22, 9],
+        [38, 12],
+        [58, 16],
+        [84, 26],
+      ].map(([y, h], i) => (
+        <rect key={i} y={y} width="160" height={h} fill={i % 2 ? '#0e4a31' : '#0a3623'} />
+      ))}
+      {/* penalty area & six-yard box in perspective */}
+      <g fill="none" stroke="rgba(255,255,255,.28)" strokeWidth=".7">
+        <path d="M10 57 L2 110 M150 57 L158 110" />
+        <path d="M42 57 L34 78 L126 78 L118 57" />
+        <path d="M60 78 Q80 86 100 78" strokeOpacity=".5" />
+        <path d="M0 57 L160 57" strokeWidth=".9" strokeOpacity=".4" />
+      </g>
+      {kind !== 'freekick' && <circle cx="80" cy="102" r="1.100" fill="rgba(255,255,255,.55)" />}
+      {/* the referee's vanishing spray where the wall stands */}
+      {kind === 'freekick' && <path d="M22 88.500 Q80 83 138 88.500" fill="none" stroke="rgba(255,255,255,.65)" strokeWidth="1.100" strokeDasharray="3 2.200" strokeLinecap="round" />}
+      <rect width="160" height="110" fill="url(#gt-fade)" />
+    </svg>
+  );
+}
+
+/** Five defenders, arms crossed, lined up on the spray. They hop when the ball is struck. */
+function Wall({ side, color, phase, result }: { side: WallSide; color: string; phase: 'aim' | 'flying' | 'revealed'; result?: string }) {
+  const cols = WALL_COLS[side];
+  const left = GOAL.left + (GOAL.width * cols[0]) / 4;
+  const width = GOAL.width / 2;
+  const hop = phase !== 'aim' && result !== 'blocked';
+  return (
+    <div aria-hidden className="pointer-events-none absolute z-[8]" style={{ left: `${left}%`, width: `${width}%`, top: '34%', height: '50%' }}>
+      <div className="absolute -bottom-[3%] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-bold tracking-wider text-white/70">9.15 m</div>
+      <div className="flex h-full items-end justify-between">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <motion.svg
+            key={i}
+            viewBox="0 0 20 66"
+            className="h-full"
+            style={{ width: '20%' }}
+            animate={hop ? { y: ['0%', '-9%', '0%'] } : { y: '0%' }}
+            transition={hop ? { duration: 0.55, delay: 0.1 + i * 0.025, ease: 'easeOut' } : { duration: 0 }}
+          >
+            <ellipse cx="10" cy="64" rx="8" ry="1.800" fill="rgba(0,0,0,.45)" />
+            {/* legs & shorts */}
+            <rect x="5.200" y="42" width="4.200" height="22" rx="2" fill="#f4f4f5" />
+            <rect x="10.600" y="42" width="4.200" height="22" rx="2" fill="#f4f4f5" />
+            <rect x="4.500" y="55" width="5" height="9" rx="1.600" fill="#18181b" />
+            <rect x="10.500" y="55" width="5" height="9" rx="1.600" fill="#18181b" />
+            <rect x="4" y="33" width="12" height="13" rx="3" fill="#e4e4e7" />
+            {/* shirt */}
+            <rect x="3" y="14" width="14" height="23" rx="5" fill={i % 2 ? color : color} />
+            <rect x="3" y="14" width="14" height="23" rx="5" fill="url(#gt-fade)" opacity=".35" />
+            <rect x="9" y="14" width="2" height="23" fill="rgba(255,255,255,.18)" />
+            {/* arms crossed over the groin */}
+            <rect x="2" y="17" width="3" height="16" rx="1.500" fill="#e8c4a0" />
+            <rect x="15" y="17" width="3" height="16" rx="1.500" fill="#e8c4a0" />
+            <rect x="5" y="31" width="10" height="4" rx="2" fill="#e8c4a0" />
+            {/* head */}
+            <rect x="8.200" y="11" width="3.600" height="4" fill="#d9b18c" />
+            <circle cx="10" cy="8" r="5.200" fill="#e8c4a0" />
+            <path d="M4.800 7.500a5.200 5.200 0 0110.400 0c-2.800-2.300-7.600-2.300-10.400 0z" fill={['#2a1a10', '#caa24a', '#1a1410', '#5a3a22', '#0f0f0f'][i]} />
+          </motion.svg>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Dashed preview of the ball's path to the zone under the cursor, bent by the chosen spin. */
+function TrajectoryPreview({ zone, curl }: { zone: number; curl: Curl }) {
+  const c = zoneCenter(zone);
+  const sx = 50;
+  const sy = 93;
+  const bend = curl === 'left' ? 20 : curl === 'right' ? -20 : 0;
+  // control point: halfway up, pushed sideways opposite to the final curl direction
+  const cx = (sx + c.x) / 2 + bend;
+  const cy = (sy + c.y) / 2 + 6;
+  return (
+    <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 z-[6] h-full w-full">
+      <path d={`M${sx} ${sy} Q${cx} ${cy} ${c.x} ${c.y}`} fill="none" stroke="rgba(242,193,78,.85)" strokeWidth="0.9" strokeDasharray="2.200 1.800" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={c.x} cy={c.y} r="1.600" fill="rgba(242,193,78,.9)" />
+    </svg>
   );
 }

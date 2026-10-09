@@ -20,6 +20,7 @@ import { toast } from '@/lib/toast';
 import { useUiStore } from '@/lib/ui';
 import { crestShort } from '@/lib/utils';
 import type { Fixture, FixtureResult, MatchState } from '@/lib/types';
+import { CupDraw } from './CupDraw';
 import { LiveMatch, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
@@ -86,7 +87,7 @@ export function MatchScreen() {
     });
     // a new talk only when the fixture changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixture?.id, !!player, !!season, !!badges]);
+  }, [fixture?.id, fixture?.drawn, !!player, !!season, !!badges]);
 
   // the season can vanish mid-flow (contract terminated after a scandal): keep the report on screen
   if (!player || (!season && stage === 'brief' && gamePhase === 'playing')) return null;
@@ -191,7 +192,10 @@ export function MatchScreen() {
 
   return (
     <div className="pb-4">
-      {stage === 'brief' && speech && (
+      {stage === 'brief' && fixture.drawn === false && (
+        <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
+      )}
+      {stage === 'brief' && fixture.drawn !== false && speech && (
         <PreMatch
           fixture={fixture}
           me={badges.me}

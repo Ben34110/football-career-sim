@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Footprints, Gauge, Hand, Play, Swords, Target, Users, Wind, Zap, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
@@ -74,11 +75,11 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
 /** One short line above the frozen first frame. */
 const HINT: Record<MiniKind, string> = {
   power: 'Stop the cursor in the gold zone.',
-  header: 'Tap when the ring closes on the ball.',
-  tackle: 'Tap only on the green flash.',
-  dribble: 'Press the arrow’s direction — red means opposite.',
-  sprint: 'Tap fast to fill the bar.',
-  memory: 'Watch the passes, then repeat them.',
+  header: 'HOLD to close the ring, RELEASE to jump on the gold circle.',
+  tackle: 'Press START: 3 seconds to get ready, then tap on the green flash only.',
+  dribble: 'Press the arrow’s direction — red means opposite. The first arrow has no timer.',
+  sprint: 'Press SPRINT to start: 3 seconds to get ready, then tap as fast as you can.',
+  memory: 'Press PLAY, watch the passes, then repeat them.',
   aim: 'Tap when the crosshair is on the target.',
   charge: 'Hold, then release on the gold line.',
 };
@@ -95,9 +96,7 @@ const AUTO_START: MiniKind[] = ['power', 'aim', 'charge'];
 export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const t = useT();
   // The first frame stays frozen until the player taps once; that first tap only starts the game.
-  const [running, setRunning] = useState(false);
-  // ignore the tap that chose this skill moment, which can land on the freshly opened screen
-  const [armed, setArmed] = useState(false);
+  const [running, setRunning] = useState(!AUTO_START.includes(kind));
   const [result, setResult] = useState<MiniQuality | null>(null);
   const done = useRef(false);
   const onDoneRef = useRef(onDone);
@@ -109,11 +108,9 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const bonus = Math.max(-0.02, Math.min(0.08, (skill - 68) / 400));
 
   useEffect(() => {
-    const id = setTimeout(() => setArmed(true), 500);
     // a short beat so the screen is readable, then the self-starting games go
     const auto = AUTO_START.includes(kind) ? setTimeout(() => setRunning(true), 400) : null;
     return () => {
-      clearTimeout(id);
       if (auto) clearTimeout(auto);
     };
   }, [kind]);
@@ -147,18 +144,7 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         </Chip>
       </div>
 
-      <div className="-mt-1 text-center">
-        <p className="text-[13px] font-semibold text-zinc-300">{t(HINT[kind])}</p>
-        {!running && !AUTO_START.includes(kind) && (
-          <motion.p
-            animate={{ opacity: [1, 0.45, 1] }}
-            transition={{ repeat: Infinity, duration: 1.4 }}
-            className="mt-1 text-[13px] font-bold text-gold-300"
-          >
-            👆 {t('Tap the screen to start the game.')}
-          </motion.p>
-        )}
-      </div>
+      <p className="-mt-1 text-center text-[13px] font-semibold text-zinc-300">{t(HINT[kind])}</p>
 
       <div className="relative">
         {kind === 'power' && <PowerBar {...game} />}
@@ -169,20 +155,6 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         {kind === 'memory' && <MemoryGame {...game} />}
         {kind === 'aim' && <AimGame {...game} />}
         {kind === 'charge' && <ChargeGame {...game} />}
-
-        {/* The first frame stays frozen: the first tap anywhere starts the game (and is not a move) */}
-        {!running && !AUTO_START.includes(kind) && (
-          <button
-            type="button"
-            onClick={() => {
-              if (!armed) return;
-              haptic(15);
-              setRunning(true);
-            }}
-            className="absolute inset-0 z-20 cursor-pointer rounded-3xl"
-            aria-label={t(HINT[kind])}
-          />
-        )}
 
         <AnimatePresence>
           {result && (
@@ -267,40 +239,56 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked, running }: Game
   );
 }
 
-/* ───────── Header: closing ring ───────── */
+/* ───────── Header: the ring closes while you HOLD, release to jump ───────── */
 
-function RingGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
+function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const [r, setR] = useState(1);
+  const [holding, setHolding] = useState(false);
   const rRef = useRef(1);
-  const total = 1750 - pressure * 250 - difficulty * 150;
+  const holdRef = useRef(false);
+  const total = 2100 - pressure * 250 - difficulty * 150; // ms of holding to close the whole ring
   const perfect = (0.065 + bonus * 0.3) * (1 - 0.2 * difficulty);
   const good = (0.18 + bonus * 0.8) * (1 - 0.15 * difficulty);
 
+  const release = useCallback(() => {
+    if (!holdRef.current || locked) return;
+    holdRef.current = false;
+    setHolding(false);
+    const d = Math.abs(rRef.current - 0.18);
+    onStop(d <= perfect ? 'perfect' : d <= good ? 'good' : 'miss');
+  }, [locked, onStop, perfect, good]);
+
   useEffect(() => {
-    if (locked || !running) return;
+    if (locked) return;
     let raf = 0;
-    const start = performance.now() + 500;
+    let last = performance.now();
     const loop = (now: number) => {
-      const p = Math.max(0, (now - start) / total);
-      const v = 1 - p;
-      rRef.current = v;
-      setR(Math.max(v, 0));
-      if (p >= 1.1) {
-        onStop('miss');
-        return;
+      const dt = now - last;
+      last = now;
+      if (holdRef.current) {
+        rRef.current = Math.max(0, rRef.current - dt / total);
+        setR(rRef.current);
+        if (rRef.current <= 0) {
+          // held until the ring vanished: far too late
+          holdRef.current = false;
+          setHolding(false);
+          onStop('miss');
+          return;
+        }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [locked, running, total, onStop]);
-
-  const stop = () => {
-    if (locked) return;
-    const d = Math.abs(rRef.current - 0.18);
-    onStop(d <= perfect ? 'perfect' : d <= good ? 'good' : 'miss');
-  };
+    const up = () => release();
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [locked, total, onStop, release]);
 
   const size = 200;
   return (
@@ -313,31 +301,60 @@ function RingGame({ bonus, pressure, difficulty, onStop, locked, running }: Game
         />
         <div className="relative h-8 w-8 rounded-full bg-[radial-gradient(circle_at_35%_30%,#fff,#d4d4d8_55%,#52525b)] shadow-[0_6px_12px_rgba(0,0,0,0.7)]" />
       </div>
-      <TapButton onClick={stop} disabled={locked} label={t('JUMP!')} />
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          if (locked || holdRef.current) return;
+          holdRef.current = true;
+          setHolding(true);
+          haptic(10);
+        }}
+        disabled={locked}
+        className="flex h-16 w-full touch-none select-none items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-neon-400 to-neon-600 font-display text-2xl font-extrabold uppercase tracking-wide text-zinc-950 shadow-neon disabled:opacity-40"
+      >
+        <Gauge className="h-5 w-5" /> {holding ? t('RELEASE TO JUMP!') : t('HOLD')}
+      </motion.button>
     </div>
   );
 }
 
-/* ───────── Tackle: reaction time with decoys ───────── */
+/* ───────── Tackle: press to start, 3 s to get ready, then react ───────── */
 
-function ReactionGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
+function ReactionGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
-  const [light, setLight] = useState<'wait' | 'decoy' | 'go'>('wait');
+  const [phase, setPhase] = useState<'idle' | 'count' | 'wait' | 'decoy' | 'go'>('idle');
+  const [count, setCount] = useState(3);
+  // set once when the countdown ends; the random wait is scheduled from it exactly once
+  const [waiting, setWaiting] = useState(false);
+  const phaseRef = useRef<'idle' | 'count' | 'wait' | 'decoy' | 'go'>('idle');
   const goAt = useRef(0);
-  const lightRef = useRef<'wait' | 'decoy' | 'go'>('wait');
   const perfect = 240 + bonus * 700 - difficulty * 20;
   const good = 470 + bonus * 900 - pressure * 60 - difficulty * 40;
 
-  const setBoth = (v: 'wait' | 'decoy' | 'go') => {
-    lightRef.current = v;
-    setLight(v);
-  };
+  const setBoth = useCallback((v: 'idle' | 'count' | 'wait' | 'decoy' | 'go') => {
+    phaseRef.current = v;
+    setPhase(v);
+  }, []);
 
+  // 3 … 2 … 1 …
   useEffect(() => {
-    if (locked || !running) return;
+    if (phase !== 'count' || locked) return;
+    if (count <= 0) {
+      setBoth('wait');
+      setWaiting(true);
+      return;
+    }
+    haptic(8);
+    const id = setTimeout(() => setCount((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [phase, count, locked, setBoth]);
+
+  // after the countdown: a random wait, sometimes with a yellow decoy first
+  useEffect(() => {
+    if (!waiting || locked) return;
     const ids: ReturnType<typeof setTimeout>[] = [];
     let wait = 900 + Math.random() * 1500;
-    // a yellow decoy flash comes first about half of the time
     if (Math.random() < 0.4 + difficulty * 0.15) {
       ids.push(setTimeout(() => setBoth('decoy'), wait));
       ids.push(setTimeout(() => setBoth('wait'), wait + 380));
@@ -350,17 +367,24 @@ function ReactionGame({ bonus, pressure, difficulty, onStop, locked, running }: 
       }, wait),
     );
     return () => ids.forEach(clearTimeout);
-  }, [locked, running, difficulty]);
+  }, [waiting, locked, difficulty, setBoth]);
 
   useEffect(() => {
-    if (light !== 'go' || locked) return;
+    if (phase !== 'go' || locked) return;
     const id = setTimeout(() => onStop('miss'), good + 300);
     return () => clearTimeout(id);
-  }, [light, locked, good, onStop]);
+  }, [phase, locked, good, onStop]);
 
   const tap = () => {
     if (locked) return;
-    if (lightRef.current !== 'go') return onStop('miss');
+    const p = phaseRef.current;
+    if (p === 'idle') {
+      setCount(3);
+      setBoth('count');
+      return;
+    }
+    if (p === 'count') return; // still getting ready
+    if (p !== 'go') return onStop('miss'); // jumped in too early
     const ms = performance.now() - goAt.current;
     onStop(ms <= perfect ? 'perfect' : ms <= good ? 'good' : 'miss');
   };
@@ -369,32 +393,39 @@ function ReactionGame({ bonus, pressure, difficulty, onStop, locked, running }: 
     <div className="space-y-4">
       <motion.div
         animate={{
-          backgroundColor: light === 'go' ? 'rgba(16,185,129,0.55)' : light === 'decoy' ? 'rgba(234,179,8,0.45)' : 'rgba(0,0,0,0.4)',
-          scale: light === 'go' ? 1.02 : 1,
+          backgroundColor: phase === 'go' ? 'rgba(16,185,129,0.55)' : phase === 'decoy' ? 'rgba(234,179,8,0.45)' : 'rgba(0,0,0,0.4)',
+          scale: phase === 'go' ? 1.02 : 1,
         }}
         transition={{ duration: 0.08 }}
         className="flex h-[190px] select-none items-center justify-center rounded-3xl border border-white/10"
       >
-        <span className={cn('font-display text-5xl font-extrabold uppercase tracking-tight', light === 'go' ? 'text-white' : light === 'decoy' ? 'text-gold-200' : 'text-zinc-600')}>
-          {light === 'go' ? t('NOW!') : light === 'decoy' ? t('Steady…') : t('Wait…')}
-        </span>
+        {phase === 'count' ? (
+          <AnimatePresence mode="wait">
+            <motion.span key={count} initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="font-display text-8xl font-extrabold text-gold-300">
+              {count > 0 ? count : '•'}
+            </motion.span>
+          </AnimatePresence>
+        ) : (
+          <span className={cn('font-display text-5xl font-extrabold uppercase tracking-tight', phase === 'go' ? 'text-white' : phase === 'decoy' ? 'text-gold-200' : 'text-zinc-500')}>
+            {phase === 'go' ? t('NOW!') : phase === 'decoy' ? t('Steady…') : phase === 'idle' ? t('Ready?') : t('Wait…')}
+          </span>
+        )}
       </motion.div>
-      <TapButton onClick={tap} disabled={locked} label={t('TACKLE!')} tone="danger" />
+      <TapButton onClick={tap} disabled={locked} label={phase === 'idle' ? t('START') : t('TACKLE!')} tone="danger" />
     </div>
   );
 }
 
-/* ───────── Dribble: arrow sequence, some inverted ───────── */
+/* ───────── Dribble: arrow sequence, some inverted. No timer on the first arrow ───────── */
 
 type Dir = 'L' | 'U' | 'R' | 'D';
 const ARROWS: Record<Dir, LucideIcon> = { L: ArrowLeft, U: ArrowUp, R: ArrowRight, D: ArrowDown };
 const OPPOSITE: Record<Dir, Dir> = { L: 'R', R: 'L', U: 'D', D: 'U' };
 const DIRS: Dir[] = ['L', 'U', 'D', 'R'];
 
-function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
+function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const STEPS = 5;
-  // generous windows; the first arrow gets a little extra time to read the screen
   const window = 1600 - pressure * 250 - difficulty * 150 + bonus * 1200;
   const [seq] = useState(() =>
     Array.from({ length: STEPS }, (_, i) => ({
@@ -405,6 +436,8 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: G
   const [step, setStep] = useState(0);
   const [marks, setMarks] = useState<boolean[]>([]);
   const [key, setKey] = useState(0);
+  // the clock only starts once the player has answered the first arrow
+  const [started, setStarted] = useState(false);
   const hitsRef = useRef(0);
   const doneRef = useRef(false);
 
@@ -426,14 +459,15 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: G
   );
 
   useEffect(() => {
-    if (locked || !running) return;
-    const id = setTimeout(() => advance(false), window + (key === 0 ? 700 : 0));
+    if (locked || !started) return;
+    const id = setTimeout(() => advance(false), window);
     return () => clearTimeout(id);
-  }, [key, locked, running, window, advance]);
+  }, [key, locked, started, window, advance]);
 
   const press = (d: Dir) => {
     if (locked) return;
     haptic(8);
+    setStarted(true);
     const cur = seq[step];
     advance(d === (cur.inverted ? OPPOSITE[cur.dir] : cur.dir));
   };
@@ -465,11 +499,12 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: G
           </motion.div>
         )}
         {!locked && cur.inverted && <span className="text-[11px] font-bold uppercase tracking-widest text-crimson-400">{t('Inverted!')}</span>}
-        {!locked && (
+        {!locked && started && (
           <div className="absolute inset-x-6 bottom-4 h-1 overflow-hidden rounded-full bg-white/10">
-            <motion.div key={key} className="h-full origin-left rounded-full bg-gold-400" initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: (window + (key === 0 ? 700 : 0)) / 1000, ease: 'linear' }} />
+            <motion.div key={key} className="h-full origin-left rounded-full bg-gold-400" initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: window / 1000, ease: 'linear' }} />
           </div>
         )}
+        {!locked && !started && <span className="absolute inset-x-0 bottom-4 text-center text-[11px] font-semibold uppercase tracking-widest text-zinc-500">{t('No timer on the first arrow')}</span>}
       </div>
       <div className="grid grid-cols-4 gap-2" aria-label={t('Direction')}>
         {DIRS.map((d) => {
@@ -490,20 +525,33 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked, running }: G
   );
 }
 
-/* ───────── Sprint: button mashing against a draining bar ───────── */
+/* ───────── Sprint: press to start, a 3 s countdown, then mash ───────── */
 
-function SprintGame({ bonus, pressure, difficulty, onStop, locked, running }: GameProps) {
+function SprintGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const TOTAL = 3300 - pressure * 300;
   const tapValue = 8.2 - difficulty * 1.2 + bonus * 10;
   const drain = 13 + difficulty * 4 + pressure * 3; // per second
+  const [phase, setPhase] = useState<'idle' | 'count' | 'run'>('idle');
+  const [count, setCount] = useState(3);
   const [fill, setFill] = useState(0);
   const [left, setLeft] = useState(TOTAL);
   const fillRef = useRef(0);
   const doneRef = useRef(false);
 
   useEffect(() => {
-    if (locked || !running) return;
+    if (phase !== 'count' || locked) return;
+    if (count <= 0) {
+      setPhase('run');
+      return;
+    }
+    haptic(8);
+    const id = setTimeout(() => setCount((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [phase, count, locked]);
+
+  useEffect(() => {
+    if (phase !== 'run' || locked) return;
     let raf = 0;
     let last = performance.now();
     const start = last;
@@ -528,10 +576,16 @@ function SprintGame({ bonus, pressure, difficulty, onStop, locked, running }: Ga
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [locked, running, TOTAL, drain, onStop]);
+  }, [phase, locked, TOTAL, drain, onStop]);
 
   const tap = () => {
     if (locked || doneRef.current) return;
+    if (phase === 'idle') {
+      setCount(3);
+      setPhase('count');
+      return;
+    }
+    if (phase !== 'run') return; // still getting ready
     haptic(5);
     fillRef.current = Math.min(100, fillRef.current + tapValue);
   };
@@ -541,15 +595,21 @@ function SprintGame({ bonus, pressure, difficulty, onStop, locked, running }: Ga
       <div className="select-none space-y-4 rounded-3xl border border-white/10 bg-black/40 p-5">
         <div className="flex items-center justify-between text-xs font-bold text-zinc-400">
           <span>{t('Speed')}</span>
-          <span className="font-num text-sm text-zinc-200">{(left / 1000).toFixed(1)}s</span>
+          <span className="font-num text-sm text-zinc-200">{phase === 'run' ? `${(left / 1000).toFixed(1)}s` : `${(TOTAL / 1000).toFixed(1)}s`}</span>
         </div>
         <div className="h-6 overflow-hidden rounded-full bg-white/[0.08]">
-          <div className={cn('h-full rounded-full', fill > 72 ? 'bg-gold-400' : 'bg-neon-400')} style={{ width: `${fill}%` }} />
+          <div className={cn('h-full rounded-full', fill > 66 ? 'bg-gold-400' : 'bg-neon-400')} style={{ width: `${fill}%` }} />
         </div>
-        <div className="relative h-px bg-white/10">
-          <span className="absolute -top-1.5 text-[9px] font-bold text-zinc-600" style={{ left: '72%' }}>
-            ▾
-          </span>
+        <div className="flex h-12 items-center justify-center">
+          {phase === 'count' ? (
+            <AnimatePresence mode="wait">
+              <motion.span key={count} initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="font-display text-5xl font-extrabold text-gold-300">
+                {count > 0 ? count : t('GO!')}
+              </motion.span>
+            </AnimatePresence>
+          ) : (
+            <span className="text-xs font-semibold text-zinc-500">{phase === 'idle' ? t('Press SPRINT to start: you get 3 seconds to get ready.') : t('Tap, tap, tap!')}</span>
+          )}
         </div>
       </div>
       <TapButton onClick={tap} disabled={locked} label={t('SPRINT!')} />
@@ -557,9 +617,9 @@ function SprintGame({ bonus, pressure, difficulty, onStop, locked, running }: Ga
   );
 }
 
-/* ───────── Memory: repeat the passing sequence ───────── */
+/* ───────── Memory: press PLAY to see the passes, then repeat them ───────── */
 
-function MemoryGame({ pressure, difficulty, onStop, locked, running }: GameProps) {
+function MemoryGame({ pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const N = 3 + (difficulty > 0.7 ? 1 : 0) + (pressure > 0.75 ? 1 : 0);
   const [seq] = useState(() => {
@@ -570,23 +630,23 @@ function MemoryGame({ pressure, difficulty, onStop, locked, running }: GameProps
     }
     return out;
   });
-  const [phase, setPhase] = useState<'watch' | 'repeat'>('watch');
+  const [phase, setPhase] = useState<'idle' | 'watch' | 'repeat'>('idle');
   const [lit, setLit] = useState<number | null>(null);
   const [input, setInput] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [flash, setFlash] = useState<{ cell: number; ok: boolean } | null>(null);
 
   useEffect(() => {
-    if (locked || !running) return;
+    if (phase !== 'watch' || locked) return;
     const ids: ReturnType<typeof setTimeout>[] = [];
     const gap = 780 - difficulty * 120;
     seq.forEach((c, i) => {
-      ids.push(setTimeout(() => setLit(c), 500 + i * gap));
-      ids.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.62));
+      ids.push(setTimeout(() => setLit(c), 400 + i * gap));
+      ids.push(setTimeout(() => setLit(null), 400 + i * gap + gap * 0.62));
     });
-    ids.push(setTimeout(() => setPhase('repeat'), 500 + seq.length * gap + 150));
+    ids.push(setTimeout(() => setPhase('repeat'), 400 + seq.length * gap + 150));
     return () => ids.forEach(clearTimeout);
-  }, [seq, locked, running, difficulty]);
+  }, [phase, seq, locked, difficulty]);
 
   const tap = (cell: number) => {
     if (locked || phase !== 'repeat') return;
@@ -603,7 +663,9 @@ function MemoryGame({ pressure, difficulty, onStop, locked, running }: GameProps
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-xs font-bold uppercase tracking-widest text-zinc-400">{phase === 'watch' ? t('Watch the passes…') : t('Your turn!')}</p>
+      <p className="text-center text-xs font-bold uppercase tracking-widest text-zinc-400">
+        {phase === 'idle' ? t('Ready?') : phase === 'watch' ? t('Watch the passes…') : t('Your turn!')}
+      </p>
       <div className="grid select-none grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-emerald-950/40 p-3">
         {Array.from({ length: 9 }, (_, i) => {
           const on = lit === i;
@@ -624,11 +686,17 @@ function MemoryGame({ pressure, difficulty, onStop, locked, running }: GameProps
           );
         })}
       </div>
-      <div className="flex justify-center gap-1.5">
-        {seq.map((_, i) => (
-          <span key={i} className={cn('h-2 w-6 rounded-full', i < input ? 'bg-neon-400' : 'bg-white/10')} />
-        ))}
-      </div>
+      {phase === 'idle' ? (
+        <Button block size="lg" onClick={() => setPhase('watch')}>
+          <Play className="h-5 w-5 fill-current" /> {t('PLAY')}
+        </Button>
+      ) : (
+        <div className="flex justify-center gap-1.5">
+          {seq.map((_, i) => (
+            <span key={i} className={cn('h-2 w-6 rounded-full', i < input ? 'bg-neon-400' : 'bg-white/10')} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

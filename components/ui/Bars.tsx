@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Flame, Handshake, Heart, Users } from 'lucide-react';
 import { ATTR_LABEL, REP_KEYS, REP_LABEL } from '@/lib/engine/player';
+import { useT } from '@/lib/i18n';
 import type { AttrKey, Attributes, RepKey, Reputation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -53,10 +54,11 @@ export function StatBar({
 }
 
 export function AttributeBars({ attrs, deltas }: { attrs: Attributes; deltas?: Partial<Attributes> }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-x-5 gap-y-3.5">
       {(Object.keys(ATTR_LABEL) as AttrKey[]).map((k) => (
-        <StatBar key={k} label={ATTR_LABEL[k]} value={attrs[k]} delta={deltas?.[k]} />
+        <StatBar key={k} label={t(ATTR_LABEL[k])} value={attrs[k]} delta={deltas?.[k]} />
       ))}
     </div>
   );
@@ -77,6 +79,7 @@ const REP_COLOR: Record<RepKey, string> = {
 };
 
 export function RepBars({ rep, deltas, compact }: { rep: Reputation; deltas?: Partial<Reputation>; compact?: boolean }) {
+  const t = useT();
   return (
     <div className={cn('grid gap-3', compact ? 'grid-cols-2 gap-x-4' : 'grid-cols-1')}>
       {REP_KEYS.map((k) => {
@@ -87,7 +90,7 @@ export function RepBars({ rep, deltas, compact }: { rep: Reputation; deltas?: Pa
             <div className="mb-1 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-400">
                 <Icon className="h-3.5 w-3.5 text-zinc-500" />
-                {compact ? REP_LABEL[k].replace(' Respect', '') : REP_LABEL[k]}
+                {t(compact ? REP_LABEL[k].replace(' Respect', '') : REP_LABEL[k])}
               </span>
               <span className="font-num text-sm font-bold text-zinc-100">
                 {rep[k]}

@@ -6,13 +6,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
+import { FloatingAction } from '@/components/ui/FloatingAction';
 import { Sheet } from '@/components/ui/Sheet';
-import { applyKick, createMatch, pressureFor, resolveClutch, tickMatch, type MatchCtx } from '@/lib/engine/match';
+import { applyKick, createMatch, pressureFor, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
 import { haptic } from '@/lib/haptics';
-import type { KickKind, MatchEvent, MatchState } from '@/lib/types';
+import { useT } from '@/lib/i18n';
+import type { KickKind, MatchEvent, MiniKind, MiniQuality, MatchState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
+import { MiniGame } from './MiniGame';
 
 export interface TeamBadge {
   name: string;
@@ -36,7 +39,9 @@ const EVENT_STYLE: Record<MatchEvent['side'], string> = {
 };
 
 export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Props) {
+  const t = useT();
   const [m, setM] = useState<MatchState>(() => createMatch(ctx, Math.random));
+  const [mini, setMini] = useState<{ kind: MiniKind; optionId: string } | null>(null);
   const [paused, setPaused] = useState(false);
   const [fast, setFast] = useState(false);
   const [kick, setKick] = useState<KickKind | null>(null);
@@ -70,7 +75,13 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
   const pick = (optionId: string) => {
     const r = resolveClutch(m, ctx, optionId, Math.random);
     setM(r.state);
+    if (r.mini) setMini({ kind: r.mini, optionId });
     if (r.kick) setKick(r.kick);
+  };
+
+  const miniDone = (optionId: string, q: MiniQuality) => {
+    setM((prev) => resolveMini(prev, ctx, optionId, q, Math.random).state);
+    setMini(null);
   };
 
   const events = useMemo(() => [...m.events].reverse().slice(0, 40), [m.events]);
@@ -104,26 +115,15 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
             </div>
             <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-bold text-neon-300">
               {!finished && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-crimson-500" />}
-              {finished ? 'FULL TIME' : `${m.minute}'`}
+              {finished ? t('FULL TIME') : `${m.minute}'`}
             </div>
           </div>
           <TeamSide badge={opp} />
         </div>
 
-        {/* Timeline with clutch markers */}
+        {/* Timeline (clutch moments stay a surprise) */}
         <div className="relative mt-4 h-1.5 rounded-full bg-white/10">
           <motion.div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-neon-600 to-neon-300" animate={{ width: `${(m.minute / 90) * 100}%` }} transition={{ ease: 'linear' }} />
-          {m.clutches.map((c, i) => (
-            <span
-              key={c.id}
-              className={cn(
-                'absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-zinc-950',
-                i < m.nextClutch ? 'bg-zinc-500' : 'bg-gold-400 shadow-gold',
-              )}
-              style={{ left: `${(c.minute / 90) * 100}%` }}
-              title={c.title}
-            />
-          ))}
           <span className="absolute left-1/2 top-1/2 h-3 w-px -translate-y-1/2 bg-white/20" />
         </div>
 
@@ -131,7 +131,7 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
         <div className="mt-4">
           <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em]">
             <span className={m.momentum < -10 ? 'text-crimson-400' : 'text-zinc-600'}>{opp.short}</span>
-            <span className="text-zinc-500">Momentum</span>
+            <span className="text-zinc-500">{t('Momentum')}</span>
             <span className={m.momentum > 10 ? 'text-neon-300' : 'text-zinc-600'}>{me.short}</span>
           </div>
           <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.07]">
@@ -148,14 +148,14 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
       {/* Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-          <Radio className="h-3.5 w-3.5 text-crimson-500" /> Live ticker
-          {!m.isStarter && <span className="ml-1 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">SUB</span>}
+          <Radio className="h-3.5 w-3.5 text-crimson-500" /> {t('Live ticker')}
+          {!m.isStarter && <span className="ml-1 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">{t('SUB')}</span>}
         </div>
         {!finished && (
           <div className="flex gap-2">
             <button
               onClick={() => setPaused((p) => !p)}
-              aria-label={paused ? 'Resume' : 'Pause'}
+              aria-label={paused ? t('Resume') : t('Pause')}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 active:scale-90"
             >
               {paused ? <Play className="h-4 w-4 fill-current" /> : <Pause className="h-4 w-4 fill-current" />}
@@ -163,7 +163,7 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
             <button
               onClick={() => setFast((f) => !f)}
               aria-pressed={fast}
-              aria-label="Toggle fast forward"
+              aria-label={t('Toggle fast forward')}
               className={cn('flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-bold active:scale-90', fast ? 'border-neon-400/50 bg-neon-400/15 text-neon-300' : 'border-white/10 bg-white/5 text-zinc-300')}
             >
               <FastForward className="h-3.5 w-3.5" /> {fast ? '2×' : '1×'}
@@ -197,14 +197,27 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
       </div>
 
       {finished && (
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="sticky bottom-4 pt-2">
+        <FloatingAction>
           <Button block size="lg" variant={drawKnockout ? 'gold' : 'primary'} onClick={() => onFinished(m)}>
-            {drawKnockout ? 'It’s a draw — penalty shootout!' : 'Full-time — continue'}
+            {drawKnockout ? t('It’s a draw — penalty shootout!') : t('Full-time — continue')}
           </Button>
-        </motion.div>
+        </FloatingAction>
       )}
 
-      <ClutchSheet open={m.status === 'clutch' && !kick} moment={moment} match={m} ctx={ctx} index={m.nextClutch} total={m.clutches.length} onPick={pick} />
+      <ClutchSheet open={m.status === 'clutch' && !kick && !mini} moment={moment} match={m} ctx={ctx} onPick={pick} />
+
+      {/* Skill mini-games */}
+      <Sheet open={!!mini} className="max-h-[94dvh] overflow-y-auto">
+        {mini && (
+          <MiniGame
+            key={`${m.nextClutch}-${mini.optionId}`}
+            kind={mini.kind}
+            skill={mini.kind === 'power' || mini.kind === 'header' ? finishing : mini.kind === 'dribble' ? composure : ctx.attrs.stamina}
+            pressure={pressureFor(m, ctx)}
+            onDone={(q) => miniDone(mini.optionId, q)}
+          />
+        )}
+      </Sheet>
 
       {/* 8-zone goal for penalties & free kicks */}
       <Sheet open={!!kick} className="max-h-[94dvh] overflow-y-auto">
@@ -219,7 +232,7 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
             title={kick === 'penalty' ? 'Spot Kick' : 'Dead Ball'}
             subtitle={`${m.minute}' · ${me.name} ${m.myScore}–${m.oppScore} ${opp.name}`}
             onDone={(o) => {
-              setM((prev) => applyKick(prev, ctx, kick, o.result));
+              setM((prev) => applyKick(prev, ctx, kick, o.result, o.curl !== 'straight'));
               setKick(null);
             }}
           />
@@ -230,11 +243,12 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
 }
 
 function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
+  const t = useT();
   return (
     <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
       <Crest short={badge.short} color={badge.color} size={48} />
       <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
-      {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">You</span>}
+      {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">{t('You')}</span>}
     </div>
   );
 }

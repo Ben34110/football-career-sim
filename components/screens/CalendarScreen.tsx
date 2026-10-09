@@ -9,14 +9,18 @@ import { getClub } from '@/lib/data/clubs';
 import { getNationality, tournamentFor } from '@/lib/data/nationalities';
 import { CALL_UP_OVR, ovrOf, seasonLabel } from '@/lib/engine/player';
 import { sortTable } from '@/lib/engine/season';
-import { ordinal, useGameStore } from '@/lib/store';
-import type { Fixture } from '@/lib/types';
+import { fixtureDate, fmtShortDate } from '@/lib/dates';
+import { ordinalOf, useLang, useT } from '@/lib/i18n';
+import { useGameStore } from '@/lib/store';
+import type { SeasonState } from '@/lib/types';
 import { cn, crestShort } from '@/lib/utils';
 
 const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe };
 const TABS = ['Fixtures', 'Table', 'History'] as const;
 
 export function CalendarScreen() {
+  const t = useT();
+  const { lang } = useLang();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Fixtures');
   const player = useGameStore((s) => s.player);
   const season = useGameStore((s) => s.season);
@@ -27,11 +31,15 @@ export function CalendarScreen() {
   const ovr = ovrOf(player);
   const nat = getNationality(player.nationality);
   const nextTournament = tournamentFor(year + 1, nat);
+  const upcoming = [1, 2, 3, 4, 5]
+    .map((d) => ({ y: year + d, name: tournamentFor(year + d, nat) }))
+    .filter((x): x is { y: number; name: string } => !!x.name)
+    .slice(0, 3);
 
   return (
     <div className="space-y-4">
       <div>
-        <div className="eyebrow">Season</div>
+        <div className="eyebrow">{t('Season')}</div>
         <h1 className="font-display text-4xl font-extrabold uppercase leading-none">{seasonLabel(year)}</h1>
       </div>
 
@@ -40,16 +48,38 @@ export function CalendarScreen() {
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-2xl">{nat.flag}</div>
           <div className="flex-1">
-            <div className="text-sm font-bold">{ovr >= CALL_UP_OVR ? `${nat.name} national team` : 'National team call-ups'}</div>
+            <div className="text-sm font-bold">{ovr >= CALL_UP_OVR ? t('{team} national team', { team: t(nat.name) }) : t('National team call-ups')}</div>
             {ovr >= CALL_UP_OVR ? (
               <div className="text-xs text-zinc-400">
-                {season?.tournamentQueued ? `Playing: ${season.tournamentName}` : nextTournament ? `Eligible for the ${nextTournament} this summer` : 'No major tournament this summer'}
+                {season?.tournamentQueued ? t('Playing: {name}', { name: t(season.tournamentName ?? '') }) : nextTournament ? t('Eligible for the {name} this summer', { name: t(nextTournament) }) : t('No major tournament this summer')}
               </div>
             ) : (
-              <div className="text-xs text-zinc-400">Requires OVR {CALL_UP_OVR}+ · you’re {ovr}</div>
+              <div className="text-xs text-zinc-400">{t('Requires OVR {n}+ · you’re {m}', { n: CALL_UP_OVR, m: ovr })}</div>
             )}
           </div>
-          {ovr >= CALL_UP_OVR ? <Chip tone="gold">Called up</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
+          {ovr >= CALL_UP_OVR ? <Chip tone="gold">{t('Called up')}</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
+        </div>
+        {ovr >= CALL_UP_OVR && (
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-black/30 py-2">
+              <div className="font-num text-xl font-extrabold">{player.national?.caps ?? 0}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('Caps')}</div>
+            </div>
+            <div className="rounded-xl bg-black/30 py-2">
+              <div className="font-num text-xl font-extrabold">{player.national?.goals ?? 0}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('International goals')}</div>
+            </div>
+          </div>
+        )}
+        <div className="mt-3 border-t border-white/[0.06] pt-3">
+          <div className="eyebrow mb-2">{t('Next major tournaments')}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {upcoming.map((u) => (
+              <Chip key={`${u.name}-${u.y}`} tone={u.name === 'FIFA World Cup' ? 'gold' : 'neutral'}>
+                🏆 {t(u.name)} {u.y}
+              </Chip>
+            ))}
+          </div>
         </div>
         {ovr < CALL_UP_OVR && (
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -59,25 +89,25 @@ export function CalendarScreen() {
       </Card>
 
       <div className="grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map((tb) => (
           <button
-            key={t}
+            key={tb}
             role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn('relative h-10 rounded-xl text-sm font-bold transition-colors', tab === t ? 'text-zinc-950' : 'text-zinc-400')}
+            aria-selected={tab === tb}
+            onClick={() => setTab(tb)}
+            className={cn('relative h-10 rounded-xl text-sm font-bold transition-colors', tab === tb ? 'text-zinc-950' : 'text-zinc-400')}
           >
-            {tab === t && <motion.span layoutId="cal-tab" className="absolute inset-0 rounded-xl bg-gradient-to-b from-neon-400 to-neon-600" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-            <span className="relative">{t}</span>
+            {tab === tb && <motion.span layoutId="cal-tab" className="absolute inset-0 rounded-xl bg-gradient-to-b from-neon-400 to-neon-600" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
+            <span className="relative">{t(tb)}</span>
           </button>
         ))}
       </div>
 
-      {tab === 'Fixtures' && (season ? <Fixtures fixtures={season.fixtures} cursor={season.cursor} /> : <Empty text="No active season — sign a club first." />)}
-      {tab === 'Table' && (season ? <Table /> : <Empty text="No active season." />)}
+      {tab === 'Fixtures' && (season ? <Fixtures season={season} /> : <Empty text={t('No active season — sign a club first.')} />)}
+      {tab === 'Table' && (season ? <Table /> : <Empty text={t('No active season.')} />)}
       {tab === 'History' && (
         <div className="space-y-2.5">
-          {history.length === 0 && <Empty text="Your career history will appear here after your first season." />}
+          {history.length === 0 && <Empty text={t('Your career history will appear here after your first season.')} />}
           {[...history].reverse().map((r) => {
             const c = getClub(r.clubId);
             return (
@@ -86,10 +116,9 @@ export function CalendarScreen() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold">{seasonLabel(r.year)} · {c?.name}</div>
                   <div className="text-xs text-zinc-500">
-                    {r.apps} apps · {r.goals}G {r.assists}A · avg {r.avgRating || '–'} · {r.leaguePos}
-                    {ordinal(r.leaguePos)}
+                    {r.apps} {t('apps')} · {r.goals}G {r.assists}A · {t('avg')} {r.avgRating || '–'} · {ordinalOf(r.leaguePos, lang)}
                   </div>
-                  {r.trophies.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{r.trophies.map((t) => <Chip key={t} tone="gold">🏆 {t}</Chip>)}</div>}
+                  {r.trophies.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{r.trophies.map((tr) => <Chip key={tr} tone="gold">🏆 {t(tr)}</Chip>)}</div>}
                 </div>
                 <div className="font-num text-2xl font-extrabold text-gold-300">{r.ovr}</div>
               </Card>
@@ -101,7 +130,10 @@ export function CalendarScreen() {
   );
 }
 
-function Fixtures({ fixtures, cursor }: { fixtures: Fixture[]; cursor: number }) {
+function Fixtures({ season }: { season: SeasonState }) {
+  const t = useT();
+  const { lang } = useLang();
+  const { fixtures, cursor } = season;
   return (
     <ol className="relative space-y-2 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-white/10">
       {fixtures.map((f, i) => {
@@ -115,9 +147,9 @@ function Fixtures({ fixtures, cursor }: { fixtures: Fixture[]; cursor: number })
             </div>
             <Crest short={crestShort(f.opponentShort)} color={f.opponentColor} size={30} />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-bold">{f.opponent}</div>
+              <div className="truncate text-[13px] font-bold">{t(f.opponent)}</div>
               <div className="text-[11px] text-zinc-500">
-                {f.label} · {f.home ? 'H' : 'A'} · {f.opponentStrength}
+                {fmtShortDate(fixtureDate(season, i), lang)} · {t(f.label)} · {f.home ? t('H') : t('A')} · {f.opponentStrength}
               </div>
             </div>
             {f.status === 'played' && r && (
@@ -131,8 +163,8 @@ function Fixtures({ fixtures, cursor }: { fixtures: Fixture[]; cursor: number })
                 </span>
               </div>
             )}
-            {f.status === 'upcoming' && next && <Chip tone="good">Next</Chip>}
-            {f.status === 'skipped' && <Chip>Out</Chip>}
+            {f.status === 'upcoming' && next && <Chip tone="good">{t('Next')}</Chip>}
+            {f.status === 'skipped' && <Chip>{t('Out')}</Chip>}
           </li>
         );
       })}
@@ -141,6 +173,7 @@ function Fixtures({ fixtures, cursor }: { fixtures: Fixture[]; cursor: number })
 }
 
 function Table() {
+  const t = useT();
   const season = useGameStore((s) => s.season);
   if (!season) return null;
   const rows = sortTable(season.table);
@@ -148,12 +181,12 @@ function Table() {
     <Card className="overflow-hidden p-0">
       <div className="grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 border-b border-white/[0.06] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
         <span>#</span>
-        <span>Club</span>
-        <span className="text-center">P</span>
-        <span className="text-center">W</span>
-        <span className="text-center">D</span>
-        <span className="text-center">GD</span>
-        <span className="text-right">Pts</span>
+        <span>{t('Club')}</span>
+        <span className="text-center">{t('P')}</span>
+        <span className="text-center">{t('W')}</span>
+        <span className="text-center">{t('D')}</span>
+        <span className="text-center">{t('GD')}</span>
+        <span className="text-right">{t('Pts')}</span>
       </div>
       {rows.map((r, i) => (
         <div

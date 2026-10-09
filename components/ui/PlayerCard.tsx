@@ -4,9 +4,12 @@ import { motion } from 'framer-motion';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import { ATTR_LABEL, calcOvr, fmtMoneyM, marketValue } from '@/lib/engine/player';
+import type { Look } from '@/lib/data/look';
+import { useT } from '@/lib/i18n';
 import type { AttrKey, Attributes, Position } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Crest } from './Crest';
+import { HeadAvatar } from './HeadAvatar';
 
 interface Props {
   name: string;
@@ -15,6 +18,7 @@ interface Props {
   attrs: Attributes;
   age: number;
   clubId: string | null;
+  look?: Look;
   className?: string;
   /** Animate OVR change in the FTUE */
   compact?: boolean;
@@ -22,7 +26,8 @@ interface Props {
 
 const SHORT: Record<AttrKey, string> = { finishing: 'FIN', composure: 'COM', vision: 'VIS', stamina: 'STA' };
 
-export function PlayerCard({ name, nationality, position, attrs, age, clubId, className, compact }: Props) {
+export function PlayerCard({ name, nationality, position, attrs, age, clubId, look, className, compact }: Props) {
+  const t = useT();
   const nat = getNationality(nationality);
   const club = getClub(clubId);
   const ovr = calcOvr(attrs, position);
@@ -52,28 +57,29 @@ export function PlayerCard({ name, nationality, position, attrs, age, clubId, cl
             {ovr}
           </motion.span>
           <span className="font-display text-lg font-bold tracking-[0.2em] text-gold-300">{position}</span>
-          <span className="mt-1 text-xl leading-none" aria-label={nat.name}>{nat.flag}</span>
+          <span className="mt-1 text-xl leading-none" aria-label={t(nat.name)}>{nat.flag}</span>
         </div>
+        <HeadAvatar look={look} size={compact ? 84 : 104} className="-mt-1 drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" />
         <div className="flex flex-col items-end text-right">
-          {club ? <Crest short={club.short} color={club.color} size={compact ? 38 : 46} /> : <span className="eyebrow">Free agent</span>}
-          <span className="mt-1.5 max-w-[150px] truncate text-[11px] font-medium text-zinc-400">{club?.name ?? '—'}</span>
-          <span className="text-[11px] text-zinc-500">Age {age}</span>
+          {club ? <Crest short={club.short} color={club.color} size={compact ? 38 : 46} /> : <span className="eyebrow">{t('Free agent')}</span>}
+          <span className="mt-1.5 max-w-[110px] truncate text-[11px] font-medium text-zinc-400">{club?.name ?? '—'}</span>
+          <span className="text-[11px] text-zinc-500">{t('Age')} {age}</span>
         </div>
       </div>
       <div className="relative mt-3 text-center">
-        <div className="truncate font-display text-[26px] font-extrabold uppercase leading-none tracking-wide text-zinc-50">{name || 'Your Name'}</div>
+        <div className="truncate font-display text-[26px] font-extrabold uppercase leading-none tracking-wide text-zinc-50">{name || t('Your Name')}</div>
         <div className="mx-auto mt-2 h-px w-3/4 bg-gradient-to-r from-transparent via-gold-300/50 to-transparent" />
       </div>
       <div className="relative mt-3 grid grid-cols-4 gap-1.5">
         {(Object.keys(SHORT) as AttrKey[]).map((k) => (
-          <div key={k} className="rounded-xl border border-white/[0.07] bg-black/30 py-1.5 text-center" title={ATTR_LABEL[k]}>
+          <div key={k} className="rounded-xl border border-white/[0.07] bg-black/30 py-1.5 text-center" title={t(ATTR_LABEL[k])}>
             <div className="font-num text-xl font-bold leading-none text-zinc-50">{attrs[k]}</div>
-            <div className="mt-0.5 text-[9px] font-bold tracking-[0.16em] text-gold-300/80">{SHORT[k]}</div>
+            <div className="mt-0.5 text-[9px] font-bold tracking-[0.16em] text-gold-300/80">{t(SHORT[k])}</div>
           </div>
         ))}
       </div>
       <div className="relative mt-3 flex items-center justify-between text-xs">
-        <span className="eyebrow">Market value</span>
+        <span className="eyebrow">{t('Market value')}</span>
         <span className="font-num text-base font-bold text-gold-300">{fmtMoneyM(value)}</span>
       </div>
     </div>

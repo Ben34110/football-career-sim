@@ -21,6 +21,13 @@ export interface PressContext {
   missedKick: boolean;
   mediaHeat: number;
   coachTrust: number;
+  /** Started on the bench */
+  benched: boolean;
+  /** Taken off by the coach */
+  subbedOff: boolean;
+  lockerRoom: number;
+  fanPopularity: number;
+  apps: number;
 }
 
 export interface PressQuestion {
@@ -43,6 +50,62 @@ const NO_COMMENT: PressAnswer = {
 };
 
 export const PRESS_QUESTIONS: PressQuestion[] = [
+  {
+    id: 'rival',
+    reporter: 'Vincent Aubert',
+    outlet: 'Téléfoot Plus',
+    question: 'A rival striker says he is a better player than you. Do you want to respond?',
+    weight: 5,
+    when: (c) => c.mediaHeat >= 18,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Let the pitch talk', quote: '“Comparisons are for you journalists. I’ll answer on the pitch.”', morale: 1, rep: { coachTrust: 2, mediaHeat: -1 } },
+      { id: 'bold', style: 'bold', label: 'Fire back', quote: '“Let him say what he wants. Count the trophies and the goals, then ask again.”', morale: 4, rep: { fanPopularity: 5, mediaHeat: 8, lockerRoom: -2 } },
+      { id: 'humble', style: 'humble', label: 'Respect him', quote: '“He’s a great player. We all want to be the best, that’s football.”', morale: 1, rep: { fanPopularity: 2, lockerRoom: 3, mediaHeat: -1 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'referee',
+    reporter: 'Samuel Baptiste',
+    outlet: 'Eleven Sports Live',
+    question: 'Some controversial refereeing decisions today. Did the officials cost your team?',
+    weight: 4,
+    when: (c) => c.outcome !== 'W',
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Stay respectful', quote: '“Referees have a hard job. We should have made our own luck.”', morale: 0, rep: { coachTrust: 3, mediaHeat: -2 } },
+      { id: 'bold', style: 'bold', label: 'Slam the officials', quote: '“Some decisions were a joke. I won’t pretend otherwise.”', morale: 2, rep: { fanPopularity: 4, mediaHeat: 8, coachTrust: -3 } },
+      { id: 'humble', style: 'humble', label: 'Blame ourselves', quote: '“We can’t blame anyone. We weren’t good enough.”', morale: -1, rep: { lockerRoom: 3, coachTrust: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'subbed',
+    reporter: 'Luc Martel',
+    outlet: 'Canal Stadium',
+    question: 'The coach took you off before the end. Did you agree with the decision?',
+    weight: 9,
+    when: (c) => c.subbedOff,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Accept the call', quote: '“It’s the coach’s decision. I wasn’t at my best and the team needed fresh legs.”', morale: -1, rep: { coachTrust: 4, lockerRoom: 2, mediaHeat: -2 } },
+      { id: 'bold', style: 'bold', label: 'Show your anger', quote: '“I was frustrated. I want to play the full ninety minutes every week.”', morale: 1, rep: { mediaHeat: 6, coachTrust: -6, lockerRoom: -3, fanPopularity: 1 } },
+      { id: 'humble', style: 'humble', label: 'Own the performance', quote: '“I wasn’t good enough today. I’ll work harder to earn my place back.”', morale: -2, rep: { coachTrust: 3, lockerRoom: 4, fanPopularity: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'benched',
+    reporter: 'Inès Carvalho',
+    outlet: 'Foot Mercato',
+    question: 'You started on the bench again. Are you frustrated with your role?',
+    weight: 8,
+    when: (c) => c.benched && !c.subbedOff,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Stay professional', quote: '“I’m ready whenever the coach calls. My job is to impact the game from the bench.”', morale: 1, rep: { coachTrust: 4, lockerRoom: 2, mediaHeat: -1 } },
+      { id: 'bold', style: 'bold', label: 'Demand a start', quote: '“I belong in the starting eleven. I’ll keep saying it until it happens.”', morale: 2, rep: { mediaHeat: 6, coachTrust: -5, fanPopularity: 3, lockerRoom: -2 } },
+      { id: 'humble', style: 'humble', label: 'Keep working', quote: '“Competition makes everyone better. I’ll keep my head down and keep training.”', morale: 1, rep: { coachTrust: 3, lockerRoom: 3 } },
+      NO_COMMENT,
+    ],
+  },
   {
     id: 'hero',
     reporter: 'Camille Laurent',

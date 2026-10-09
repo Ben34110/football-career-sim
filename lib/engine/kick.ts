@@ -1,4 +1,4 @@
-import type { KickKind, KickResult } from '../types';
+import type { Curl, KickKind, KickResult } from '../types';
 import { clamp, weightedPick, type Rng } from './rng';
 
 /**
@@ -39,6 +39,8 @@ export interface KickInput {
   keeperLevel: number;
   /** 0 (relaxed) … 1 (World Cup final) */
   pressure: number;
+  /** Free kicks only: bend the ball around the wall */
+  curl?: Curl;
 }
 
 export interface KickOutcome {
@@ -48,6 +50,7 @@ export interface KickOutcome {
   /** For UI flavour */
   missP: number;
   saveP: number;
+  curl: Curl;
 }
 
 export function pickDiveZone(rng: Rng): number {
@@ -73,17 +76,26 @@ export function saveChance(shot: number, dive: number, keeperLevel: number, kind
 
 export function resolveKick(input: KickInput, rng: Rng): KickOutcome {
   const { zone, kind } = input;
+  const curl: Curl = kind === 'freekick' ? input.curl ?? 'straight' : 'straight';
+  // Bending the ball toward the side you aim at fools the keeper and beats the wall;
+  // bending it away from your target is a gamble.
+  const side = zoneCol(zone) < 2 ? 'left' : 'right';
+  const bend = curl === 'straight' ? 'none' : curl === side ? 'with' : 'against';
+  const missMul = bend === 'none' ? 1 : bend === 'with' ? 1.15 : 1.45;
+  const saveMul = bend === 'none' ? 1 : bend === 'with' ? 0.72 : 0.92;
+  const wallMul = bend === 'none' ? 1 : bend === 'with' ? 0.2 : 0.55;
+
   const skill = (0.6 * input.finishing + 0.4 * input.composure) / 100;
   const missP = clamp(
-    MISS_RISK[zone] * (1.9 - 1.5 * skill) * KIND_MISS_MUL[kind] * (1 + input.pressure * 0.6),
+    MISS_RISK[zone] * (1.9 - 1.5 * skill) * KIND_MISS_MUL[kind] * missMul * (1 + input.pressure * 0.6),
     0.015,
-    0.5,
+    0.55,
   );
   const diveZone = pickDiveZone(rng);
-  const saveP = saveChance(zone, diveZone, input.keeperLevel, kind);
+  const saveP = clamp(saveChance(zone, diveZone, input.keeperLevel, kind) * saveMul, 0, 0.92);
 
   // Free kicks: low shots can hit the wall
-  const wallP = kind === 'freekick' ? (zoneRow(zone) === 1 ? 0.22 : 0.04) : 0;
+  const wallP = kind === 'freekick' ? (zoneRow(zone) === 1 ? 0.22 : 0.04) * wallMul : 0;
 
   let result: KickResult;
   if (rng() < wallP) result = 'blocked';
@@ -91,7 +103,7 @@ export function resolveKick(input: KickInput, rng: Rng): KickOutcome {
   else if (rng() < saveP) result = 'saved';
   else result = 'goal';
 
-  return { result, shotZone: zone, diveZone, missP, saveP };
+  return { result, shotZone: zone, diveZone, missP, saveP, curl };
 }
 
 /** Quick auto-resolve for teammates in a shootout */

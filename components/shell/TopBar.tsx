@@ -6,9 +6,11 @@ import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
 import { fmtMoneyK, seasonLabel } from '@/lib/engine/player';
 import { useEnergy } from '@/lib/hooks';
+import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 
 export function TopBar() {
+  const t = useT();
   const player = useGameStore((s) => s.player);
   const year = useGameStore((s) => s.year);
   const phase = useGameStore((s) => s.phase);
@@ -21,9 +23,9 @@ export function TopBar() {
         <div className="flex min-w-0 items-center gap-2.5">
           {club ? <Crest short={club.short} color={club.color} size={30} /> : <div className="h-[30px] w-[30px] rounded-full bg-white/10" />}
           <div className="min-w-0 leading-tight">
-            <div className="truncate text-[13px] font-bold text-zinc-100">{club?.name ?? 'Free agent'}</div>
+            <div className="truncate text-[13px] font-bold text-zinc-100">{club?.name ?? t('Free agent')}</div>
             <div className="text-[11px] text-zinc-500">
-              {phase === 'retired' ? 'Retired' : `Season ${seasonLabel(year)}`}
+              {phase === 'retired' ? t('Retired') : `${t('Season')} ${seasonLabel(year)}`}
             </div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+
 export const AMBIENT = {
   myChance: [
     '{me} swing in a dangerous cross — it just evades everyone.',
@@ -18,5 +20,5 @@ export const AMBIENT = {
   card: ['{who} goes into the book for a late challenge.', '{who} sees yellow for dissent.'],
 };
 
-export const fill = (tpl: string, vars: Record<string, string>) =>
-  tpl.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
+/** Translates the template, then fills the placeholders. */
+export const fill = (tpl: string, vars: Record<string, string>) => translate(tpl, vars);

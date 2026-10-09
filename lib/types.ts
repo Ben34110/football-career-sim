@@ -1,3 +1,5 @@
+import type { Look } from './data/look';
+
 export type Position = 'ST' | 'CAM' | 'RW' | 'LW';
 export type Foot = 'Left' | 'Right' | 'Both';
 
@@ -14,6 +16,7 @@ export interface Nationality {
   name: string;
   flag: string;
   confederation: Confederation;
+  region: 'Europe' | 'Africa' | 'Americas' | 'Asia';
   /** National team strength (comparable to club strength) */
   strength: number;
 }
@@ -54,6 +57,10 @@ export interface FixtureResult {
   goals: number;
   assists: number;
   outcome: Outcome;
+  /** Started on the bench and came on */
+  benched?: boolean;
+  /** The coach took the player off after a poor showing */
+  subbedOff?: boolean;
 }
 
 export interface Fixture {
@@ -154,6 +161,12 @@ export interface Player {
   trophies: string[];
   totals: { apps: number; goals: number; assists: number; transfers: number };
   peakOvr: number;
+  /** Head customisation (absent on saves made before the editor existed) */
+  look?: Look;
+  /** International record */
+  national?: { caps: number; goals: number };
+  /** Scandal strikes — three and the club terminates the contract */
+  strikes?: number;
 }
 
 export interface SeasonRecord {
@@ -177,6 +190,21 @@ export interface SeasonSummary {
   contractExpiring: boolean;
   table: TableRow[];
   retiring: boolean;
+  ballonDor?: BallonDorResult;
+}
+
+export interface BallonDorEntry {
+  name: string;
+  club: string;
+  score: number;
+  isMe?: boolean;
+}
+
+export interface BallonDorResult {
+  /** Final ranking of the top candidates (the player is always included) */
+  ranking: BallonDorEntry[];
+  rank: number;
+  won: boolean;
 }
 
 export interface NewsItem {
@@ -225,6 +253,10 @@ export interface MatchEvent {
 }
 
 export type KickKind = 'penalty' | 'freekick' | 'shootout';
+export type Curl = 'left' | 'straight' | 'right';
+/** Skill mini-games that replace the dice roll on some clutch options */
+export type MiniKind = 'power' | 'header' | 'tackle' | 'dribble';
+export type MiniQuality = 'perfect' | 'good' | 'miss';
 export type KickResult = 'goal' | 'saved' | 'missed' | 'blocked';
 
 export interface ClutchOption {
@@ -235,6 +267,8 @@ export interface ClutchOption {
   attr: AttrKey;
   /** Base success chance before attributes/momentum */
   base: number;
+  /** When set, the choice opens a skill mini-game instead of rolling dice */
+  mini?: MiniKind;
   /** What happens on success */
   onSuccess: 'goal' | 'assist' | 'momentum' | 'save' | 'kick-penalty' | 'kick-freekick';
   /** Narrative texts */
@@ -273,4 +307,6 @@ export interface MatchState {
   isStarter: boolean;
   /** The player failed to convert a penalty / free kick */
   missedKick: boolean;
+  /** Minute the coach took the player off, if it happened */
+  subbedOffAt?: number;
 }

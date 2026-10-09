@@ -5,6 +5,7 @@ import { CalendarDays, Home, Repeat, User, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { haptic } from '@/lib/haptics';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -16,10 +17,11 @@ const TABS = [
 ];
 
 export function BottomNav() {
+  const t = useT();
   const pathname = usePathname();
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t('Primary')}
       className="pb-safe fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[430px] border-t border-white/[0.08] bg-zinc-950/80 backdrop-blur-2xl"
     >
       <ul className="grid grid-cols-5 items-end px-2 pt-1.5">
@@ -57,7 +59,7 @@ export function BottomNav() {
                     <Icon className={cn('relative h-[22px] w-[22px] transition-colors', active ? 'text-neon-300' : 'text-zinc-500')} />
                   </motion.span>
                 )}
-                <span className={cn('text-[10px] font-semibold tracking-wide', active ? 'text-zinc-100' : 'text-zinc-500')}>{label}</span>
+                <span className={cn('text-[10px] font-semibold tracking-wide', active ? 'text-zinc-100' : 'text-zinc-500')}>{t(label)}</span>
               </Link>
             </li>
           );

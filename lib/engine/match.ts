@@ -13,9 +13,11 @@ import type {
   MatchEventType,
   MatchModifiers,
   MatchState,
+  MiniQuality,
   Position,
   Reputation,
 } from '../types';
+import { translate as tr } from '../i18n';
 import { clamp, randInt, weightedPick, type Rng } from './rng';
 
 /** Everything the engine needs to know about the context of a match. */
@@ -37,6 +39,8 @@ export interface MatchCtx {
   knockout: boolean;
   kind: FixtureKind;
   mods: MatchModifiers;
+  /** The coach has left the player on the bench to start */
+  benched: boolean;
 }
 
 export interface BuildCtxInput {
@@ -56,6 +60,22 @@ export interface BuildCtxInput {
   knockout: boolean;
   kind: FixtureKind;
   mods: MatchModifiers;
+  benched: boolean;
+}
+
+/**
+ * Does the coach leave the player out of the starting XI?
+ * Low trust, or a run of poor ratings with only moderate trust. National teams always start you.
+ */
+export function startsOnBench(coachTrust: number, form: number[], kind: FixtureKind): boolean {
+  if (kind === 'intl' || kind === 'tournament') return false;
+  if (coachTrust < 25) return true;
+  const last = form.slice(-3);
+  if (last.length >= 3) {
+    const avg = last.reduce((a, b) => a + b, 0) / last.length;
+    if (avg < 5.9 && coachTrust < 55) return true;
+  }
+  return false;
 }
 
 export function buildCtx(i: BuildCtxInput): MatchCtx {
@@ -80,6 +100,7 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
     knockout: i.knockout,
     kind: i.kind,
     mods: i.mods,
+    benched: i.benched,
   };
 }
 
@@ -106,7 +127,7 @@ function scheduleClutches(startMinute: number, starter: boolean, rng: Rng): Clut
 }
 
 export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
-  const isStarter = ctx.kind === 'intl' || ctx.kind === 'tournament' || ctx.rep.coachTrust >= 25;
+  const isStarter = !ctx.benched;
   const startMinute = isStarter ? 0 : 55;
   let m: MatchState = {
     minute: 0,
@@ -128,12 +149,12 @@ export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
     isStarter,
     missedKick: false,
   };
-  m = push(m, 0, 'kickoff', 'neutral', `Kick-off! ${ctx.myTeam} vs ${ctx.oppName}.`);
+  m = push(m, 0, 'kickoff', 'neutral', tr('Kick-off! {me} vs {opp}.', { me: ctx.myTeam, opp: ctx.oppName }));
   if (!isStarter) {
-    m = push(m, 0, 'sub', 'me', `${surname(ctx.playerName)} starts on the bench. The gaffer is not convinced yet.`, true);
+    m = push(m, 0, 'sub', 'me', tr('{who} starts on the bench. The gaffer is not convinced yet.', { who: surname(ctx.playerName) }), true);
     // Silently play out the first 55 minutes without the player
     while (m.minute < startMinute) m = tickMatch(m, ctx, rng);
-    m = push(m, m.minute, 'sub', 'me', `🔁 ${surname(ctx.playerName)} comes on — time to make an impact!`, true);
+    m = push(m, m.minute, 'sub', 'me', tr('🔁 {who} comes on — time to make an impact!', { who: surname(ctx.playerName) }), true);
   }
   return m;
 }
@@ -152,18 +173,35 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
 
   const upcoming = input.clutches[input.nextClutch];
   if (upcoming && input.minute >= upcoming.minute) {
-    return push({ ...input, status: 'clutch' }, input.minute, 'clutch', 'me', `⚡ ${upcoming.title}`, true);
+    return push({ ...input, status: 'clutch' }, input.minute, 'clutch', 'me', `⚡ ${tr(upcoming.title)}`, true);
   }
 
   let m: MatchState = { ...input, shots: { ...input.shots } };
   const prev = m.minute;
   m.minute = Math.min(90, prev + 3);
   const at = () => Math.min(90, prev + randInt(1, 3, rng));
-  const playerOn = m.minute > m.startMinute;
   const who = surname(ctx.playerName);
 
+  // A poor showing: the coach may pull the player off (never in international games)
+  if (m.subbedOffAt === undefined && prev >= 55 && prev <= 80 && ctx.kind !== 'intl' && ctx.kind !== 'tournament') {
+    const bad = m.rating <= 5.2 ? 0.55 : m.rating <= 5.7 ? 0.3 : 0;
+    const patience = clamp(1.25 - ctx.rep.coachTrust / 100, 0.35, 1.2);
+    if (bad > 0 && rng() < bad * patience) {
+      const minute = Math.min(88, m.minute);
+      m = {
+        ...m,
+        subbedOffAt: minute,
+        rating: m.rating - 0.2,
+        // the remaining decisions are no longer yours
+        clutches: m.clutches.slice(0, m.nextClutch),
+      };
+      m = push(m, minute, 'sub', 'me', tr('🔁 The coach has seen enough — {who} is substituted.', { who }), true);
+    }
+  }
+  const playerOn = m.minute > m.startMinute && (m.subbedOffAt === undefined || m.minute <= m.subbedOffAt);
+
   if (prev < 45 && m.minute >= 45) {
-    m = push(m, 45, 'halftime', 'neutral', `Half-time: ${ctx.myTeam} ${m.myScore}–${m.oppScore} ${ctx.oppName}.`);
+    m = push(m, 45, 'halftime', 'neutral', tr('Half-time: {me} {a}–{b} {opp}.', { me: ctx.myTeam, a: m.myScore, b: m.oppScore, opp: ctx.oppName }));
   }
 
   const d = ctx.myStr - ctx.oppStr;
@@ -181,13 +219,13 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
       const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
       if (playerOn && rng() < share) {
         m = { ...m, myScore: m.myScore + 1, goals: m.goals + 1, rating: m.rating + 1, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', `⚽ GOAL! ${who} finishes it off for ${ctx.myTeam}! ${m.myScore}–${m.oppScore}`, true);
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {who} finishes it off for {me}! {a}–{b}', { who, me: ctx.myTeam, a: m.myScore, b: m.oppScore }), true);
       } else if (playerOn && rng() < 0.2 * clamp(1 + (ctx.attrs.vision - 70) / 80, 0.6, 1.5)) {
         m = { ...m, myScore: m.myScore + 1, assists: m.assists + 1, rating: m.rating + 0.6, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', `⚽ GOAL! ${mate} scores from ${who}’s pinpoint pass! ${m.myScore}–${m.oppScore}`, true);
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores from {who}’s pinpoint pass! {a}–{b}', { mate, who, a: m.myScore, b: m.oppScore }), true);
       } else {
         m = { ...m, myScore: m.myScore + 1, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', `⚽ GOAL! ${mate} puts ${ctx.myTeam} ahead on the scoresheet! ${m.myScore}–${m.oppScore}`);
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores for {me}! {a}–{b}', { mate, me: ctx.myTeam, a: m.myScore, b: m.oppScore }));
       }
     } else {
       const text = fill(AMBIENT.mySave[randInt(0, AMBIENT.mySave.length - 1, rng)], vars);
@@ -203,7 +241,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     if (rng() < oppConv) {
       const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
       m = { ...m, oppScore: m.oppScore + 1, momentum: clamp(m.momentum - 22, -100, 100) };
-      m = push(m, at(), 'goal', 'opp', `💔 ${ctx.oppName} score! ${mate} finds the net. ${m.myScore}–${m.oppScore}`);
+      m = push(m, at(), 'goal', 'opp', tr('💔 {opp} score! {mate} finds the net. {a}–{b}', { opp: ctx.oppName, mate, a: m.myScore, b: m.oppScore }));
     } else {
       const text = fill(AMBIENT.oppSave[randInt(0, AMBIENT.oppSave.length - 1, rng)], vars);
       m = { ...m, momentum: clamp(m.momentum - 5, -100, 100) };
@@ -213,7 +251,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     const isCard = rng() < 0.4;
     const text = isCard
       ? fill(AMBIENT.card[randInt(0, AMBIENT.card.length - 1, rng)], { who: SURNAMES[randInt(0, SURNAMES.length - 1, rng)] })
-      : AMBIENT.foul[randInt(0, AMBIENT.foul.length - 1, rng)];
+      : tr(AMBIENT.foul[randInt(0, AMBIENT.foul.length - 1, rng)]);
     m = push(m, at(), isCard ? 'card' : 'foul', 'neutral', text);
   }
 
@@ -221,7 +259,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   m.momentum = clamp(Math.round(m.momentum * (0.88 + (rng() - 0.5) * 0.06)), -100, 100);
 
   if (m.minute >= 90) {
-    m = push({ ...m, status: 'finished' }, 90, 'fulltime', 'neutral', `Full-time: ${ctx.myTeam} ${m.myScore}–${m.oppScore} ${ctx.oppName}.`);
+    m = push({ ...m, status: 'finished' }, 90, 'fulltime', 'neutral', tr('Full-time: {me} {a}–{b} {opp}.', { me: ctx.myTeam, a: m.myScore, b: m.oppScore, opp: ctx.oppName }));
   }
   return m;
 }
@@ -243,72 +281,102 @@ export interface ClutchResolution {
   success: boolean;
   /** Set when the choice opens the 8-zone goal UI */
   kick?: KickKind;
+  /** Set when the choice opens a skill mini-game */
+  mini?: ClutchOption['mini'];
 }
 
-export function resolveClutch(m: MatchState, ctx: MatchCtx, optionId: string, rng: Rng): ClutchResolution {
+const findOption = (m: MatchState, optionId: string) => {
   const moment = m.clutches[m.nextClutch];
-  const opt = moment.options.find((o) => o.id === optionId) ?? moment.options[0];
+  return { moment, opt: moment.options.find((o) => o.id === optionId) ?? moment.options[0] };
+};
+
+export function resolveClutch(m: MatchState, ctx: MatchCtx, optionId: string, rng: Rng): ClutchResolution {
+  const { opt } = findOption(m, optionId);
+  // Skill options are decided by the player's hands, not by dice
+  if (opt.mini) return { state: m, success: false, mini: opt.mini };
+  return settleOption(m, ctx, opt, rng() < successChance(opt, ctx, m), rng);
+}
+
+/** Result of a mini-game → probability of the option succeeding. */
+export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState, q: MiniQuality): number {
+  const base = successChance(opt, ctx, m);
+  if (q === 'perfect') return clamp(Math.max(0.9, base + 0.3), 0, 0.96);
+  if (q === 'good') return clamp(base + 0.1, 0.2, 0.85);
+  return clamp(base * 0.22, 0.03, 0.2);
+}
+
+export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng): ClutchResolution {
+  const { opt } = findOption(m, optionId);
+  return settleOption(m, ctx, opt, rng() < miniSuccessChance(opt, ctx, m, q), rng);
+}
+
+function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: boolean, rng: Rng): ClutchResolution {
+  const moment = m.clutches[m.nextClutch];
   const who = surname(ctx.playerName);
-  const success = rng() < successChance(opt, ctx, m);
+  const said = (text: string) => tr(text);
 
   if (success && (opt.onSuccess === 'kick-penalty' || opt.onSuccess === 'kick-freekick')) {
     const kick: KickKind = opt.onSuccess === 'kick-penalty' ? 'penalty' : 'freekick';
     const text =
       kick === 'penalty'
-        ? `🎯 ${who} ${opt.successText}. Penalty to ${ctx.myTeam}!`
-        : `🎯 ${who} ${opt.successText}.`;
+        ? tr('🎯 {who} {act}. Penalty to {me}!', { who, act: said(opt.successText), me: ctx.myTeam })
+        : tr('🎯 {who} {act}.', { who, act: said(opt.successText) });
     return { state: push(m, m.minute, 'clutch', 'me', text, true), success: true, kick };
   }
 
   let s: MatchState = { ...m, clutchTotal: m.clutchTotal + 1, nextClutch: m.nextClutch + 1, status: 'playing' };
   s.minute = Math.min(89, s.minute + 1);
+  const act = said(opt.successText);
 
   if (success) {
     s.clutchWins += 1;
     switch (opt.onSuccess) {
       case 'goal':
         s = { ...s, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + 1, momentum: clamp(s.momentum + 28, -100, 100) };
-        s = push(s, s.minute, 'goal', 'me', `⚽ GOAL! ${who} ${opt.successText}! ${s.myScore}–${s.oppScore}`, true);
+        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, a: s.myScore, b: s.oppScore }), true);
         break;
       case 'assist':
         s = { ...s, myScore: s.myScore + 1, assists: s.assists + 1, rating: s.rating + 0.65, momentum: clamp(s.momentum + 25, -100, 100) };
-        s = push(s, s.minute, 'goal', 'me', `⚽ GOAL! ${who} ${opt.successText}! ${s.myScore}–${s.oppScore}`, true);
+        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, a: s.myScore, b: s.oppScore }), true);
         break;
       case 'save':
         s = { ...s, rating: s.rating + 0.35, momentum: clamp(s.momentum + 12, -100, 100) };
-        s = push(s, s.minute, 'clutch', 'me', `🛡️ ${who} ${opt.successText}.`, true);
+        s = push(s, s.minute, 'clutch', 'me', `🛡️ ${who} ${act}.`, true);
         break;
       default:
         s = { ...s, rating: s.rating + 0.25, momentum: clamp(s.momentum + 30, -100, 100) };
-        s = push(s, s.minute, 'clutch', 'me', `🔥 ${who} ${opt.successText}.`, true);
+        s = push(s, s.minute, 'clutch', 'me', `🔥 ${who} ${act}.`, true);
     }
     return { state: s, success: true };
   }
 
   // Failure
   s = { ...s, rating: s.rating - 0.2, momentum: clamp(s.momentum - 12, -100, 100) };
-  s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${opt.failText}.`, true);
+  s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${said(opt.failText)}.`, true);
   if (moment.defensive && rng() < 0.55) {
     s = { ...s, oppScore: s.oppScore + 1, rating: s.rating - 0.4, momentum: clamp(s.momentum - 20, -100, 100) };
-    s = push(s, s.minute, 'goal', 'opp', `💔 ${ctx.oppName} punish the mistake and score! ${s.myScore}–${s.oppScore}`);
+    s = push(s, s.minute, 'goal', 'opp', tr('💔 {opp} punish the mistake and score! {a}–{b}', { opp: ctx.oppName, a: s.myScore, b: s.oppScore }));
   }
   return { state: s, success: false };
 }
 
 /** Called once the 8-zone goal UI has produced a result. */
-export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: KickResult): MatchState {
+export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: KickResult, curled = false): MatchState {
   const who = surname(ctx.playerName);
-  const label = kind === 'penalty' ? 'penalty' : 'free kick';
+  const label = tr(kind === 'penalty' ? 'penalty' : 'free kick');
   let s: MatchState = { ...m, clutchTotal: m.clutchTotal + 1, nextClutch: m.nextClutch + 1, status: 'playing' };
   s.minute = Math.min(89, s.minute + 1);
   if (result === 'goal') {
-    s = { ...s, clutchWins: s.clutchWins + 1, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + 1.1, momentum: clamp(s.momentum + 30, -100, 100) };
-    return push(s, s.minute, 'goal', 'me', `⚽ GOAL! ${who} converts the ${label}! ${s.myScore}–${s.oppScore}`, true);
+    s = { ...s, clutchWins: s.clutchWins + 1, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + (curled ? 1.3 : 1.1), momentum: clamp(s.momentum + 30, -100, 100) };
+    const text = curled
+      ? tr('⚽ GOAL! {who} bends the free kick around the wall! {a}–{b}', { who, a: s.myScore, b: s.oppScore })
+      : tr('⚽ GOAL! {who} converts the {label}! {a}–{b}', { who, label, a: s.myScore, b: s.oppScore });
+    return push(s, s.minute, 'goal', 'me', text, true);
   }
   const text: Record<Exclude<KickResult, 'goal'>, string> = {
-    saved: `🧤 SAVED! The keeper denies ${who} from the ${label}.`,
-    missed: `😱 ${who} blazes the ${label} wide!`,
-    blocked: `🧱 ${who}’s free kick crashes into the wall.`,
+    saved: tr('🧤 SAVED! The keeper denies {who} from the {label}.', { who, label }),
+    missed: tr('😱 {who} blazes the {label} wide!', { who, label }),
+    blocked: tr('🧱 {who}’s free kick crashes into the wall.', { who }),
   };
   s = { ...s, missedKick: true, rating: s.rating - 0.5, momentum: clamp(s.momentum - 18, -100, 100) };
   return push(s, s.minute, 'miss', 'me', text[result as Exclude<KickResult, 'goal'>], true);
@@ -349,5 +417,7 @@ export function buildResult(
     goals: m.goals,
     assists: m.assists,
     outcome,
+    benched: !m.isStarter || undefined,
+    subbedOff: m.subbedOffAt !== undefined || undefined,
   };
 }

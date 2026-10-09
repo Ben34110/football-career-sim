@@ -1,13 +1,14 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Crosshair, Gauge } from 'lucide-react';
+import { Crosshair, Gauge, MoveRight, MoveUpRight, MoveUpLeft } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { resolveKick, ZONE_COUNT, ZONE_NAMES, zoneCol, zoneRow, type KickOutcome } from '@/lib/engine/kick';
 import { haptic } from '@/lib/haptics';
-import type { KickKind } from '@/lib/types';
+import { useT } from '@/lib/i18n';
+import type { Curl, KickKind } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -43,8 +44,16 @@ function pressureLabel(p: number) {
   return p > 0.75 ? 'Nerve-shredding' : p > 0.5 ? 'High' : p > 0.3 ? 'Rising' : 'Calm';
 }
 
+const CURLS: { id: Curl; label: string; Icon: typeof MoveRight }[] = [
+  { id: 'left', label: 'Curl left', Icon: MoveUpLeft },
+  { id: 'straight', label: 'Straight', Icon: MoveRight },
+  { id: 'right', label: 'Curl right', Icon: MoveUpRight },
+];
+
 export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, title, subtitle, continueLabel = 'Continue', onDone }: Props) {
+  const t = useT();
   const reduce = useReducedMotion();
+  const [curl, setCurl] = useState<Curl>('straight');
   const [phase, setPhase] = useState<'aim' | 'flying' | 'revealed'>('aim');
   const [outcome, setOutcome] = useState<KickOutcome | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -57,7 +66,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
   const shoot = (zone: number) => {
     if (phase !== 'aim') return;
     haptic(18);
-    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure }, Math.random);
+    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, curl }, Math.random);
     setOutcome(o);
     setPhase('flying');
     timer.current = setTimeout(
@@ -93,6 +102,10 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
 
   const kt = keeperTarget();
   const bt = ballTarget();
+  // Curled free kicks swing out first, then bend back toward the target
+  const curved = !!outcome && outcome.curl !== 'straight' && kind === 'freekick';
+  const midLeft = curved && outcome ? `${parseFloat(String(bt.left)) + (outcome.curl === 'left' ? 16 : -16)}%` : bt.left;
+  const midTop = curved ? '62%' : bt.top;
   const revealed = phase === 'revealed' && outcome;
   const isGoal = outcome?.result === 'goal';
 
@@ -100,15 +113,15 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="eyebrow text-gold-300">{kind === 'penalty' ? 'Penalty kick' : kind === 'freekick' ? 'Free kick' : 'Shootout'}</div>
-          <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{title}</h3>
+          <div className="eyebrow text-gold-300">{t(kind === 'penalty' ? 'Penalty kick' : kind === 'freekick' ? 'Free kick' : 'Shootout')}</div>
+          <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(title)}</h3>
           {subtitle && <p className="mt-1 text-xs text-zinc-400">{subtitle}</p>}
         </div>
         <div className="flex flex-col items-end gap-1">
           <Chip tone={pressure > 0.6 ? 'bad' : 'gold'}>
-            <Gauge className="h-3 w-3" /> {pressureLabel(pressure)}
+            <Gauge className="h-3 w-3" /> {t(pressureLabel(pressure))}
           </Chip>
-          <Chip>Composure {composure}</Chip>
+          <Chip>{t('Composure')} {composure}</Chip>
         </div>
       </div>
 
@@ -137,7 +150,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
                   onPointerLeave={() => setHover(null)}
                   onFocus={() => setHover(z)}
                   disabled={phase !== 'aim'}
-                  aria-label={`Shoot ${ZONE_NAMES[z]}`}
+                  aria-label={`${t('Shoot')} ${t(ZONE_NAMES[z])}`}
                   className={cn(
                     'group relative flex items-center justify-center border border-white/[0.14] outline-none transition-colors',
                     phase === 'aim' && 'cursor-crosshair hover:bg-neon-400/20 focus-visible:bg-neon-400/20 active:bg-neon-400/35',
@@ -209,8 +222,14 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
           className="pointer-events-none absolute z-20 h-7 w-7"
           style={{ x: '-50%', y: '-50%' }}
           initial={{ left: '50%', top: '93%', scale: 1 }}
-          animate={phase === 'aim' ? { left: '50%', top: '93%', scale: 1 } : { left: bt.left, top: bt.top, scale: bt.scale }}
-          transition={reduce ? { duration: 0 } : { duration: 0.55, ease: [0.2, 0.7, 0.3, 1] }}
+          animate={
+            phase === 'aim'
+              ? { left: '50%', top: '93%', scale: 1 }
+              : curved
+                ? { left: ['50%', midLeft, bt.left], top: ['93%', midTop, bt.top], scale: [1, 0.8, bt.scale] }
+                : { left: bt.left, top: bt.top, scale: bt.scale }
+          }
+          transition={reduce ? { duration: 0 } : { duration: curved ? 0.75 : 0.55, ease: curved ? 'easeInOut' : [0.2, 0.7, 0.3, 1] }}
         >
           <div className="h-full w-full rounded-full bg-[radial-gradient(circle_at_35%_30%,#fff,#d4d4d8_55%,#52525b)] shadow-[0_6px_12px_rgba(0,0,0,0.7)]" />
           <svg viewBox="0 0 28 28" className="absolute inset-0" aria-hidden>
@@ -229,7 +248,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
               className="pointer-events-none absolute inset-x-0 top-[58%] z-30 text-center"
             >
               <span className={cn('font-display text-6xl font-extrabold italic tracking-tight', RESULT_COPY[outcome.result].color, RESULT_COPY[outcome.result].glow)}>
-                {RESULT_COPY[outcome.result].text}
+                {t(RESULT_COPY[outcome.result].text)}
               </span>
             </motion.div>
           )}
@@ -250,25 +269,47 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
 
       <div className="min-h-[76px]">
         {phase === 'aim' && (
-          <div className="space-y-1.5 text-center">
-            <p className="text-sm font-semibold text-zinc-200">
-              {hover !== null ? ZONE_NAMES[hover] : 'Tap a zone to take the shot'}
-            </p>
+          <div className="space-y-2 text-center">
+            {kind === 'freekick' && (
+              <div>
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t('Spin')}</div>
+                <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
+                  {CURLS.map(({ id, label, Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setCurl(id);
+                        haptic(8);
+                      }}
+                      aria-pressed={curl === id}
+                      className={cn(
+                        'flex h-9 items-center justify-center gap-1 rounded-xl text-xs font-bold transition-all',
+                        curl === id ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-zinc-950' : 'text-zinc-400',
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" /> {t(label)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="text-sm font-semibold text-zinc-200">{hover !== null ? t(ZONE_NAMES[hover]) : t('Tap a zone to take the shot')}</p>
             <p className="text-xs text-zinc-500">
-              ★ Corners are harder to save — but easier to miss.
-              {kind === 'freekick' ? ' Low shots risk the wall.' : ''}
+              {t('★ Corners are harder to save — but easier to miss.')}
+              {kind === 'freekick' ? ` ${t('Low shots risk the wall.')}` : ''}
             </p>
+            {kind === 'freekick' && <p className="text-xs text-zinc-500">{t('Bend the ball toward the side you aim at to beat the wall and fool the keeper.')}</p>}
           </div>
         )}
-        {phase === 'flying' && <p className="pt-3 text-center text-sm font-semibold text-zinc-400">Struck… the keeper is diving…</p>}
+        {phase === 'flying' && <p className="pt-3 text-center text-sm font-semibold text-zinc-400">{t('Struck… the keeper is diving…')}</p>}
         {revealed && outcome && (
           <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-2">
             <p className="text-center text-xs text-zinc-400">
-              You aimed <span className="font-semibold text-zinc-200">{ZONE_NAMES[outcome.shotZone]}</span> · keeper dived{' '}
-              <span className="font-semibold text-zinc-200">{ZONE_NAMES[outcome.diveZone]}</span>
+              {t('You aimed')} <span className="font-semibold text-zinc-200">{t(ZONE_NAMES[outcome.shotZone])}</span> · {t('keeper dived')}{' '}
+              <span className="font-semibold text-zinc-200">{t(ZONE_NAMES[outcome.diveZone])}</span>
             </p>
             <Button block size="lg" variant={isGoal ? 'primary' : 'ghost'} onClick={() => onDone(outcome)}>
-              {continueLabel}
+              {t(continueLabel)}
             </Button>
           </motion.div>
         )}

@@ -6,8 +6,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
+import { FloatingAction } from '@/components/ui/FloatingAction';
 import { EXPECTATION_TARGET, type Speech, type StanceEffect } from '@/lib/data/speeches';
 import { REP_LABEL } from '@/lib/engine/player';
+import { fmtShortDate } from '@/lib/dates';
+import { useLang, useT } from '@/lib/i18n';
 import { fmtCountdown, cn } from '@/lib/utils';
 import type { Fixture, RepKey } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
@@ -27,7 +30,8 @@ export function PreMatch({
   speech,
   bolts,
   msToNext,
-  benchRisk,
+  benchWhy,
+  date,
   onKickoff,
 }: {
   fixture: Fixture;
@@ -37,9 +41,12 @@ export function PreMatch({
   speech: Speech;
   bolts: number;
   msToNext: number;
-  benchRisk: boolean;
+  benchWhy: 'trust' | 'form' | null;
+  date: Date;
   onKickoff: (s: StanceEffect) => void;
 }) {
+  const t = useT();
+  const { lang } = useLang();
   const [picked, setPicked] = useState<StanceEffect | null>(null);
   const diff = myStrength - fixture.opponentStrength;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
@@ -50,8 +57,8 @@ export function PreMatch({
       {/* Fixture hero */}
       <Card strong gold className="overflow-hidden p-4">
         <div className="mb-4 flex items-center justify-between">
-          <Chip tone="gold">{KIND_LABEL[fixture.kind]}</Chip>
-          <span className="eyebrow">{fixture.label}</span>
+          <Chip tone="gold">{t(KIND_LABEL[fixture.kind])}</Chip>
+          <span className="eyebrow">{t(fixture.label)} · {fmtShortDate(date, lang)}</span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
@@ -62,7 +69,7 @@ export function PreMatch({
             <div className="font-display text-3xl font-extrabold text-zinc-600">VS</div>
             <div className="mt-1 flex items-center justify-center gap-1 text-[11px] font-semibold text-zinc-400">
               {fixture.home ? <HomeIcon className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-              {fixture.home ? 'Home' : 'Away'}
+              {fixture.home ? t('Home') : t('Away')}
             </div>
           </div>
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
@@ -72,23 +79,25 @@ export function PreMatch({
         </div>
         <div className="mt-4 flex items-center justify-between rounded-xl bg-black/30 px-3 py-2 text-xs">
           <span className="text-zinc-400">
-            Squad <b className="font-num text-sm text-zinc-100">{Math.round(myStrength)}</b> vs <b className="font-num text-sm text-zinc-100">{fixture.opponentStrength}</b>
+            {t('Squad')} <b className="font-num text-sm text-zinc-100">{Math.round(myStrength)}</b> {t('vs')} <b className="font-num text-sm text-zinc-100">{fixture.opponentStrength}</b>
           </span>
-          <Chip tone={tag.tone}>{tag.t}</Chip>
+          <Chip tone={tag.tone}>{t(tag.t)}</Chip>
         </div>
-        {fixture.knockout && <p className="mt-2 text-center text-[11px] text-gold-300">Knockout tie — a draw goes to penalties.</p>}
+        {fixture.knockout && <p className="mt-2 text-center text-[11px] text-gold-300">{t('Knockout tie — a draw goes to penalties.')}</p>}
       </Card>
 
-      {(benchRisk || bolts < 5) && (
+      {(benchWhy || bolts < 5) && (
         <div className="space-y-2">
-          {benchRisk && (
+          {benchWhy && (
             <Warn>
-              Coach Trust is low — you’ll start on the <b>bench</b> and come on after 55 minutes.
+              {benchWhy === 'trust'
+                ? t('Coach Trust is low — you’ll start on the bench and come on after 55 minutes.')
+                : t('Your recent form is poor — the coach will leave you on the bench and bring you on after 55 minutes.')}
             </Warn>
           )}
           {bolts < 5 && bolts >= 1 && (
             <Warn>
-              Playing on {bolts} bolt{bolts === 1 ? '' : 's'}: fatigue costs you <b>−{5 - bolts} effective OVR</b>.
+              {t('Playing on {n} bolt(s): fatigue costs you −{m} effective OVR.', { n: bolts, m: 5 - bolts })}
             </Warn>
           )}
         </div>
@@ -98,7 +107,7 @@ export function PreMatch({
       <div>
         <div className="mb-2.5 flex items-center gap-2 px-0.5">
           <Mic2 className="h-4 w-4 text-gold-300" />
-          <h2 className="eyebrow">Locker room talk</h2>
+          <h2 className="eyebrow">{t('Locker room talk')}</h2>
         </div>
         <Card className="p-4">
           <div className="mb-2.5 flex items-center gap-3">
@@ -106,14 +115,14 @@ export function PreMatch({
               M
             </div>
             <div>
-              <div className="text-sm font-bold">The Manager</div>
-              <div className="text-[11px] text-zinc-500">{speech.title}</div>
+              <div className="text-sm font-bold">{t('The Manager')}</div>
+              <div className="text-[11px] text-zinc-500">{t(speech.title)}</div>
             </div>
           </div>
-          <p className="text-[15px] italic leading-relaxed text-zinc-200">{speech.quote}</p>
+          <p className="text-[15px] italic leading-relaxed text-zinc-200">{t(speech.quote)}</p>
         </Card>
 
-        <p className="mb-2 mt-4 px-0.5 text-xs font-semibold text-zinc-400">How do you respond?</p>
+        <p className="mb-2 mt-4 px-0.5 text-xs font-semibold text-zinc-400">{t('How do you respond?')}</p>
         <div className="space-y-2.5">
           {speech.stances.map((st, i) => {
             const active = picked?.id === st.id;
@@ -132,28 +141,28 @@ export function PreMatch({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[15px] font-bold">{st.label}</span>
+                  <span className="text-[15px] font-bold">{t(st.label)}</span>
                   <div className="flex items-center gap-1.5">
-                    <Chip tone={st.id === 'demand-ball' ? 'bad' : st.id === 'for-lads' ? 'gold' : 'good'}>{st.tag}</Chip>
+                    <Chip tone={st.id === 'demand-ball' ? 'bad' : st.id === 'for-lads' ? 'gold' : 'good'}>{t(st.tag)}</Chip>
                     {active && <Check className="h-4 w-4 text-neon-400" />}
                   </div>
                 </div>
-                <p className="mt-1.5 text-[13px] italic text-zinc-400">{st.quote}</p>
+                <p className="mt-1.5 text-[13px] italic text-zinc-400">{t(st.quote)}</p>
                 <AnimatePresence initial={false}>
                   {active && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                       <div className="flex flex-wrap gap-1.5 pt-3">
-                        <Chip tone="info">Morale {st.morale > 0 ? '+' : ''}{st.morale}</Chip>
+                        <Chip tone="info">{t('Morale')} {st.morale > 0 ? '+' : ''}{st.morale}</Chip>
                         {(Object.entries(st.rep) as [RepKey, number][]).map(([k, v]) => (
                           <Chip key={k} tone={v > 0 ? 'good' : 'bad'}>
-                            {REP_LABEL[k].replace(' Respect', '')} {v > 0 ? '+' : ''}
+                            {t(REP_LABEL[k].replace(' Respect', ''))} {v > 0 ? '+' : ''}
                             {v}
                           </Chip>
                         ))}
-                        <Chip tone="gold">+{st.perfBonus} form</Chip>
+                        <Chip tone="gold">+{st.perfBonus} {t('form')}</Chip>
                       </div>
                       <p className="mt-2 text-[11px] text-zinc-500">
-                        Expectation: <b className="text-zinc-300">{st.expectation}</b> — you’re judged against a {EXPECTATION_TARGET[st.expectation].toFixed(1)}+ rating.
+                        {t('Expectation')}: <b className="text-zinc-300">{t(st.expectation)}</b> — {t('you’re judged against a {r}+ rating.', { r: EXPECTATION_TARGET[st.expectation].toFixed(1) })}
                       </p>
                     </motion.div>
                   )}
@@ -164,17 +173,17 @@ export function PreMatch({
         </div>
       </div>
 
-      <div className="sticky bottom-3 z-10 pt-2">
+      <FloatingAction>
         <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked)}>
           {exhausted ? (
-            <>No energy · next bolt in {fmtCountdown(msToNext)}</>
+            <>{t('No energy · next bolt in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (
             <>
-              Kick off <span className="flex items-center gap-0.5 rounded-full bg-black/20 px-2 py-0.5 text-xs">−1 <Zap className="h-3 w-3 fill-current" /></span>
+              {t('Kick off')} <span className="flex items-center gap-0.5 rounded-full bg-black/20 px-2 py-0.5 text-xs">−1 <Zap className="h-3 w-3 fill-current" /></span>
             </>
           )}
         </Button>
-      </div>
+      </FloatingAction>
     </div>
   );
 }

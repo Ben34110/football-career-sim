@@ -6,7 +6,9 @@ import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
+import { FloatingAction } from '@/components/ui/FloatingAction';
 import { fmtMoneyK, ovrOf } from '@/lib/engine/player';
+import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import type { Attributes, Expectation, Fixture, FixtureResult, Reputation } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -47,6 +49,7 @@ export function MatchSummary({
   seasonDone: boolean;
   onContinue: () => void;
 }) {
+  const t = useT();
   const player = useGameStore((s) => s.player);
   if (!player) return null;
 
@@ -65,7 +68,7 @@ export function MatchSummary({
   return (
     <div className="space-y-4">
       <Card strong gold className="p-5 text-center">
-        <div className="eyebrow">{fixture.label} · Full time</div>
+        <div className="eyebrow">{t(fixture.label)} · {t('Full time')}</div>
         <div className="mt-3 flex items-center justify-between">
           <Crest short={me.short} color={me.color} size={44} />
           <div>
@@ -76,16 +79,23 @@ export function MatchSummary({
             </div>
             {result.shootout && (
               <div className="mt-1 text-xs font-semibold text-gold-300">
-                Pens {result.shootout.my}–{result.shootout.opp}
+                {t('Pens')} {result.shootout.my}–{result.shootout.opp}
               </div>
             )}
           </div>
           <Crest short={opp.short} color={opp.color} size={44} />
         </div>
         <div className={cn('mt-3 font-display text-2xl font-extrabold uppercase', tone)}>
-          {result.outcome === 'W' ? 'Victory' : result.outcome === 'L' ? 'Defeat' : 'Draw'}
+          {result.outcome === 'W' ? t('Victory') : result.outcome === 'L' ? t('Defeat') : t('Draw')}
         </div>
       </Card>
+
+      {(result.benched || result.subbedOff) && (
+        <div className="flex flex-wrap gap-2">
+          {result.benched && <Chip tone="gold">{t('Started on the bench')}</Chip>}
+          {result.subbedOff && <Chip tone="bad">{t('Substituted by the coach')}</Chip>}
+        </div>
+      )}
 
       {/* Rating */}
       <Card className="flex items-center gap-4 p-4">
@@ -110,9 +120,9 @@ export function MatchSummary({
           <div className="absolute inset-0 flex items-center justify-center font-num text-2xl font-extrabold">{result.rating.toFixed(1)}</div>
         </div>
         <div className="grid flex-1 grid-cols-3 gap-2 text-center">
-          <Stat label="Goals" value={result.goals} />
-          <Stat label="Assists" value={result.assists} />
-          <Stat label="Clutch" value={`${clutch.wins}/${clutch.total}`} />
+          <Stat label={t('Goals')} value={result.goals} />
+          <Stat label={t('Assists')} value={result.assists} />
+          <Stat label={t('Clutch')} value={`${clutch.wins}/${clutch.total}`} />
         </div>
       </Card>
 
@@ -123,17 +133,17 @@ export function MatchSummary({
         </div>
         <div>
           <div className="text-sm font-bold">
-            {expectation.expectation} expectation {expectation.met ? 'met' : 'missed'}
+            {t(expectation.met ? '{e} expectation met' : '{e} expectation missed', { e: t(expectation.expectation) })}
           </div>
-          <p className="text-xs text-zinc-400">{expectation.text}</p>
+          <p className="text-xs text-zinc-400">{t(expectation.text)}</p>
           <p className="mt-1 text-[11px] text-zinc-500">
-            Needed {expectation.target.toFixed(1)} · you scored {result.rating.toFixed(1)}
+            {t('Needed {a} · you scored {b}', { a: expectation.target.toFixed(1), b: result.rating.toFixed(1) })}
           </p>
         </div>
       </Card>
 
       <div>
-        <SectionTitle>Reputation</SectionTitle>
+        <SectionTitle>{t('Reputation')}</SectionTitle>
         <Card className="p-4">
           <RepBars rep={player.rep} deltas={repDelta} compact />
         </Card>
@@ -141,7 +151,7 @@ export function MatchSummary({
 
       {Object.values(attrDelta).some((v) => v) && (
         <div>
-          <SectionTitle right={<Chip tone="good">OVR {snap.ovr} → {ovr}</Chip>}>Growth</SectionTitle>
+          <SectionTitle right={<Chip tone="good">OVR {snap.ovr} → {ovr}</Chip>}>{t('Growth')}</SectionTitle>
           <Card className="p-4">
             <AttributeBars attrs={player.attrs} deltas={attrDelta} />
           </Card>
@@ -149,15 +159,15 @@ export function MatchSummary({
       )}
 
       <div className="flex items-center justify-between gap-2 px-1 text-xs text-zinc-500">
-        <span className="flex items-center gap-1"><Coins className="h-3.5 w-3.5 text-gold-400" /> Earned {fmtMoneyK(earned)}</span>
-        <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-gold-400" /> Form {player.form.map((f) => f.toFixed(1)).join(' · ')}</span>
+        <span className="flex items-center gap-1"><Coins className="h-3.5 w-3.5 text-gold-400" /> {t('Earned')} {fmtMoneyK(earned)}</span>
+        <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-gold-400" /> {t('Form')} {player.form.map((f) => f.toFixed(1)).join(' · ')}</span>
       </div>
 
-      <div className="sticky bottom-3 z-10 pt-2">
+      <FloatingAction>
         <Button block size="lg" variant={seasonDone ? 'gold' : 'primary'} onClick={onContinue}>
-          {seasonDone ? 'Season review' : 'Back to hub'} <ArrowRight className="h-5 w-5" />
+          {seasonDone ? t('Season review') : t('Back to hub')} <ArrowRight className="h-5 w-5" />
         </Button>
-      </div>
+      </FloatingAction>
     </div>
   );
 }

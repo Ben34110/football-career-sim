@@ -3,12 +3,14 @@
 import { motion } from 'framer-motion';
 import { Zap } from 'lucide-react';
 import { MAX_BOLTS } from '@/lib/engine/player';
+import { useT } from '@/lib/i18n';
 import { cn, fmtCountdown } from '@/lib/utils';
 
 export function Bolts({ bolts, msToNext, showTimer, size = 'md' }: { bolts: number; msToNext?: number; showTimer?: boolean; size?: 'sm' | 'md' }) {
+  const t = useT();
   const dim = size === 'sm' ? 'h-3.5 w-3.5' : 'h-5 w-5';
   return (
-    <div className="flex items-center gap-1.5" aria-label={`${bolts} of ${MAX_BOLTS} energy bolts`}>
+    <div className="flex items-center gap-1.5" aria-label={t('{n} of {max} energy bolts', { n: bolts, max: MAX_BOLTS })}>
       <div className="flex items-center gap-0.5">
         {Array.from({ length: MAX_BOLTS }, (_, i) => {
           const on = i < bolts;

@@ -17,6 +17,7 @@ import {
   type ShootoutState,
 } from '@/lib/engine/shootout';
 import type { MatchCtx } from '@/lib/engine/match';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { GoalTarget } from './GoalTarget';
 import type { TeamBadge } from './LiveMatch';
@@ -44,9 +45,10 @@ export function Shootout({
   composure: number;
   onDone: (r: ShootoutResult) => void;
 }) {
+  const t = useT();
   const [s, setS] = useState<ShootoutState>(() => startShootout(Math.random));
   const win = winner(s);
-  const t = tally(s);
+  const score = tally(s);
   const diff = ctx.myStr - ctx.oppStr;
   const side = nextSide(s);
   const playerTurn = !win && playerTakesNext(s);
@@ -67,8 +69,8 @@ export function Shootout({
       const mine = s.kicks.filter((k) => k.byPlayer);
       onDone({
         winner: win,
-        my: t.my,
-        opp: t.opp,
+        my: score.my,
+        opp: score.opp,
         playerScored: mine.filter((k) => k.scored).length,
         playerMissed: mine.filter((k) => !k.scored).length,
       });
@@ -83,11 +85,11 @@ export function Shootout({
     <div className="space-y-4">
       <Card strong gold className="p-4">
         <div className="mb-3 text-center">
-          <div className="eyebrow text-gold-300">Penalty shootout</div>
+          <div className="eyebrow text-gold-300">{t('Penalty shootout')}</div>
           <div className="font-num text-5xl font-extrabold leading-none">
-            {t.my}
+            {score.my}
             <span className="mx-2 text-zinc-600">–</span>
-            {t.opp}
+            {score.opp}
           </div>
         </div>
         <PipRow badge={me} kicks={s.kicks.filter((k) => k.side === 'me')} active={!win && side === 'me'} />
@@ -98,10 +100,10 @@ export function Shootout({
       {win ? (
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="py-10 text-center">
           <div className={cn('font-display text-6xl font-extrabold uppercase italic', win === 'me' ? 'text-neon-300 drop-shadow-[0_0_20px_rgba(52,211,153,0.8)]' : 'text-crimson-400')}>
-            {win === 'me' ? 'Through!' : 'Eliminated'}
+            {win === 'me' ? t('Through!') : t('Eliminated')}
           </div>
           <p className="mt-2 text-sm text-zinc-400">
-            {win === 'me' ? `${me.name} win ${t.my}–${t.opp} on penalties.` : `${opp.name} win ${t.opp}–${t.my} on penalties.`}
+            {win === 'me' ? t('{team} win {a}–{b} on penalties.', { team: me.name, a: score.my, b: score.opp }) : t('{team} win {a}–{b} on penalties.', { team: opp.name, a: score.opp, b: score.my })}
           </p>
         </motion.div>
       ) : playerTurn ? (
@@ -112,8 +114,8 @@ export function Shootout({
           composure={composure}
           keeperLevel={ctx.oppStr}
           pressure={pressure}
-          title={round > 5 ? 'Sudden Death' : `Kick ${round}`}
-          subtitle="You step up. The whole stadium holds its breath."
+          title={round > 5 ? t('Sudden Death') : t('Kick {n}', { n: round })}
+          subtitle={t('You step up. The whole stadium holds its breath.')}
           onDone={(o) => setS((p) => addKick(p, o.result === 'goal', true))}
         />
       ) : (
@@ -122,7 +124,7 @@ export function Shootout({
             🧤
           </motion.div>
           <p className="mt-3 font-display text-2xl font-bold uppercase">
-            {side === 'me' ? 'Teammate steps up…' : `${opp.name} step up…`}
+            {side === 'me' ? t('Teammate steps up…') : t('{team} step up…', { team: opp.name })}
           </p>
           <AnimatePresence mode="wait">
             {lastKick && (
@@ -132,7 +134,7 @@ export function Shootout({
                 animate={{ opacity: 1, y: 0 }}
                 className={cn('mt-2 text-sm font-semibold', lastKick.scored ? (lastKick.side === 'me' ? 'text-neon-300' : 'text-crimson-400') : lastKick.side === 'me' ? 'text-crimson-400' : 'text-neon-300')}
               >
-                Previous: {lastKick.byPlayer ? 'You' : lastKick.side === 'me' ? 'Teammate' : 'Opponent'} {lastKick.scored ? 'scored' : 'missed'}
+                {t('Previous')}: {t(lastKick.byPlayer ? 'You' : lastKick.side === 'me' ? 'Teammate' : 'Opponent')} {t(lastKick.scored ? 'scored' : 'missed')}
               </motion.p>
             )}
           </AnimatePresence>

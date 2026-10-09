@@ -1,24 +1,30 @@
 import type { Nationality } from '../types';
+import { WORLD } from './world';
 
-export const NATIONALITIES: Nationality[] = [
-  { code: 'FRA', name: 'France', flag: '🇫🇷', confederation: 'UEFA', strength: 86 },
-  { code: 'SEN', name: 'Senegal', flag: '🇸🇳', confederation: 'CAF', strength: 79 },
-  { code: 'ESP', name: 'Spain', flag: '🇪🇸', confederation: 'UEFA', strength: 86 },
-  { code: 'ENG', name: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', confederation: 'UEFA', strength: 85 },
-  { code: 'BRA', name: 'Brazil', flag: '🇧🇷', confederation: 'CONMEBOL', strength: 85 },
-  { code: 'ARG', name: 'Argentina', flag: '🇦🇷', confederation: 'CONMEBOL', strength: 86 },
-  { code: 'POR', name: 'Portugal', flag: '🇵🇹', confederation: 'UEFA', strength: 84 },
-  { code: 'GER', name: 'Germany', flag: '🇩🇪', confederation: 'UEFA', strength: 83 },
-  { code: 'NED', name: 'Netherlands', flag: '🇳🇱', confederation: 'UEFA', strength: 82 },
-  { code: 'NGA', name: 'Nigeria', flag: '🇳🇬', confederation: 'CAF', strength: 77 },
-  { code: 'MAR', name: 'Morocco', flag: '🇲🇦', confederation: 'CAF', strength: 80 },
-  { code: 'CIV', name: 'Ivory Coast', flag: '🇨🇮', confederation: 'CAF', strength: 77 },
-  { code: 'JPN', name: 'Japan', flag: '🇯🇵', confederation: 'AFC', strength: 78 },
-  { code: 'USA', name: 'United States', flag: '🇺🇸', confederation: 'CONCACAF', strength: 76 },
-];
+const REGION: Record<Nationality['confederation'], Nationality['region']> = {
+  UEFA: 'Europe',
+  CAF: 'Africa',
+  CONMEBOL: 'Americas',
+  CONCACAF: 'Americas',
+  AFC: 'Asia',
+};
+
+export const REGIONS: Nationality['region'][] = ['Europe', 'Africa', 'Americas', 'Asia'];
+
+export const NATIONALITIES: Nationality[] = WORLD.map((w) => ({
+  code: w.code,
+  name: w.name,
+  flag: w.flag,
+  confederation: w.confederation,
+  // a tiny nation still fields a real team
+  strength: Math.max(w.strength, 52),
+  region: REGION[w.confederation],
+}));
 
 export const getNationality = (code: string): Nationality =>
   NATIONALITIES.find((n) => n.code === code) ?? NATIONALITIES[0];
+
+export const nationalityByName = (name: string): Nationality | undefined => NATIONALITIES.find((n) => n.name === name);
 
 /** Opponent pool for international fixtures */
 export const OPPONENT_NATIONS = NATIONALITIES;

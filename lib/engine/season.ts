@@ -1,4 +1,4 @@
-import { getClub, LEAGUE_RIVALS } from '../data/clubs';
+import { getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
 import { OPPONENT_NATIONS, tournamentFor } from '../data/nationalities';
 import type {
   Club,
@@ -22,7 +22,10 @@ const LEAGUE_MATCHES = 10;
 
 export function generateSeason(year: number, club: Club, rng: Rng): SeasonState {
   const tier = club.tier;
-  const names = shuffle(LEAGUE_RIVALS[tier], rng).slice(0, LEAGUE_MATCHES);
+  // Starter leagues are played against clubs named after towns of that country
+  const local = LOCAL_RIVALS[`${club.country}|${club.league}`] ?? LOCAL_RIVALS[club.league];
+  const pool = shuffle(local ?? LEAGUE_RIVALS[tier], rng);
+  const names = pool.slice(0, LEAGUE_MATCHES);
   const rivals = names.map((name, i) => ({
     id: `${year}-r${i}`,
     name,
@@ -61,8 +64,9 @@ export function generateSeason(year: number, club: Club, rng: Rng): SeasonState 
     status: 'upcoming',
   }));
 
-  const cupTierPool = LEAGUE_RIVALS[clamp(tier - 1, 1, 5) as 1 | 2 | 3 | 4 | 5];
-  const cupNames = shuffle(cupTierPool, rng).slice(0, 3);
+  const cupNames = local
+    ? pool.slice(LEAGUE_MATCHES, LEAGUE_MATCHES + 3)
+    : shuffle(LEAGUE_RIVALS[clamp(tier - 1, 1, 5) as 1 | 2 | 3 | 4 | 5], rng).slice(0, 3);
   const cupLabels = ['Cup Quarter-Final', 'Cup Semi-Final', 'Cup Final'];
   const cupBoost = [rand(-3, 2, rng), rand(0, 5, rng), rand(2, 7, rng)];
   const cup: Fixture[] = cupLabels.map((label, i) => ({
@@ -220,7 +224,8 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
 /* ───────── National team call-ups ───────── */
 
 function nationOpponent(own: Nationality, boost: number, label: string, id: string, kind: Fixture['kind'], knockout: boolean, rng: Rng): Fixture {
-  const pool = OPPONENT_NATIONS.filter((n) => n.code !== own.code);
+  // opponents come from the competitive half of the world
+  const pool = OPPONENT_NATIONS.filter((n) => n.code !== own.code && n.strength >= 66);
   const opp = pool[Math.floor(rng() * pool.length)];
   return {
     id,

@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { msToNextBolt, syncEnergy } from './engine/player';
+import { useLangStore } from './i18n/lang';
 import { useGameStore } from './store';
 
 /** Rehydrates the persisted save exactly once on the client. */
 export function useHydrated() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    useLangStore.getState().init();
     const unsub = useGameStore.persist.onFinishHydration(() => setHydrated(true));
     void useGameStore.persist.rehydrate();
     if (useGameStore.persist.hasHydrated()) setHydrated(true);

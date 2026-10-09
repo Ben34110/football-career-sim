@@ -1,10 +1,11 @@
 import type { Club } from '../types';
+import { STYLES, WORLD, type WorldCountry } from './world';
 
 /**
  * tier 1 = global elite … tier 5 = lower leagues.
  * `strength` is on the same scale as a player's OVR.
  */
-export const CLUBS: Club[] = [
+const CURATED_CLUBS: Club[] = [
   /* ── Starter clubs ── */
   { id: 'fc-lyonnais-b', name: 'Stade Lavallois', short: 'LAV', league: 'National 1', country: 'France', flag: '🇫🇷', tier: 5, strength: 58, budget: 1, color: '#f97316', starter: true },
   { id: 'us-orleans', name: 'US Orléans', short: 'ORL', league: 'National 1', country: 'France', flag: '🇫🇷', tier: 5, strength: 56, budget: 0.8, color: '#ef4444', starter: true },
@@ -45,12 +46,93 @@ export const CLUBS: Club[] = [
   { id: 'bayern-x', name: 'Bayern Alpen', short: 'BAL', league: 'Bundesliga', country: 'Germany', flag: '🇩🇪', tier: 1, strength: 89, budget: 320, color: '#dc2626' },
 ];
 
-export const getClub = (id: string | null): Club | undefined =>
-  id ? CLUBS.find((c) => c.id === id) : undefined;
+/* ───────── Generated clubs for every other country ───────── */
+
+const HAND_CRAFTED = new Set(['FRA', 'SEN', 'ESP', 'ENG', 'BRA']);
+const PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#06b6d4', '#f97316', '#e5e7eb', '#14b8a6', '#eab308', '#ec4899', '#84cc16'];
+
+const hash = (str: string) => {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return Math.abs(h);
+};
+
+const shortFrom = (name: string) =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z ]/g, '')
+    .split(' ')
+    .filter((w) => w.length > 2)
+    .pop()!
+    ?.slice(0, 3)
+    .toUpperCase() || 'FC';
+
+/** Unique invented club names for a country, from its towns and naming style. */
+function clubNames(w: WorldCountry, count = 26): string[] {
+  const patterns = STYLES[w.style] ?? STYLES.en;
+  const offset = hash(w.code) % patterns.length;
+  const names: string[] = [];
+  for (let pass = 0; names.length < count && pass < 12; pass++) {
+    for (let i = 0; i < w.towns.length && names.length < count; i++) {
+      const name = patterns[(i + pass * 3 + offset) % patterns.length].replace('{c}', w.towns[i]);
+      if (!names.includes(name)) names.push(name);
+    }
+  }
+  return names;
+}
+
+const GENERATED_RIVALS: Record<string, string[]> = {};
+
+function generate(w: WorldCountry & { flag: string }): Club[] {
+  const names = clubNames(w);
+  if (names.length < 8) return [];
+  const id = w.code.toLowerCase();
+  const rivals = names.slice(4, 4 + 16);
+  GENERATED_RIVALS[`${w.name}|${w.lowLeague}`] = rivals;
+  GENERATED_RIVALS[`${w.name}|${w.topLeague}`] = rivals;
+
+  const topStrength = Math.max(58, Math.min(76, Math.round(w.strength - 14 + (hash(w.code) % 5))));
+  const topTier = topStrength >= 72 ? 3 : 4;
+  const top: Club = {
+    id: `${id}-top`,
+    name: names[0],
+    short: shortFrom(names[0]),
+    league: w.topLeague,
+    country: w.name,
+    flag: w.flag,
+    tier: topTier,
+    strength: topStrength,
+    budget: topTier === 3 ? 14 + (hash(names[0]) % 18) : 2 + (hash(names[0]) % 6),
+    color: PALETTE[hash(names[0]) % PALETTE.length],
+  };
+  const starters = names.slice(1, 4).map<Club>((name, i) => ({
+    id: `${id}-${i + 1}`,
+    name,
+    short: shortFrom(name),
+    league: w.lowLeague,
+    country: w.name,
+    flag: w.flag,
+    tier: 5,
+    strength: 54 + (hash(name) % 7),
+    budget: Math.round((0.5 + (hash(name + 'b') % 10) / 10) * 10) / 10,
+    color: PALETTE[hash(name) % PALETTE.length],
+    starter: true,
+  }));
+  return [top, ...starters];
+}
+
+const GENERATED_CLUBS = WORLD.filter((w) => !HAND_CRAFTED.has(w.code)).flatMap(generate);
+
+export const CLUBS: Club[] = [...CURATED_CLUBS, ...GENERATED_CLUBS];
+
+const BY_ID = new Map(CLUBS.map((c) => [c.id, c]));
+
+export const getClub = (id: string | null): Club | undefined => (id ? BY_ID.get(id) : undefined);
 
 export const STARTER_CLUBS = CLUBS.filter((c) => c.starter);
 
-export const STARTER_LEAGUES = Array.from(new Set(STARTER_CLUBS.map((c) => c.league)));
+export const startersFor = (country: string) => STARTER_CLUBS.filter((c) => c.country === country);
 
 /** Fake sparring partners for a club's domestic league table */
 export const LEAGUE_RIVALS: Record<number, string[]> = {
@@ -60,3 +142,38 @@ export const LEAGUE_RIVALS: Record<number, string[]> = {
   2: ['Marseille Port', 'Atlético Norte', 'Inter Milano', 'Leverkusen Chem', 'Spurs North', 'Newcastle Magpies', 'Roma Giallo', 'Lazio Aquile', 'Ajax Amstel', 'Benfica Lisboa', 'Chelsea Blue'],
   1: ['Inter Milano', 'Juventus Torino', 'Arsenal Gunners', 'Liverpool Reds', 'Atlético Norte', 'Barça Blaugrana', 'Milan Rossoneri', 'Dortmund Yellow', 'Leverkusen Chem', 'Tottenham North', 'Napoli Azzurri'],
 };
+
+/**
+ * Domestic opposition for the starter leagues, named after real towns of the country
+ * so a Senegalese career is played against Thiès, Saint-Louis, Ziguinchor… (all club names invented).
+ */
+const CURATED_RIVALS: Record<string, string[]> = {
+  'Ligue 1 Sénégal': [
+    'Thiès Étoile FC', 'AS Saint-Louis', 'Kaolack Racing', 'Ziguinchor Casamance FC', 'Touba Espoir', 'Mbour Teranga FC',
+    'Louga Sahel', 'Tambacounda Baobab', 'Diourbel Baol FC', 'Kolda Fouladou', 'Rufisque Océan FC', 'Fatick Sine FC',
+    'Saly Atlantique', 'Matam Fleuve', 'Kédougou Sabadola', 'Joal Pirogue FC',
+  ],
+  'National 1': [
+    'AS Rouen Seine', 'Dijon Bourgogne FC', 'Le Mans Sarthe', 'Nancy Lorraine', 'Brest Armor', 'Quimper Cornouaille',
+    'Annecy Lac FC', 'Grenoble Alpes', 'Perpignan Catalan', 'Cherbourg Cotentin', 'Pau Pyrénées', 'Troyes Aube FC',
+    'Épinal Vosges', 'Nîmes Garrigue', 'Amiens Picardie', 'Metz Moselle FC',
+  ],
+  'English League Two': [
+    'Bradford Mills', 'Salford Docks', 'Walsall Leather', 'Colchester Roman', 'Gillingham Medway', 'Newport Severn',
+    'Harrogate Spa', 'Carlisle Border', 'Doncaster Don', 'Stockport Hatters', 'Morecambe Bay', 'Accrington Brick',
+    'Swindon Wiltshire', 'Barrow Furness', 'Mansfield Stags', 'Wrexham Dragons',
+  ],
+  'Segunda RFEF': [
+    'CD Alcoyano Costa', 'Baleares Mar CF', 'Ferrol Rías', 'UD Ibiza Isla', 'CF Badalona Mar', 'Águilas Levante',
+    'CD Calahorra Rioja', 'Real Avilés', 'Cartagena Naval', 'Lorca Alfonso', 'Yeclano Vino', 'Linares Minero',
+    'Talavera Cerámica', 'Marbella Costa del Sol', 'Algeciras Estrecho', 'Gijón Cantábrico',
+  ],
+  'Série B': [
+    'Goiás Cerrado', 'Ponte Preta Campinas', 'Paysandu Belém', 'Náutico Recife', 'Sampaio Corrêa', 'Ribeirão Preto FC',
+    'Londrina Café', 'Brusque Vale', 'Ituano Itu', 'Operário Ponta Grossa', 'Mirassol Paulista', 'Vitória Salvador',
+    'Avaí Floripa', 'Criciúma Carvão', 'Santos Litoral', 'Manaus Amazônia',
+  ],
+};
+
+/** Rivals by league: curated leagues by name, generated ones by "country|league". */
+export const LOCAL_RIVALS: Record<string, string[]> = { ...CURATED_RIVALS, ...GENERATED_RIVALS };

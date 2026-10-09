@@ -9,9 +9,12 @@ import { Sheet } from '@/components/ui/Sheet';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import { ovrOf, seasonLabel } from '@/lib/engine/player';
+import { LangToggle } from '@/components/ui/LangToggle';
+import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 
 export function TitleScreen() {
+  const t = useT();
   const router = useRouter();
   const { hasCareer, player, year } = useGameStore();
   const [confirm, setConfirm] = useState(false);
@@ -19,6 +22,9 @@ export function TitleScreen() {
 
   return (
     <div className="pt-safe pb-safe relative flex min-h-dvh flex-col justify-between overflow-hidden px-6">
+      <div className="relative z-10 flex justify-end pt-4">
+        <LangToggle />
+      </div>
       <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_50%_30%,black,transparent_70%)]" />
 
       <div className="relative flex flex-1 flex-col items-center justify-center text-center">
@@ -46,7 +52,7 @@ export function TitleScreen() {
           <span className="block bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent">Legacy</span>
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-4 max-w-[280px] text-sm leading-relaxed text-zinc-400">
-          From the lower leagues to World Cup glory. Win the dressing room, own the press, step up when it matters.
+          {t('From the lower leagues to World Cup glory. Win the dressing room, own the press, step up when it matters.')}
         </motion.p>
       </div>
 
@@ -60,12 +66,12 @@ export function TitleScreen() {
               {ovrOf(player)}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="eyebrow">Continue career</div>
+              <div className="eyebrow">{t('Continue career')}</div>
               <div className="truncate text-sm font-bold">
                 {getNationality(player.nationality).flag} {player.name} · {player.position}
               </div>
               <div className="truncate text-xs text-zinc-500">
-                {club?.name ?? 'Free agent'} · {seasonLabel(year)}
+                {club?.name ?? t('Free agent')} · {seasonLabel(year)}
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-zinc-500" />
@@ -78,22 +84,22 @@ export function TitleScreen() {
           onClick={() => (hasCareer ? setConfirm(true) : router.push('/create'))}
         >
           {hasCareer ? <Plus className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current" />}
-          {hasCareer ? 'New career' : 'Start career'}
+          {hasCareer ? t('New career') : t('Start career')}
         </Button>
         <p className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-600">
-          <Trophy className="h-3 w-3" /> Saved automatically on this device
+          <Trophy className="h-3 w-3" /> {t('Saved automatically on this device')}
         </p>
       </motion.div>
 
       <Sheet open={confirm} dismissible onClose={() => setConfirm(false)}>
-        <h3 className="font-display text-2xl font-bold uppercase">Start a new career?</h3>
-        <p className="mt-1 text-sm text-zinc-400">Your current save will be replaced. This can’t be undone.</p>
+        <h3 className="font-display text-2xl font-bold uppercase">{t('Start a new career?')}</h3>
+        <p className="mt-1 text-sm text-zinc-400">{t('Your current save will be replaced. This can’t be undone.')}</p>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Button variant="ghost" onClick={() => setConfirm(false)}>
-            Keep playing
+            {t('Keep playing')}
           </Button>
           <Button variant="danger" onClick={() => router.push('/create')}>
-            Replace save
+            {t('Replace save')}
           </Button>
         </div>
       </Sheet>

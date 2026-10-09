@@ -1,4 +1,5 @@
 import { getClub } from '../data/clubs';
+import { DEFAULT_LOOK, type Look } from '../data/look';
 import type {
   AttrKey,
   Attributes,
@@ -139,6 +140,7 @@ export interface CreateInput {
   clubId: string;
   /** Extra points allocated by the user in the FTUE (sum ≤ ALLOCATION_POINTS) */
   allocation: Attributes;
+  look?: Look;
 }
 
 export function createPlayer(input: CreateInput, now: number): Player {
@@ -166,6 +168,8 @@ export function createPlayer(input: CreateInput, now: number): Player {
     trophies: [],
     totals: { apps: 0, goals: 0, assists: 0, transfers: 0 },
     peakOvr: ovr,
+    look: input.look ?? DEFAULT_LOOK,
+    national: { caps: 0, goals: 0 },
   };
 }
 

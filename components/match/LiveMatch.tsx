@@ -1,0 +1,240 @@
+'use client';
+
+import { AnimatePresence, motion } from 'framer-motion';
+import { FastForward, Pause, Play, Radio } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Crest } from '@/components/ui/Crest';
+import { Sheet } from '@/components/ui/Sheet';
+import { applyKick, createMatch, pressureFor, resolveClutch, tickMatch, type MatchCtx } from '@/lib/engine/match';
+import { haptic } from '@/lib/haptics';
+import type { KickKind, MatchEvent, MatchState } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { ClutchSheet } from './ClutchSheet';
+import { GoalTarget } from './GoalTarget';
+
+export interface TeamBadge {
+  name: string;
+  short: string;
+  color: string;
+}
+
+interface Props {
+  ctx: MatchCtx;
+  me: TeamBadge;
+  opp: TeamBadge;
+  finishing: number;
+  composure: number;
+  onFinished: (m: MatchState) => void;
+}
+
+const EVENT_STYLE: Record<MatchEvent['side'], string> = {
+  me: 'border-neon-400/70',
+  opp: 'border-crimson-500/70',
+  neutral: 'border-white/15',
+};
+
+export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Props) {
+  const [m, setM] = useState<MatchState>(() => createMatch(ctx, Math.random));
+  const [paused, setPaused] = useState(false);
+  const [fast, setFast] = useState(false);
+  const [kick, setKick] = useState<KickKind | null>(null);
+  const [last, setLast] = useState<{ kind: 'goal' | 'opp' | null; key: number }>({ kind: null, key: 0 });
+  const prevScore = useRef({ my: m.myScore, opp: m.oppScore });
+
+  /* Game clock */
+  useEffect(() => {
+    if (paused || m.status !== 'playing') return;
+    const id = setInterval(() => setM((p) => tickMatch(p, ctx, Math.random)), fast ? 320 : 820);
+    return () => clearInterval(id);
+  }, [paused, fast, m.status, ctx]);
+
+  /* Goal flashes + haptics */
+  useEffect(() => {
+    const prev = prevScore.current;
+    if (m.myScore > prev.my) {
+      setLast((l) => ({ kind: 'goal', key: l.key + 1 }));
+      haptic([30, 40, 60]);
+    } else if (m.oppScore > prev.opp) {
+      setLast((l) => ({ kind: 'opp', key: l.key + 1 }));
+      haptic(90);
+    }
+    prevScore.current = { my: m.myScore, opp: m.oppScore };
+  }, [m.myScore, m.oppScore]);
+
+  const moment = m.clutches[m.nextClutch];
+  const finished = m.status === 'finished';
+  const drawKnockout = finished && ctx.knockout && m.myScore === m.oppScore;
+
+  const pick = (optionId: string) => {
+    const r = resolveClutch(m, ctx, optionId, Math.random);
+    setM(r.state);
+    if (r.kick) setKick(r.kick);
+  };
+
+  const events = useMemo(() => [...m.events].reverse().slice(0, 40), [m.events]);
+
+  return (
+    <div className="space-y-3">
+      {/* Scoreboard */}
+      <Card strong gold className="relative overflow-hidden p-4">
+        <AnimatePresence>
+          {last.kind && (
+            <motion.div
+              key={last.key}
+              initial={{ opacity: 0.6 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 1.1 }}
+              className={cn('pointer-events-none absolute inset-0', last.kind === 'goal' ? 'bg-neon-400/30' : 'bg-crimson-500/30')}
+            />
+          )}
+        </AnimatePresence>
+        <div className="relative flex items-center justify-between">
+          <TeamSide badge={me} you />
+          <div className="text-center">
+            <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
+              <motion.span key={m.myScore} initial={{ scale: 1.5, color: '#6ee7b7' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+                {m.myScore}
+              </motion.span>
+              <span className="mx-1.5 text-zinc-600">–</span>
+              <motion.span key={`o${m.oppScore}`} initial={{ scale: 1.5, color: '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+                {m.oppScore}
+              </motion.span>
+            </div>
+            <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-bold text-neon-300">
+              {!finished && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-crimson-500" />}
+              {finished ? 'FULL TIME' : `${m.minute}'`}
+            </div>
+          </div>
+          <TeamSide badge={opp} />
+        </div>
+
+        {/* Timeline with clutch markers */}
+        <div className="relative mt-4 h-1.5 rounded-full bg-white/10">
+          <motion.div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-neon-600 to-neon-300" animate={{ width: `${(m.minute / 90) * 100}%` }} transition={{ ease: 'linear' }} />
+          {m.clutches.map((c, i) => (
+            <span
+              key={c.id}
+              className={cn(
+                'absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-zinc-950',
+                i < m.nextClutch ? 'bg-zinc-500' : 'bg-gold-400 shadow-gold',
+              )}
+              style={{ left: `${(c.minute / 90) * 100}%` }}
+              title={c.title}
+            />
+          ))}
+          <span className="absolute left-1/2 top-1/2 h-3 w-px -translate-y-1/2 bg-white/20" />
+        </div>
+
+        {/* Momentum */}
+        <div className="mt-4">
+          <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em]">
+            <span className={m.momentum < -10 ? 'text-crimson-400' : 'text-zinc-600'}>{opp.short}</span>
+            <span className="text-zinc-500">Momentum</span>
+            <span className={m.momentum > 10 ? 'text-neon-300' : 'text-zinc-600'}>{me.short}</span>
+          </div>
+          <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.07]">
+            <motion.div
+              className={cn('absolute inset-y-0', m.momentum >= 0 ? 'left-1/2 rounded-r-full bg-gradient-to-r from-neon-600 to-neon-300' : 'right-1/2 rounded-l-full bg-gradient-to-l from-crimson-600 to-crimson-400')}
+              animate={{ width: `${Math.abs(m.momentum) / 2}%` }}
+              transition={{ type: 'spring', stiffness: 160, damping: 20 }}
+            />
+            <span className="absolute inset-y-0 left-1/2 w-px bg-white/30" />
+          </div>
+        </div>
+      </Card>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+          <Radio className="h-3.5 w-3.5 text-crimson-500" /> Live ticker
+          {!m.isStarter && <span className="ml-1 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">SUB</span>}
+        </div>
+        {!finished && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPaused((p) => !p)}
+              aria-label={paused ? 'Resume' : 'Pause'}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 active:scale-90"
+            >
+              {paused ? <Play className="h-4 w-4 fill-current" /> : <Pause className="h-4 w-4 fill-current" />}
+            </button>
+            <button
+              onClick={() => setFast((f) => !f)}
+              aria-pressed={fast}
+              aria-label="Toggle fast forward"
+              className={cn('flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-bold active:scale-90', fast ? 'border-neon-400/50 bg-neon-400/15 text-neon-300' : 'border-white/10 bg-white/5 text-zinc-300')}
+            >
+              <FastForward className="h-3.5 w-3.5" /> {fast ? '2×' : '1×'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Ticker */}
+      <div className="space-y-1.5" aria-live="polite">
+        <AnimatePresence initial={false}>
+          {events.map((e) => (
+            <motion.div
+              key={e.id}
+              layout="position"
+              initial={{ opacity: 0, y: -14, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              className={cn(
+                'flex gap-3 rounded-xl border-l-[3px] bg-white/[0.04] py-2 pl-3 pr-3 text-[13px] leading-snug',
+                EVENT_STYLE[e.side],
+                e.star && 'bg-gold-400/[0.07]',
+                e.type === 'goal' && 'bg-white/[0.08] font-semibold',
+              )}
+            >
+              <span className="font-num w-7 shrink-0 text-sm font-bold text-zinc-500">{e.minute}&apos;</span>
+              <span className="text-zinc-200">{e.text}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {finished && (
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="sticky bottom-4 pt-2">
+          <Button block size="lg" variant={drawKnockout ? 'gold' : 'primary'} onClick={() => onFinished(m)}>
+            {drawKnockout ? 'It’s a draw — penalty shootout!' : 'Full-time — continue'}
+          </Button>
+        </motion.div>
+      )}
+
+      <ClutchSheet open={m.status === 'clutch' && !kick} moment={moment} match={m} ctx={ctx} index={m.nextClutch} total={m.clutches.length} onPick={pick} />
+
+      {/* 8-zone goal for penalties & free kicks */}
+      <Sheet open={!!kick} className="max-h-[94dvh] overflow-y-auto">
+        {kick && (
+          <GoalTarget
+            key={m.nextClutch}
+            kind={kick}
+            finishing={finishing}
+            composure={composure}
+            keeperLevel={ctx.oppStr}
+            pressure={pressureFor(m, ctx)}
+            title={kick === 'penalty' ? 'Spot Kick' : 'Dead Ball'}
+            subtitle={`${m.minute}' · ${me.name} ${m.myScore}–${m.oppScore} ${opp.name}`}
+            onDone={(o) => {
+              setM((prev) => applyKick(prev, ctx, kick, o.result));
+              setKick(null);
+            }}
+          />
+        )}
+      </Sheet>
+    </div>
+  );
+}
+
+function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
+  return (
+    <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
+      <Crest short={badge.short} color={badge.color} size={48} />
+      <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
+      {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">You</span>}
+    </div>
+  );
+}

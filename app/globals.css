@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: #09090b;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-zinc-950 font-sans text-zinc-100 antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.35);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Glossy glass surface */
+  .glass {
+    @apply relative rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.065] to-white/[0.02] shadow-gloss backdrop-blur-xl;
+  }
+  .glass-strong {
+    @apply relative rounded-2xl border border-white/[0.12] bg-gradient-to-b from-zinc-800/80 to-zinc-900/90 shadow-gloss backdrop-blur-xl;
+  }
+  /* Gradient hairline border (top-left shine) */
+  .gloss-edge {
+    position: relative;
+  }
+  .gloss-edge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 38%, rgba(52, 211, 153, 0.28));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+  .gold-edge::before {
+    background: linear-gradient(155deg, rgba(251, 231, 161, 0.7), rgba(242, 193, 78, 0) 42%, rgba(242, 193, 78, 0.4));
+  }
+
+  .font-num {
+    @apply font-display tabular-nums tracking-tight;
+  }
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500;
+  }
+
+  /* Net texture for the goal */
+  .goal-net {
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 11px),
+      repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 11px);
+  }
+  .pitch-lines {
+    background-image:
+      linear-gradient(rgba(16, 224, 138, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 224, 138, 0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+}

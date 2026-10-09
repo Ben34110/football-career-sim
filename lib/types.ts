@@ -1,0 +1,276 @@
+export type Position = 'ST' | 'CAM' | 'RW' | 'LW';
+export type Foot = 'Left' | 'Right' | 'Both';
+
+export type AttrKey = 'finishing' | 'composure' | 'vision' | 'stamina';
+export type Attributes = Record<AttrKey, number>;
+
+export type RepKey = 'coachTrust' | 'fanPopularity' | 'lockerRoom' | 'mediaHeat';
+export type Reputation = Record<RepKey, number>;
+
+export type Confederation = 'UEFA' | 'CAF' | 'CONMEBOL' | 'AFC' | 'CONCACAF';
+
+export interface Nationality {
+  code: string;
+  name: string;
+  flag: string;
+  confederation: Confederation;
+  /** National team strength (comparable to club strength) */
+  strength: number;
+}
+
+export type ClubTier = 1 | 2 | 3 | 4 | 5;
+
+export interface Club {
+  id: string;
+  name: string;
+  short: string;
+  league: string;
+  country: string;
+  flag: string;
+  tier: ClubTier;
+  /** Average first-team strength, same scale as player OVR */
+  strength: number;
+  /** Transfer budget in €M */
+  budget: number;
+  color: string;
+  /** Eligible as a starting club in the FTUE */
+  starter?: boolean;
+}
+
+export interface Contract {
+  /** €K per week */
+  wage: number;
+  yearsLeft: number;
+}
+
+export type FixtureKind = 'league' | 'cup' | 'intl' | 'tournament';
+export type Outcome = 'W' | 'D' | 'L';
+
+export interface FixtureResult {
+  myScore: number;
+  oppScore: number;
+  shootout?: { my: number; opp: number };
+  rating: number;
+  goals: number;
+  assists: number;
+  outcome: Outcome;
+}
+
+export interface Fixture {
+  id: string;
+  kind: FixtureKind;
+  /** e.g. "Matchday 3", "Cup Semi-Final" */
+  label: string;
+  opponent: string;
+  opponentShort: string;
+  opponentStrength: number;
+  opponentColor: string;
+  home: boolean;
+  /** Draws are settled by a penalty shootout */
+  knockout: boolean;
+  status: 'upcoming' | 'played' | 'skipped';
+  result?: FixtureResult;
+}
+
+export interface TableRow {
+  id: string;
+  name: string;
+  short: string;
+  strength: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  pts: number;
+  isMe?: boolean;
+}
+
+export interface SeasonStats {
+  apps: number;
+  goals: number;
+  assists: number;
+  ratingSum: number;
+}
+
+export interface SeasonState {
+  /** Start year of the season (2026 → "2026/27") */
+  year: number;
+  fixtures: Fixture[];
+  cursor: number;
+  table: TableRow[];
+  cupAlive: boolean;
+  tournamentAlive: boolean;
+  tournamentName: string | null;
+  /** International qualifier already scheduled this season */
+  callUpQueued: boolean;
+  /** Summer tournament fixtures already appended */
+  tournamentQueued: boolean;
+  /** Training sessions used at the current cursor (capped per fixture) */
+  training: { cursor: number; count: number };
+  stats: SeasonStats;
+  trophies: string[];
+}
+
+export interface Offer {
+  id: string;
+  clubId: string;
+  /** Transfer fee in €M */
+  fee: number;
+  /** €K per week */
+  wage: number;
+  years: number;
+  source: 'incoming' | 'approach' | 'renewal';
+  note: string;
+  /** A wage counter has already been attempted */
+  countered?: boolean;
+}
+
+export interface EnergyState {
+  bolts: number;
+  /** Timestamp the regen clock was last aligned to */
+  at: number;
+}
+
+export interface Player {
+  name: string;
+  nationality: string;
+  position: Position;
+  foot: Foot;
+  age: number;
+  attrs: Attributes;
+  /** Fractional progress toward the next +1 in each attribute */
+  xp: Attributes;
+  rep: Reputation;
+  /** 0-100 */
+  morale: number;
+  energy: EnergyState;
+  clubId: string | null;
+  contract: Contract | null;
+  /** €K */
+  money: number;
+  form: number[];
+  trophies: string[];
+  totals: { apps: number; goals: number; assists: number; transfers: number };
+  peakOvr: number;
+}
+
+export interface SeasonRecord {
+  year: number;
+  clubId: string;
+  age: number;
+  ovr: number;
+  apps: number;
+  goals: number;
+  assists: number;
+  avgRating: number;
+  leaguePos: number;
+  trophies: string[];
+}
+
+export interface SeasonSummary {
+  record: SeasonRecord;
+  ovrBefore: number;
+  ovrAfter: number;
+  delta: Attributes;
+  contractExpiring: boolean;
+  table: TableRow[];
+  retiring: boolean;
+}
+
+export interface NewsItem {
+  id: string;
+  at: number;
+  tone: 'good' | 'bad' | 'neutral' | 'gold';
+  text: string;
+}
+
+export type GamePhase = 'playing' | 'season-end' | 'free-agent' | 'retired';
+
+/* ───────────── Match engine types ───────────── */
+
+export type StanceId = 'back-boss' | 'for-lads' | 'demand-ball';
+export type Expectation = 'Modest' | 'Standard' | 'Star Role';
+
+export interface MatchModifiers {
+  /** Added to the player's effective OVR during the match */
+  perfBonus: number;
+  expectation: Expectation;
+  /** Rating the player must reach to satisfy the expectation */
+  ratingTarget: number;
+}
+
+export type MatchEventType =
+  | 'kickoff'
+  | 'chance'
+  | 'goal'
+  | 'save'
+  | 'miss'
+  | 'foul'
+  | 'card'
+  | 'sub'
+  | 'clutch'
+  | 'halftime'
+  | 'fulltime';
+
+export interface MatchEvent {
+  id: number;
+  minute: number;
+  type: MatchEventType;
+  side: 'me' | 'opp' | 'neutral';
+  text: string;
+  /** Marks events involving the user's player */
+  star?: boolean;
+}
+
+export type KickKind = 'penalty' | 'freekick' | 'shootout';
+export type KickResult = 'goal' | 'saved' | 'missed' | 'blocked';
+
+export interface ClutchOption {
+  id: string;
+  label: string;
+  hint: string;
+  risk: 'Safe' | 'Balanced' | 'Bold';
+  attr: AttrKey;
+  /** Base success chance before attributes/momentum */
+  base: number;
+  /** What happens on success */
+  onSuccess: 'goal' | 'assist' | 'momentum' | 'save' | 'kick-penalty' | 'kick-freekick';
+  /** Narrative texts */
+  successText: string;
+  failText: string;
+}
+
+export interface ClutchMoment {
+  id: string;
+  title: string;
+  setup: string;
+  minute: number;
+  options: ClutchOption[];
+  /** Whether a failure concedes a counter-attack goal chance */
+  defensive?: boolean;
+}
+
+export interface MatchState {
+  minute: number;
+  myScore: number;
+  oppScore: number;
+  /** -100 (opponent) .. +100 (me) */
+  momentum: number;
+  events: MatchEvent[];
+  clutches: ClutchMoment[];
+  nextClutch: number;
+  status: 'playing' | 'clutch' | 'finished';
+  rating: number;
+  goals: number;
+  assists: number;
+  clutchWins: number;
+  clutchTotal: number;
+  shots: { me: number; opp: number };
+  startMinute: number;
+  eid: number;
+  isStarter: boolean;
+  /** The player failed to convert a penalty / free kick */
+  missedKick: boolean;
+}

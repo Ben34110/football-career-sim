@@ -58,7 +58,8 @@ function HairFront({ style, c }: { style: Look['hair']; c: string }) {
         </g>
       );
     case 'afro':
-      return <path d="M26 45C24 26 36 20 50 20s26 6 24 25c-3-9-10-13-24-13S29 36 26 45z" fill={c} />;
+      // the hairline starts above the crown of the head so no skin-coloured gap shows between the layers
+      return <path d="M24 46C20 16 36 8 50 8s30 8 26 38c-3-9-10-15-26-15S27 37 24 46z" fill={c} />;
     case 'curls':
       return (
         <g fill={c}>

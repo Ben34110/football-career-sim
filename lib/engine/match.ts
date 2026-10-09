@@ -41,6 +41,8 @@ export interface MatchCtx {
   mods: MatchModifiers;
   /** The coach has left the player on the bench to start */
   benched: boolean;
+  /** Display only: the player's side is the home team (national games are neutral for the engine) */
+  meHome: boolean;
 }
 
 export interface BuildCtxInput {
@@ -61,6 +63,9 @@ export interface BuildCtxInput {
   kind: FixtureKind;
   mods: MatchModifiers;
   benched: boolean;
+  meHome: boolean;
+  /** Levels of the nutrition upgrade: that many lives of fatigue are ignored */
+  fatigueRelief?: number;
 }
 
 /**
@@ -79,7 +84,7 @@ export function startsOnBench(coachTrust: number, form: number[], kind: FixtureK
 }
 
 export function buildCtx(i: BuildCtxInput): MatchCtx {
-  const fatigue = 5 - i.boltsBefore;
+  const fatigue = Math.max(0, 5 - i.boltsBefore - (i.fatigueRelief ?? 0));
   const effOvr = i.ovr + i.mods.perfBonus + (i.morale - 50) / 12 - fatigue;
   const home = i.home ? 1.5 + (i.rep.fanPopularity - 50) / 40 : 0;
   const myStr = i.teamStrength + (effOvr - i.teamStrength) * 0.12 + (i.rep.lockerRoom - 50) / 25 + home;
@@ -101,8 +106,13 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
     kind: i.kind,
     mods: i.mods,
     benched: i.benched,
+    meHome: i.meHome,
   };
 }
+
+/** Scores read home–away, so an away player's goals go second. */
+const sc = (ctx: MatchCtx, mine: number, theirs: number) => (ctx.meHome ? { a: mine, b: theirs } : { a: theirs, b: mine });
+const sides = (ctx: MatchCtx) => (ctx.meHome ? { home: ctx.myTeam, away: ctx.oppName } : { home: ctx.oppName, away: ctx.myTeam });
 
 const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] || name;
 
@@ -166,7 +176,7 @@ function push(m: MatchState, minute: number, type: MatchEventType, side: MatchEv
 
 /* ───────────── Live ticks ───────────── */
 
-const POSITION_SHARE: Record<Position, number> = { ST: 0.32, CAM: 0.2, RW: 0.24, LW: 0.24 };
+const POSITION_SHARE: Record<Position, number> = { ST: 0.24, CAM: 0.14, RW: 0.17, LW: 0.17 };
 
 export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchState {
   if (input.status !== 'playing') return input;
@@ -196,12 +206,17 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
         clutches: m.clutches.slice(0, m.nextClutch),
       };
       m = push(m, minute, 'sub', 'me', tr('🔁 The coach has seen enough — {who} is substituted.', { who }), true);
+      // Off the pitch: the match stops for the player — except in knockout ties, where the result still matters
+      if (!ctx.knockout) {
+        while (m.status === 'playing') m = tickMatch(m, ctx, rng);
+        return m;
+      }
     }
   }
   const playerOn = m.minute > m.startMinute && (m.subbedOffAt === undefined || m.minute <= m.subbedOffAt);
 
   if (prev < 45 && m.minute >= 45) {
-    m = push(m, 45, 'halftime', 'neutral', tr('Half-time: {me} {a}–{b} {opp}.', { me: ctx.myTeam, a: m.myScore, b: m.oppScore, opp: ctx.oppName }));
+    m = push(m, 45, 'halftime', 'neutral', tr('Half-time: {home} {a}–{b} {away}.', { ...sides(ctx), ...sc(ctx, m.myScore, m.oppScore) }));
   }
 
   const d = ctx.myStr - ctx.oppStr;
@@ -219,13 +234,13 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
       const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
       if (playerOn && rng() < share) {
         m = { ...m, myScore: m.myScore + 1, goals: m.goals + 1, rating: m.rating + 1, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {who} finishes it off for {me}! {a}–{b}', { who, me: ctx.myTeam, a: m.myScore, b: m.oppScore }), true);
-      } else if (playerOn && rng() < 0.2 * clamp(1 + (ctx.attrs.vision - 70) / 80, 0.6, 1.5)) {
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {who} finishes it off for {me}! {a}–{b}', { who, me: ctx.myTeam, ...sc(ctx, m.myScore, m.oppScore) }), true);
+      } else if (playerOn && rng() < 0.14 * clamp(1 + (ctx.attrs.vision - 70) / 80, 0.6, 1.5)) {
         m = { ...m, myScore: m.myScore + 1, assists: m.assists + 1, rating: m.rating + 0.6, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores from {who}’s pinpoint pass! {a}–{b}', { mate, who, a: m.myScore, b: m.oppScore }), true);
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores from {who}’s pinpoint pass! {a}–{b}', { mate, who, ...sc(ctx, m.myScore, m.oppScore) }), true);
       } else {
         m = { ...m, myScore: m.myScore + 1, momentum: clamp(m.momentum + 22, -100, 100) };
-        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores for {me}! {a}–{b}', { mate, me: ctx.myTeam, a: m.myScore, b: m.oppScore }));
+        m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {mate} scores for {me}! {a}–{b}', { mate, me: ctx.myTeam, ...sc(ctx, m.myScore, m.oppScore) }));
       }
     } else {
       const text = fill(AMBIENT.mySave[randInt(0, AMBIENT.mySave.length - 1, rng)], vars);
@@ -241,7 +256,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     if (rng() < oppConv) {
       const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
       m = { ...m, oppScore: m.oppScore + 1, momentum: clamp(m.momentum - 22, -100, 100) };
-      m = push(m, at(), 'goal', 'opp', tr('💔 {opp} score! {mate} finds the net. {a}–{b}', { opp: ctx.oppName, mate, a: m.myScore, b: m.oppScore }));
+      m = push(m, at(), 'goal', 'opp', tr('💔 {opp} score! {mate} finds the net. {a}–{b}', { opp: ctx.oppName, mate, ...sc(ctx, m.myScore, m.oppScore) }));
     } else {
       const text = fill(AMBIENT.oppSave[randInt(0, AMBIENT.oppSave.length - 1, rng)], vars);
       m = { ...m, momentum: clamp(m.momentum - 5, -100, 100) };
@@ -259,7 +274,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   m.momentum = clamp(Math.round(m.momentum * (0.88 + (rng() - 0.5) * 0.06)), -100, 100);
 
   if (m.minute >= 90) {
-    m = push({ ...m, status: 'finished' }, 90, 'fulltime', 'neutral', tr('Full-time: {me} {a}–{b} {opp}.', { me: ctx.myTeam, a: m.myScore, b: m.oppScore, opp: ctx.oppName }));
+    m = push({ ...m, status: 'finished' }, 90, 'fulltime', 'neutral', tr('Full-time: {home} {a}–{b} {away}.', { ...sides(ctx), ...sc(ctx, m.myScore, m.oppScore) }));
   }
   return m;
 }
@@ -269,10 +284,12 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
 export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): number {
   if (opt.base >= 1) return 1;
   const attr = ctx.attrs[opt.attr];
+  // Better opposition makes every decision harder
+  const opposition = (ctx.oppStr - ctx.myStr) / 140;
   return clamp(
-    opt.base * 0.82 + (attr - 70) / 180 + m.momentum / 500 + ctx.mods.perfBonus / 100 + (ctx.morale - 50) / 400 - (5 - ctx.boltsBefore) / 100,
-    0.08,
-    0.93,
+    opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
+    0.05,
+    0.86,
   );
 }
 
@@ -300,9 +317,9 @@ export function resolveClutch(m: MatchState, ctx: MatchCtx, optionId: string, rn
 /** Result of a mini-game → probability of the option succeeding. */
 export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState, q: MiniQuality): number {
   const base = successChance(opt, ctx, m);
-  if (q === 'perfect') return clamp(Math.max(0.9, base + 0.3), 0, 0.96);
-  if (q === 'good') return clamp(base + 0.1, 0.2, 0.85);
-  return clamp(base * 0.22, 0.03, 0.2);
+  if (q === 'perfect') return clamp(base + 0.26, 0.45, 0.82);
+  if (q === 'good') return clamp(base * 1.05, 0.08, 0.6);
+  return clamp(base * 0.12, 0.02, 0.12);
 }
 
 export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng): ClutchResolution {
@@ -333,11 +350,11 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
     switch (opt.onSuccess) {
       case 'goal':
         s = { ...s, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + 1, momentum: clamp(s.momentum + 28, -100, 100) };
-        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, a: s.myScore, b: s.oppScore }), true);
+        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, ...sc(ctx, s.myScore, s.oppScore) }), true);
         break;
       case 'assist':
         s = { ...s, myScore: s.myScore + 1, assists: s.assists + 1, rating: s.rating + 0.65, momentum: clamp(s.momentum + 25, -100, 100) };
-        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, a: s.myScore, b: s.oppScore }), true);
+        s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, ...sc(ctx, s.myScore, s.oppScore) }), true);
         break;
       case 'save':
         s = { ...s, rating: s.rating + 0.35, momentum: clamp(s.momentum + 12, -100, 100) };
@@ -355,7 +372,7 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
   s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${said(opt.failText)}.`, true);
   if (moment.defensive && rng() < 0.55) {
     s = { ...s, oppScore: s.oppScore + 1, rating: s.rating - 0.4, momentum: clamp(s.momentum - 20, -100, 100) };
-    s = push(s, s.minute, 'goal', 'opp', tr('💔 {opp} punish the mistake and score! {a}–{b}', { opp: ctx.oppName, a: s.myScore, b: s.oppScore }));
+    s = push(s, s.minute, 'goal', 'opp', tr('💔 {opp} punish the mistake and score! {a}–{b}', { opp: ctx.oppName, ...sc(ctx, s.myScore, s.oppScore) }));
   }
   return { state: s, success: false };
 }
@@ -369,8 +386,8 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
   if (result === 'goal') {
     s = { ...s, clutchWins: s.clutchWins + 1, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + (curled ? 1.3 : 1.1), momentum: clamp(s.momentum + 30, -100, 100) };
     const text = curled
-      ? tr('⚽ GOAL! {who} bends the free kick around the wall! {a}–{b}', { who, a: s.myScore, b: s.oppScore })
-      : tr('⚽ GOAL! {who} converts the {label}! {a}–{b}', { who, label, a: s.myScore, b: s.oppScore });
+      ? tr('⚽ GOAL! {who} bends the free kick around the wall! {a}–{b}', { who, ...sc(ctx, s.myScore, s.oppScore) })
+      : tr('⚽ GOAL! {who} converts the {label}! {a}–{b}', { who, label, ...sc(ctx, s.myScore, s.oppScore) });
     return push(s, s.minute, 'goal', 'me', text, true);
   }
   const text: Record<Exclude<KickResult, 'goal'>, string> = {
@@ -419,5 +436,7 @@ export function buildResult(
     outcome,
     benched: !m.isStarter || undefined,
     subbedOff: m.subbedOffAt !== undefined || undefined,
+    clutchWins: m.clutchWins,
+    clutchTotal: m.clutchTotal,
   };
 }

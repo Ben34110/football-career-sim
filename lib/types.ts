@@ -61,6 +61,8 @@ export interface FixtureResult {
   benched?: boolean;
   /** The coach took the player off after a poor showing */
   subbedOff?: boolean;
+  clutchWins?: number;
+  clutchTotal?: number;
 }
 
 export interface Fixture {
@@ -140,6 +142,13 @@ export interface EnergyState {
   at: number;
 }
 
+export interface Upgrades {
+  coach: number;
+  pr: number;
+  agent: number;
+  nutrition: number;
+}
+
 export interface Player {
   name: string;
   nationality: string;
@@ -167,6 +176,10 @@ export interface Player {
   national?: { caps: number; goals: number };
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
+  /** Permanent upgrades bought with money */
+  upgrades?: Upgrades;
+  /** Season (start year) of the last charity gala */
+  donatedYear?: number;
 }
 
 export interface SeasonRecord {
@@ -218,7 +231,7 @@ export type GamePhase = 'playing' | 'season-end' | 'free-agent' | 'retired';
 
 /* ───────────── Match engine types ───────────── */
 
-export type StanceId = 'back-boss' | 'for-lads' | 'demand-ball';
+export type StanceId = 'back-boss' | 'for-lads' | 'demand-ball' | 'crack-joke' | 'stay-quiet' | 'challenge-boss' | 'mentor';
 export type Expectation = 'Modest' | 'Standard' | 'Star Role';
 
 export interface MatchModifiers {
@@ -255,7 +268,7 @@ export interface MatchEvent {
 export type KickKind = 'penalty' | 'freekick' | 'shootout';
 export type Curl = 'left' | 'straight' | 'right';
 /** Skill mini-games that replace the dice roll on some clutch options */
-export type MiniKind = 'power' | 'header' | 'tackle' | 'dribble';
+export type MiniKind = 'power' | 'header' | 'tackle' | 'dribble' | 'sprint' | 'memory' | 'aim' | 'charge';
 export type MiniQuality = 'perfect' | 'good' | 'miss';
 export type KickResult = 'goal' | 'saved' | 'missed' | 'blocked';
 

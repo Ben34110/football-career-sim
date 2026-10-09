@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { PlayerCard } from '@/components/ui/PlayerCard';
+import { ShareCardButton } from '@/components/ui/ShareCardButton';
 import { seasonLabel } from '@/lib/engine/player';
 import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
@@ -27,6 +28,7 @@ export function CareerEnd() {
         </p>
       </div>
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} age={player.age} clubId={player.clubId} look={player.look} />
+      <ShareCardButton player={player} />
       <div className="grid grid-cols-4 gap-2 text-center">
         {[
           [t('Apps'), player.totals.apps],

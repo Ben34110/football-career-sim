@@ -10,8 +10,8 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'A killer through ball splits the defence. It’s just you and the keeper.',
     options: [
       { id: 'place', label: 'Place it low', hint: 'Side-foot into the corner', risk: 'Safe', mini: 'power', attr: 'finishing', base: 0.58, onSuccess: 'goal', successText: 'calmly slots it into the bottom corner', failText: 'sees it smothered by the keeper' },
-      { id: 'chip', label: 'Chip the keeper', hint: 'Audacious panenka-style lob', risk: 'Bold', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'lifts it over the diving keeper with ice-cold composure', failText: 'tries to chip it but the keeper stands tall' },
-      { id: 'square', label: 'Square it across', hint: 'Unselfish pass to an open teammate', risk: 'Balanced', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'squares it perfectly for a tap-in', failText: 'squares it but the cover slides in to clear' },
+      { id: 'chip', label: 'Chip the keeper', hint: 'Audacious panenka-style lob', risk: 'Bold', mini: 'aim', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'lifts it over the diving keeper with ice-cold composure', failText: 'tries to chip it but the keeper stands tall' },
+      { id: 'square', label: 'Square it across', hint: 'Unselfish pass to an open teammate', risk: 'Balanced', mini: 'memory', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'squares it perfectly for a tap-in', failText: 'squares it but the cover slides in to clear' },
     ],
   },
   {
@@ -21,7 +21,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'The ball drops loose twenty yards out. The goal is begging to be tested.',
     options: [
       { id: 'curl', label: 'Curl it top bins', hint: 'Whip it over the wall of bodies', risk: 'Bold', mini: 'power', attr: 'finishing', base: 0.36, onSuccess: 'goal', successText: 'bends a stunning effort into the top corner', failText: 'curls it just over the bar' },
-      { id: 'drive', label: 'Drive it low', hint: 'Power through traffic', risk: 'Balanced', mini: 'power', attr: 'finishing', base: 0.48, onSuccess: 'goal', successText: 'rifles a low drive past the keeper', failText: 'hits it straight at the keeper' },
+      { id: 'drive', label: 'Drive it low', hint: 'Power through traffic', risk: 'Balanced', mini: 'aim', attr: 'finishing', base: 0.48, onSuccess: 'goal', successText: 'rifles a low drive past the keeper', failText: 'hits it straight at the keeper' },
       { id: 'layoff', label: 'Lay it off', hint: 'Keep possession, shift momentum', risk: 'Safe', attr: 'vision', base: 0.72, onSuccess: 'momentum', successText: 'lays it off smartly and the team surges forward', failText: 'sees the layoff intercepted' },
     ],
   },
@@ -31,8 +31,8 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: '3 v 2 Counter',
     setup: 'You win the ball in your half and break. Two defenders, two runners alongside you.',
     options: [
-      { id: 'shoot', label: 'Shoot early', hint: 'Catch the keeper off guard', risk: 'Balanced', attr: 'finishing', base: 0.46, onSuccess: 'goal', successText: 'hits it first time and beats the keeper', failText: 'sees the early shot blocked' },
-      { id: 'release', label: 'Release the winger', hint: 'Slide it into his stride', risk: 'Safe', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'threads the pass and the winger finishes', failText: 'overhits the pass out of play' },
+      { id: 'shoot', label: 'Shoot early', hint: 'Catch the keeper off guard', risk: 'Balanced', mini: 'aim', attr: 'finishing', base: 0.46, onSuccess: 'goal', successText: 'hits it first time and beats the keeper', failText: 'sees the early shot blocked' },
+      { id: 'release', label: 'Release the winger', hint: 'Slide it into his stride', risk: 'Safe', mini: 'charge', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'threads the pass and the winger finishes', failText: 'overhits the pass out of play' },
       { id: 'dribble', label: 'Take on the last man', hint: 'Skin him and go alone', risk: 'Bold', mini: 'dribble', attr: 'composure', base: 0.38, onSuccess: 'goal', successText: 'dances past the defender and scores', failText: 'loses the ball to a sliding tackle' },
     ],
   },
@@ -44,7 +44,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     options: [
       { id: 'stay', label: 'Stay up & shoot', hint: 'Fight through the contact', risk: 'Balanced', mini: 'power', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'stays on his feet and fires home', failText: 'is unbalanced and shoots wide' },
       { id: 'appeal', label: 'Go down — appeal', hint: 'Win the penalty (the ref decides)', risk: 'Bold', attr: 'composure', base: 0.5, onSuccess: 'kick-penalty', successText: 'goes down and the referee points to the spot', failText: 'goes down — the referee waves play on and books him for simulation' },
-      { id: 'pass', label: 'Play it across', hint: 'Find the free man', risk: 'Safe', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'cuts it back for a simple finish', failText: 'sees the pass blocked' },
+      { id: 'pass', label: 'Play it across', hint: 'Find the free man', risk: 'Safe', mini: 'memory', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'cuts it back for a simple finish', failText: 'sees the pass blocked' },
     ],
   },
   {
@@ -54,8 +54,8 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'The referee blows. The ball is placed. The captain nods your way.',
     options: [
       { id: 'step-up', label: 'Step up yourself', hint: 'Choose your zone in the 8-zone goal', risk: 'Bold', attr: 'composure', base: 1, onSuccess: 'kick-freekick', successText: 'places the ball and takes a long breath', failText: '' },
-      { id: 'cross', label: 'Whip it to the box', hint: 'Look for a runner', risk: 'Balanced', attr: 'vision', base: 0.46, onSuccess: 'assist', successText: 'whips it in and a teammate heads home', failText: 'finds only the first defender' },
-      { id: 'short', label: 'Play it short', hint: 'Work an overload', risk: 'Safe', attr: 'vision', base: 0.74, onSuccess: 'momentum', successText: 'plays it short and the team keeps pressing', failText: 'sees the short ball intercepted' },
+      { id: 'cross', label: 'Whip it to the box', hint: 'Look for a runner', risk: 'Balanced', mini: 'charge', attr: 'vision', base: 0.46, onSuccess: 'assist', successText: 'whips it in and a teammate heads home', failText: 'finds only the first defender' },
+      { id: 'short', label: 'Play it short', hint: 'Work an overload', risk: 'Safe', mini: 'memory', attr: 'vision', base: 0.74, onSuccess: 'momentum', successText: 'plays it short and the team keeps pressing', failText: 'sees the short ball intercepted' },
     ],
   },
   {
@@ -86,8 +86,8 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'The Crowd Is Roaring',
     setup: 'The tempo is frantic and the match is on a knife-edge. A decisive moment is coming.',
     options: [
-      { id: 'demand', label: 'Demand the ball', hint: 'Take the game by the scruff', risk: 'Bold', attr: 'finishing', base: 0.4, onSuccess: 'goal', successText: 'takes the ball, drives forward and scores a stunner', failText: 'forces the issue and loses it' },
-      { id: 'press', label: 'Press high', hint: 'Win it back near their box', risk: 'Balanced', attr: 'stamina', base: 0.55, onSuccess: 'momentum', successText: 'wins it back high and the stadium erupts', failText: 'presses but gets bypassed' },
+      { id: 'demand', label: 'Demand the ball', hint: 'Take the game by the scruff', risk: 'Bold', mini: 'dribble', attr: 'finishing', base: 0.4, onSuccess: 'goal', successText: 'takes the ball, drives forward and scores a stunner', failText: 'forces the issue and loses it' },
+      { id: 'press', label: 'Press high', hint: 'Win it back near their box', risk: 'Balanced', mini: 'sprint', attr: 'stamina', base: 0.55, onSuccess: 'momentum', successText: 'wins it back high and the stadium erupts', failText: 'presses but gets bypassed' },
       { id: 'shape', label: 'Hold your shape', hint: 'Control the tempo', risk: 'Safe', attr: 'composure', base: 0.76, onSuccess: 'momentum', successText: 'slows it down and settles the team', failText: 'loses his man and concedes space' },
     ],
   },
@@ -99,7 +99,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     options: [
       { id: 'rocket', label: 'Hit it with everything', hint: 'Time the strike for maximum power', risk: 'Bold', mini: 'power', attr: 'finishing', base: 0.3, onSuccess: 'goal', successText: 'unleashes a rocket from distance that flies into the net', failText: 'sends the long-range effort high into the stands' },
       { id: 'probe', label: 'Take another touch', hint: 'Drive closer and look for more', risk: 'Balanced', attr: 'composure', base: 0.55, onSuccess: 'momentum', successText: 'drives forward and drags two defenders with him', failText: 'takes a touch too many and is crowded out' },
-      { id: 'switch', label: 'Switch the play', hint: 'Spot the overlapping run', risk: 'Safe', attr: 'vision', base: 0.66, onSuccess: 'assist', successText: 'switches the play and the overlapping full-back sets up the finish', failText: 'sees the diagonal ball cut out' },
+      { id: 'switch', label: 'Switch the play', hint: 'Spot the overlapping run', risk: 'Safe', mini: 'charge', attr: 'vision', base: 0.66, onSuccess: 'assist', successText: 'switches the play and the overlapping full-back sets up the finish', failText: 'sees the diagonal ball cut out' },
     ],
   },
   {
@@ -109,7 +109,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'You pick up the ball in midfield and defenders are backing off. Time to show what you can do.',
     options: [
       { id: 'skills', label: 'Dance through them', hint: 'Chain your skill moves', risk: 'Bold', mini: 'dribble', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'weaves through three defenders and finishes in style', failText: 'gets too cute and is dispossessed' },
-      { id: 'one-two', label: 'Play a one-two', hint: 'Use the striker as a wall', risk: 'Balanced', attr: 'vision', base: 0.56, onSuccess: 'assist', successText: 'plays a slick one-two and feeds the runner', failText: 'sees the return pass cut out' },
+      { id: 'one-two', label: 'Play a one-two', hint: 'Use the striker as a wall', risk: 'Balanced', mini: 'memory', attr: 'vision', base: 0.56, onSuccess: 'assist', successText: 'plays a slick one-two and feeds the runner', failText: 'sees the return pass cut out' },
       { id: 'safe', label: 'Recycle possession', hint: 'Keep the shape, calm the game', risk: 'Safe', attr: 'composure', base: 0.78, onSuccess: 'momentum', successText: 'keeps possession and settles the team', failText: 'plays it a little loose' },
     ],
   },
@@ -120,7 +120,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'The delivery is coming in. You have a split second to pick your run.',
     options: [
       { id: 'attack', label: 'Attack the near post', hint: 'Win the aerial duel', risk: 'Bold', mini: 'header', attr: 'finishing', base: 0.36, onSuccess: 'goal', successText: 'rises above everyone and powers a header home', failText: 'is outjumped by the centre-back' },
-      { id: 'edge', label: 'Hover on the edge', hint: 'Wait for the second ball', risk: 'Balanced', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'volleys the clearance into the bottom corner', failText: 'sees the volley blocked' },
+      { id: 'edge', label: 'Hover on the edge', hint: 'Wait for the second ball', risk: 'Balanced', mini: 'aim', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'volleys the clearance into the bottom corner', failText: 'sees the volley blocked' },
       { id: 'screen', label: 'Block the keeper', hint: 'Create chaos for teammates', risk: 'Safe', attr: 'stamina', base: 0.64, onSuccess: 'momentum', successText: 'screens the keeper and the box goes wild', failText: 'is pushed away by the defender' },
     ],
   },
@@ -131,9 +131,9 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Danger! They Break',
     setup: 'You lose the ball and the opposition sprint into the space you left behind.',
     options: [
-      { id: 'sprint', label: 'Sprint back & tackle', hint: 'All-out recovery run', risk: 'Bold', mini: 'tackle', attr: 'stamina', base: 0.56, onSuccess: 'save', successText: 'sprints 50 yards and slides in with a perfect tackle', failText: 'is too late — the break continues' },
+      { id: 'sprint', label: 'Sprint back & tackle', hint: 'All-out recovery run', risk: 'Bold', mini: 'sprint', attr: 'stamina', base: 0.56, onSuccess: 'save', successText: 'sprints 50 yards and slides in with a perfect tackle', failText: 'is too late — the break continues' },
       { id: 'foul', label: 'Professional foul', hint: 'Stop the move at any cost', risk: 'Safe', attr: 'composure', base: 0.78, onSuccess: 'save', successText: 'brings him down — yellow card but the danger is over', failText: 'fouls him in a dangerous area' },
-      { id: 'track', label: 'Track the runner', hint: 'Force him wide', risk: 'Balanced', attr: 'vision', base: 0.62, onSuccess: 'save', successText: 'reads the run and forces him wide', failText: 'gets the angle wrong' },
+      { id: 'track', label: 'Track the runner', hint: 'Force him wide', risk: 'Balanced', mini: 'tackle', attr: 'vision', base: 0.62, onSuccess: 'save', successText: 'reads the run and forces him wide', failText: 'gets the angle wrong' },
     ],
   },
 ];

@@ -54,6 +54,7 @@ export function PressZone({
       fanPopularity: live?.rep.fanPopularity ?? context.fanPopularity,
       answerStyle: chosen.style,
       stirred,
+      pr: live?.upgrades?.pr ?? 0,
     };
     if (Math.random() < controversyChance(ctx)) {
       const pool = CONTROVERSIES.filter((c) => c.when(ctx));

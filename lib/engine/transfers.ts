@@ -38,7 +38,8 @@ export function buildOffer(player: Player, club: Club, source: Offer['source'], 
   const ovr = ovrOf(player);
   const mv = marketValue(ovr, player.age);
   const fee = Math.round(mv * rand(0.9, 1.4, rng) * 100) / 100;
-  const wage = Math.round(wageFor(ovr, player.age, club.tier) * rand(0.95, 1.2, rng));
+  const agentBonus = 1 + 0.04 * (player.upgrades?.agent ?? 0);
+  const wage = Math.round(wageFor(ovr, player.age, club.tier) * rand(0.95, 1.2, rng) * agentBonus);
   return {
     id: uid('offer'),
     clubId: club.id,
@@ -69,7 +70,7 @@ export function generateOffers(player: Player, listed: boolean, rng: Rng): Offer
 
 export function approachChance(player: Player, club: Club): number {
   const ovr = ovrOf(player);
-  return clamp(0.5 + (ovr - (club.strength - 3)) / 14 + (player.rep.fanPopularity + player.rep.mediaHeat - 60) / 500, 0.03, 0.9);
+  return clamp(0.5 + (ovr - (club.strength - 3)) / 14 + (player.rep.fanPopularity + player.rep.mediaHeat - 60) / 500 + 0.06 * (player.upgrades?.agent ?? 0), 0.03, 0.9);
 }
 
 export const COUNTER_OPTIONS = [

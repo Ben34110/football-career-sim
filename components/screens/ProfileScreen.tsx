@@ -7,6 +7,7 @@ import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { PlayerCard } from '@/components/ui/PlayerCard';
+import { ShareCardButton } from '@/components/ui/ShareCardButton';
 import { Sheet } from '@/components/ui/Sheet';
 import { getNationality } from '@/lib/data/nationalities';
 import { fmtMoneyK, POSITION_LABEL } from '@/lib/engine/player';
@@ -27,6 +28,7 @@ export function ProfileScreen() {
   return (
     <div className="space-y-5">
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} age={player.age} clubId={player.clubId} look={player.look} />
+      <ShareCardButton player={player} />
 
       <div className="flex flex-wrap gap-2">
         <Chip>{nat.flag} {t(nat.name)}</Chip>

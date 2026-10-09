@@ -9,7 +9,7 @@ import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { href: '/home', label: 'Home', icon: Home },
+  { href: '/home', label: 'Home|nav', icon: Home },
   { href: '/calendar', label: 'Season', icon: CalendarDays },
   { href: '/match', label: 'Play', icon: Zap, hero: true },
   { href: '/transfers', label: 'Market', icon: Repeat },

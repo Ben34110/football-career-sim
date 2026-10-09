@@ -32,9 +32,9 @@ export function SeasonEnd() {
         <div className="eyebrow text-gold-300">{t('Season review')}</div>
         <h2 className="mt-1 font-display text-4xl font-extrabold uppercase leading-none">{t('{s} Complete', { s: seasonLabel(r.year) })}</h2>
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-          <Mini label={t('League')} value={ordinalOf(r.leaguePos, lang)} />
+          <Mini label={t('League|tile')} value={ordinalOf(r.leaguePos, lang)} />
           <Mini label={t('Apps')} value={r.apps} />
-          <Mini label="G + A" value={`${r.goals}+${r.assists}`} />
+          <Mini label="GA" value={r.goals + r.assists} />
           <Mini label={t('Avg')} value={r.avgRating ? r.avgRating.toFixed(1) : '–'} />
         </div>
         {r.trophies.length > 0 && (

@@ -27,7 +27,7 @@ export function ControversyPanel({ scandal, onDone }: { scandal: Controversy; on
   const react = (o: ControversyOption) => {
     if (outcome) return;
     haptic(20);
-    const p = reactionChance(o, player.rep);
+    const p = reactionChance(o, player.rep, player.upgrades?.pr ?? 0);
     const good = Math.random() < p;
     const effect = good ? o.win : o.lose;
     const fired = resolve(effect, scandal.title);
@@ -65,7 +65,6 @@ export function ControversyPanel({ scandal, onDone }: { scandal: Controversy; on
           <p className="px-0.5 text-xs font-semibold text-zinc-400">{t('How do you react?')}</p>
           <div className="space-y-2.5">
             {scandal.options.map((o, i) => {
-              const chance = reactionChance(o, player.rep);
               return (
                 <motion.button
                   key={o.style}
@@ -84,9 +83,6 @@ export function ControversyPanel({ scandal, onDone }: { scandal: Controversy; on
                     <Chip tone={RISK_TONE[o.risk]}>{t(o.risk)}</Chip>
                   </div>
                   <p className="mt-2 text-[13px] italic text-zinc-400">{t(o.quote)}</p>
-                  <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/10" aria-label={t('Chance of success')}>
-                    <div className={cn('h-full rounded-full', chance > 0.6 ? 'bg-neon-400' : chance > 0.4 ? 'bg-gold-400' : 'bg-crimson-500')} style={{ width: `${Math.round(chance * 100)}%` }} />
-                  </div>
                 </motion.button>
               );
             })}

@@ -5,7 +5,7 @@ import { Crosshair, Gauge, MoveRight, MoveUpRight, MoveUpLeft } from 'lucide-rea
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
-import { resolveKick, ZONE_COUNT, ZONE_NAMES, zoneCol, zoneRow, type KickOutcome } from '@/lib/engine/kick';
+import { resolveKick, WALL_COLS, ZONE_COUNT, ZONE_NAMES, zoneCol, zoneRow, type KickOutcome, type WallSide } from '@/lib/engine/kick';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import type { Curl, KickKind } from '@/lib/types';
@@ -54,6 +54,8 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
   const t = useT();
   const reduce = useReducedMotion();
   const [curl, setCurl] = useState<Curl>('straight');
+  // the wall lines up on one side of the goal for the whole kick
+  const [wall] = useState<WallSide>(() => (['left', 'center', 'right'] as const)[Math.floor(Math.random() * 3)]);
   const [phase, setPhase] = useState<'aim' | 'flying' | 'revealed'>('aim');
   const [outcome, setOutcome] = useState<KickOutcome | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -66,7 +68,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
   const shoot = (zone: number) => {
     if (phase !== 'aim') return;
     haptic(18);
-    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, curl }, Math.random);
+    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, curl, wall: kind === 'freekick' ? wall : undefined }, Math.random);
     setOutcome(o);
     setPhase('flying');
     timer.current = setTimeout(
@@ -184,18 +186,33 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
             })}
           </div>
 
-          {/* Wall (free kicks) */}
-          {kind === 'freekick' && (
-            <div className="pointer-events-none absolute inset-x-[22%] bottom-0 flex h-[55%] items-end justify-between" aria-hidden>
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <div className="h-3 w-3 rounded-full bg-zinc-400" />
-                  <div className="h-[34px] w-[18px] rounded-t-md bg-gradient-to-b from-zinc-500 to-zinc-700" />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Wall (free kicks): five defenders in front of the goal, hiding two columns */}
+        {kind === 'freekick' && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute z-[8] flex items-end justify-between"
+            style={{
+              left: `${GOAL.left + (GOAL.width * WALL_COLS[wall][0]) / 4}%`,
+              width: `${GOAL.width / 2}%`,
+              top: `${GOAL.top + GOAL.height - 22}%`,
+              height: '30%',
+            }}
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <svg key={i} viewBox="0 0 20 42" className="h-full" style={{ width: '19%' }}>
+                <rect x="5" y="26" width="4" height="15" rx="2" fill="#18181b" />
+                <rect x="11" y="26" width="4" height="15" rx="2" fill="#18181b" />
+                <rect x="3" y="11" width="14" height="18" rx="5" fill={i % 2 ? '#3b82f6' : '#2563eb'} />
+                <rect x="1" y="12" width="3.500" height="12" rx="1.700" fill="#fcd9b6" />
+                <rect x="15.500" y="12" width="3.500" height="12" rx="1.700" fill="#fcd9b6" />
+                <circle cx="10" cy="6" r="5" fill="#fcd9b6" />
+                <path d="M5 5a5 5 0 0110 0c-3-2-7-2-10 0z" fill="#3f2a1d" />
+              </svg>
+            ))}
+          </div>
+        )}
 
         {/* Keeper */}
         <motion.div

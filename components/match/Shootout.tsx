@@ -36,6 +36,7 @@ export function Shootout({
   opp,
   finishing,
   composure,
+  playerOut = false,
   onDone,
 }: {
   ctx: MatchCtx;
@@ -43,6 +44,8 @@ export function Shootout({
   opp: TeamBadge;
   finishing: number;
   composure: number;
+  /** Substituted off earlier: a teammate takes the kicks */
+  playerOut?: boolean;
   onDone: (r: ShootoutResult) => void;
 }) {
   const t = useT();
@@ -51,7 +54,7 @@ export function Shootout({
   const score = tally(s);
   const diff = ctx.myStr - ctx.oppStr;
   const side = nextSide(s);
-  const playerTurn = !win && playerTakesNext(s);
+  const playerTurn = !win && !playerOut && playerTakesNext(s);
   const round = currentRound(s);
   const lastKick = s.kicks[s.kicks.length - 1];
 

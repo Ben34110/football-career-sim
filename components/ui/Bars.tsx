@@ -14,6 +14,7 @@ export function StatBar({
   delta,
   accent = 'neon',
   className,
+  progress,
 }: {
   label: string;
   value: number;
@@ -21,6 +22,8 @@ export function StatBar({
   delta?: number;
   accent?: 'neon' | 'gold';
   className?: string;
+  /** Progress (0..1) toward the next point, earned on the pitch */
+  progress?: number;
 }) {
   const pct = Math.min(100, (value / max) * 100);
   return (
@@ -49,16 +52,21 @@ export function StatBar({
           transition={{ type: 'spring', stiffness: 120, damping: 20 }}
         />
       </div>
+      {progress !== undefined && (
+        <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-white/[0.05]" title="+1">
+          <div className="h-full rounded-full bg-gold-400/80" style={{ width: `${Math.min(100, progress * 100)}%` }} />
+        </div>
+      )}
     </div>
   );
 }
 
-export function AttributeBars({ attrs, deltas }: { attrs: Attributes; deltas?: Partial<Attributes> }) {
+export function AttributeBars({ attrs, deltas, xp }: { attrs: Attributes; deltas?: Partial<Attributes>; xp?: Attributes }) {
   const t = useT();
   return (
     <div className="grid grid-cols-2 gap-x-5 gap-y-3.5">
       {(Object.keys(ATTR_LABEL) as AttrKey[]).map((k) => (
-        <StatBar key={k} label={t(ATTR_LABEL[k])} value={attrs[k]} delta={deltas?.[k]} />
+        <StatBar key={k} label={t(ATTR_LABEL[k])} value={attrs[k]} delta={deltas?.[k]} progress={xp?.[k]} />
       ))}
     </div>
   );

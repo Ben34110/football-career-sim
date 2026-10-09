@@ -10,7 +10,8 @@ const interpolate = (text: string, vars?: Vars) =>
   vars ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : text;
 
 function lookup(lang: Lang, text: string): string {
-  if (lang === 'en') return text;
+  // "Home|nav": the part after "|" only disambiguates the French translation
+  if (lang === 'en') return text.includes('|') ? text.split('|')[0] : text;
   const hit = FR[text];
   if (hit !== undefined) return hit;
   for (const [re, out] of FR_PATTERNS) {

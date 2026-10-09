@@ -1,6 +1,7 @@
 'use client';
 
 import { Coins } from 'lucide-react';
+import Link from 'next/link';
 import { Bolts } from '@/components/ui/Bolts';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
@@ -30,10 +31,10 @@ export function TopBar() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-1 text-[12px] font-semibold text-gold-300 min-[380px]:flex">
+          <Link href="/shop" aria-label={t('Shop')} className="flex items-center gap-1 rounded-full border border-gold-400/25 bg-gold-400/[0.08] px-2.5 py-1 text-[12px] font-semibold text-gold-300 active:scale-95">
             <Coins className="h-3.5 w-3.5" />
             <span className="font-num">{fmtMoneyK(player.money)}</span>
-          </div>
+          </Link>
           <Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />
         </div>
       </div>

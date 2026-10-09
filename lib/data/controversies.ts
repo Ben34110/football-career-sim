@@ -8,6 +8,8 @@ export interface ControversyCtx extends PressContext {
   /** The player chose to feed the media */
   stirred: boolean;
   apps: number;
+  /** Media advisor level (0-3) */
+  pr?: number;
 }
 
 export interface Effect {
@@ -49,7 +51,7 @@ const STYLE = {
     label: 'Apologise publicly',
     hint: 'Take responsibility, calm things down',
     risk: 'Safe' as const,
-    p: 0.78,
+    p: 0.62,
     win: { morale: 2, rep: { coachTrust: 3, lockerRoom: 2, fanPopularity: 2, mediaHeat: -3 }, strike: -1 } as Effect,
     lose: { morale: -3, rep: { coachTrust: -1, mediaHeat: 2 }, strike: 0 } as Effect,
     winText: 'The apology lands well. The story dies down and people respect you for it.',
@@ -88,9 +90,23 @@ const STYLE = {
 };
 
 type Quotes = Record<ReactStyle, string>;
+type Tweaks = Partial<Record<ReactStyle, Partial<ControversyOption>>>;
 
-const options = (q: Quotes): ControversyOption[] =>
-  (Object.keys(STYLE) as ReactStyle[]).map((style) => ({ style, quote: q[style], ...STYLE[style] }));
+/** Every scandal reuses the four reactions; `tweaks` rewrites the ones that behave differently in that story. */
+const options = (q: Quotes, tweaks: Tweaks = {}): ControversyOption[] =>
+  (Object.keys(STYLE) as ReactStyle[]).map((style) => ({ style, quote: q[style], ...STYLE[style], ...tweaks[style] }));
+
+/** Admitting guilt for something you did not do. */
+const FALSE_CONFESSION: Partial<ControversyOption> = {
+  label: 'Admit it and apologise',
+  hint: 'Accept the blame to end the story',
+  risk: 'Bold',
+  p: 0.14,
+  win: { morale: 0, rep: { mediaHeat: 2 }, strike: 0 },
+  lose: { morale: -6, rep: { coachTrust: -6, fanPopularity: -4, lockerRoom: -2, mediaHeat: 5 }, strike: 1 },
+  winText: 'The story fades — but nobody is really sure what you admitted.',
+  loseText: 'Apologising looks like a confession. The press now treats the lie as fact.',
+};
 
 export const CONTROVERSIES: Controversy[] = [
   {
@@ -219,6 +235,72 @@ export const CONTROVERSIES: Controversy[] = [
       counter: '“If someone is afraid to take responsibility, it won’t be me.”',
     }),
   },
+  {
+    id: 'liar',
+    title: 'Accused of Lying',
+    setup: 'A newspaper claims you lied about an injury to skip training, and quotes “sources” inside the club.',
+    headline: 'CAUGHT OUT? Newspaper says star lied about injury',
+    weight: 5,
+    when: (c) => c.mediaHeat >= 15 || c.answerStyle === 'bold',
+    options: options(
+      {
+        apologise: '“Fine — I should have been clearer with the staff. I’m sorry for the confusion.”',
+        defend: '“The medical staff have my full file. Check it. I have nothing to hide.”',
+        silence: '“I won’t dignify this with an answer.”',
+        counter: '“Name your sources. If this is a lie, my lawyers will deal with it.”',
+      },
+      {
+        apologise: FALSE_CONFESSION,
+        defend: { label: 'Show the evidence', hint: 'Let the medical file speak', p: 0.64 },
+        silence: { p: 0.3, hint: 'Silence can look like guilt' },
+        counter: { label: 'Threaten legal action', p: 0.44 },
+      },
+    ),
+  },
+  {
+    id: 'fake-handshake',
+    title: 'Fabricated Story',
+    setup: 'A viral account claims you refused to shake your manager’s hand when you were substituted. It never happened.',
+    headline: 'HANDSHAKE SNUB: is the star at war with his manager?',
+    weight: 4,
+    when: (c) => c.coachTrust < 72 && c.mediaHeat >= 10,
+    options: options(
+      {
+        apologise: '“If that’s how it looked, I’m sorry to the boss and the fans.”',
+        defend: '“It’s simply false — I hugged him. There’s video of it.”',
+        silence: '“I don’t respond to rumours.”',
+        counter: '“Whoever invented this should be ashamed. The club will find them.”',
+      },
+      {
+        apologise: FALSE_CONFESSION,
+        defend: { label: 'Set the record straight', hint: 'Calmly show it never happened', p: 0.66 },
+        silence: { p: 0.4 },
+        counter: { p: 0.46 },
+      },
+    ),
+  },
+  {
+    id: 'loyalty',
+    title: 'Loyalty Questioned',
+    setup: 'Fans dug up your words — “I would never leave” — right after reports of a secret meeting with another club.',
+    headline: 'DOUBLE GAME? Star said “never” — then met a rival',
+    weight: 4,
+    when: (c) => c.mediaHeat >= 28,
+    options: options(
+      {
+        apologise: '“I owe the supporters honesty: I listened to an offer. I’m staying focused on this club.”',
+        defend: '“A player talks to many people. My loyalty has never wavered.”',
+        silence: '“I’ll talk when there’s something to say.”',
+        counter: '“I gave everything for this shirt. Don’t question me.”',
+      },
+      {
+        apologise: { label: 'Come clean', hint: 'Be honest about the meeting', p: 0.58, risk: 'Balanced' },
+        defend: { p: 0.3, risk: 'Bold' },
+        silence: { p: 0.35 },
+        counter: { p: 0.34 },
+      },
+    ),
+  },
 ];
 
 /** Chance (0..1) that a scandal breaks after a press conference. */
@@ -231,12 +313,12 @@ export function controversyChance(c: ControversyCtx): number {
   if (c.missedKick) p += 0.08;
   if (c.subbedOff) p += 0.2;
   if (c.lockerRoom < 30) p += 0.06;
-  return Math.min(0.6, p);
+  return Math.min(0.6, p * (1 - 0.15 * (c.pr ?? 0)));
 }
 
 /** Chance that a given reaction lands well, adjusted by the player's standing. */
-export function reactionChance(o: ControversyOption, c: Pick<ControversyCtx, 'coachTrust' | 'lockerRoom' | 'mediaHeat'> & { fanPopularity: number }): number {
-  const adj = (c.coachTrust - 50) / 250 + (c.fanPopularity - 50) / 300 + (c.lockerRoom - 50) / 400 - (c.mediaHeat - 30) / 500;
+export function reactionChance(o: ControversyOption, c: Pick<ControversyCtx, 'coachTrust' | 'lockerRoom' | 'mediaHeat'> & { fanPopularity: number }, pr = 0): number {
+  const adj = 0.04 * pr + (c.coachTrust - 50) / 250 + (c.fanPopularity - 50) / 300 + (c.lockerRoom - 50) / 400 - (c.mediaHeat - 30) / 500;
   return Math.max(0.08, Math.min(0.92, o.p + adj));
 }
 

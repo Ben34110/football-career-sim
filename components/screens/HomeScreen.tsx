@@ -16,7 +16,7 @@ import { currentFixture, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtShortDate, fmtToday } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
-import { MAX_TRAININGS_PER_FIXTURE, useGameStore } from '@/lib/store';
+import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { cn, crestShort, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
@@ -31,7 +31,6 @@ export function HomeScreen() {
   const season = useGameStore((s) => s.season);
   const phase = useGameStore((s) => s.phase);
   const news = useGameStore((s) => s.news);
-  const train = useGameStore((s) => s.train);
   const physio = useGameStore((s) => s.physio);
   const { bolts, msToNext } = useEnergy();
   if (!player) return null;
@@ -40,16 +39,10 @@ export function HomeScreen() {
   const ovr = ovrOf(player);
   const club = getClub(player.clubId);
   const fixture = season && phase === 'playing' ? currentFixture(season) : null;
-  const used = season && season.training.cursor === season.cursor ? season.training.count : 0;
   const pos = season ? leaguePosition(season) : 0;
   const avg = season && season.stats.apps ? season.stats.ratingSum / season.stats.apps : 0;
 
   const fixtureIdx = season && fixture ? season.fixtures.findIndex((f) => f.id === fixture.id) : -1;
-
-  const doTrain = (k: (typeof ATTR_KEYS)[number]) => {
-    const r = train(k);
-    toast(r.msg, r.ok ? 'good' : 'bad');
-  };
 
   return (
     <div className="space-y-5">
@@ -113,45 +106,22 @@ export function HomeScreen() {
         </div>
       )}
 
-      {/* Training & recovery */}
+      {/* Recovery: money buys lives back; attributes only grow by playing well */}
       {season && phase === 'playing' && (
-        <div>
-          <SectionTitle right={<span className="text-[11px] text-zinc-500">{t('{n} sessions left before kickoff', { n: MAX_TRAININGS_PER_FIXTURE - used })}</span>}>{t('Training')}</SectionTitle>
-          <Card className="p-3.5">
-            <div className="grid grid-cols-2 gap-2">
-              {ATTR_KEYS.map((k) => (
-                <motion.button
-                  key={k}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => doTrain(k)}
-                  className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-left active:bg-white/10"
-                >
-                  <span>
-                    <span className="block text-[13px] font-bold">{t(ATTR_LABEL[k])}</span>
-                    <span className="mt-1 block h-1 w-14 overflow-hidden rounded-full bg-white/10">
-                      <span className="block h-full rounded-full bg-neon-400" style={{ width: `${player.xp[k] * 100}%` }} />
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1 text-xs font-semibold text-gold-300">
-                    <Zap className="h-3 w-3 fill-current" />1
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-            <Button
-              block
-              variant="ghost"
-              size="sm"
-              className="mt-2.5"
-              onClick={() => {
-                const r = physio();
-                toast(r.msg, r.ok ? 'good' : 'bad');
-              }}
-            >
-              <HeartPulse className="h-4 w-4 text-crimson-400" /> {t('Recovery clinic · +2 bolts')} ({fmtMoneyK((player.contract?.wage ?? 0) * 3)})
-            </Button>
-          </Card>
-        </div>
+        <Card className="space-y-2.5 p-3.5">
+          <Button
+            block
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const r = physio();
+              toast(r.msg, r.ok ? 'good' : 'bad');
+            }}
+          >
+            <HeartPulse className="h-4 w-4 text-crimson-400" /> {t('Recovery clinic · +2 lives')} ({fmtMoneyK((player.contract?.wage ?? 0) * 3)})
+          </Button>
+          <p className="px-1 text-[11px] leading-snug text-zinc-500">{t('Your attributes grow by playing well: goals, assists, high ratings and winning decisions.')}</p>
+        </Card>
       )}
 
       {/* Season snapshot */}
@@ -159,9 +129,9 @@ export function HomeScreen() {
         <div>
           <SectionTitle right={<Link href="/calendar" className="flex items-center text-[11px] font-semibold text-neon-400">{t('Full season')} <ChevronRight className="h-3 w-3" /></Link>}>{t('This season')}</SectionTitle>
           <div className="grid grid-cols-4 gap-2">
-            <Tile label={t('League')} value={ordinalOf(pos, lang)} />
+            <Tile label={t('League|tile')} value={ordinalOf(pos, lang)} />
             <Tile label={t('Apps')} value={season.stats.apps} />
-            <Tile label="G + A" value={`${season.stats.goals}+${season.stats.assists}`} />
+            <Tile label="GA" value={season.stats.goals + season.stats.assists} />
             <Tile label={t('Avg')} value={avg ? avg.toFixed(1) : '–'} />
           </div>
           {ovr < CALL_UP_OVR && (
@@ -187,7 +157,7 @@ export function HomeScreen() {
       <div>
         <SectionTitle>{t('Attributes')}</SectionTitle>
         <Card className="p-4">
-          <AttributeBars attrs={player.attrs} />
+          <AttributeBars attrs={player.attrs} xp={player.xp} />
         </Card>
       </div>
 

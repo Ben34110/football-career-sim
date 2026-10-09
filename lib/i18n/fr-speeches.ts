@@ -53,6 +53,77 @@ export const FR_SPEECHES: Record<string, string> = {
   '“We’re a family out there — let’s do this for our country!”': '« On est une famille là-bas — faisons-le pour notre pays ! »',
   '“I was born for nights like this. Give me the ball.”': '« Je suis né pour des soirs comme celui-ci. Donnez-moi le ballon. »',
 
+  // new stances
+  'Crack a joke': 'Faire une blague',
+  'Say nothing': 'Ne rien dire',
+  'Challenge the tactics': 'Contester la tactique',
+  'Take a youngster aside': 'Prendre un jeune à part',
+  Relaxed: 'Détendu',
+  Focused: 'Concentré',
+  Rebel: 'Rebelle',
+  Mentor: 'Mentor',
+
+  // situational talks
+  'Bounce Back': 'Réagir',
+  '“Last time out was not us. I am not interested in excuses — I want a reaction, and I want it from the first whistle.”': '« Le dernier match, ce n’était pas nous. Les excuses ne m’intéressent pas — je veux une réaction, dès le coup d’envoi. »',
+  '“We owe the fans a response, boss. It starts now.”': '« On doit une réponse aux supporters, coach. Ça commence maintenant. »',
+  '“Good news, lads: it can’t get worse. Let’s go and enjoy it!”': '« Bonne nouvelle, les gars : ça ne peut pas être pire. Allons prendre du plaisir ! »',
+  'You stare at the floor, boots laced, jaw set. No words — only intent.': 'Tu fixes le sol, crampons lacés, mâchoire serrée. Pas un mot — juste de la détermination.',
+
+  'Stay Hungry': 'Garder la faim',
+  '“Three wins in a row and everybody is smiling. That is exactly when teams get sloppy. Stay hungry.”': '« Trois victoires de suite et tout le monde sourit. C’est exactement là que les équipes se relâchent. Gardez la faim. »',
+  '“Nobody is allowed to relax. We’re building something here.”': '« Personne n’a le droit de se relâcher. On construit quelque chose ici. »',
+  '“Smiling is fine, boss — as long as we keep winning!”': '« Sourire, c’est bien, coach — tant qu’on continue de gagner ! »',
+  '“I’m on fire. Keep feeding me and we keep winning.”': '« Je suis en feu. Continuez à me servir et on continue de gagner. »',
+
+  'Find Your Spark': 'Retrouver l’étincelle',
+  '“Some of you are playing with fear. Forget the last few games. Express yourselves — football is meant to be fun.”': '« Certains d’entre vous jouent avec la peur. Oubliez les derniers matchs. Exprimez-vous — le football doit rester un plaisir. »',
+  '“I hear you, boss. I’ll shake off the nerves.”': '« Je vous entends, coach. Je vais évacuer la pression. »',
+  '“Stay with me, kid — we’ll find our rhythm together.”': '« Reste avec moi, petit — on va retrouver notre rythme ensemble. »',
+  '“Maybe the problem is the system, boss. Let us play freely.”': '« Le problème vient peut-être du système, coach. Laissez-nous jouer librement. »',
+
+  'Title Race': 'Course au titre',
+  '“We are in the fight for the title. Every point counts from here. Respect the process — but go and take it.”': '« On est dans la course au titre. Chaque point compte désormais. Respectez le processus — mais allez le chercher. »',
+  '“This is our year. Every one of us has to be ready.”': '« C’est notre année. Chacun de nous doit être prêt. »',
+  'You say nothing. You just tap every teammate on the shoulder on the way out.': 'Tu ne dis rien. Tu tapes juste sur l’épaule de chaque coéquipier en sortant.',
+  '“Title races are won by players who want the ball. I want it.”': '« Les courses au titre sont gagnées par ceux qui veulent le ballon. Moi, je le veux. »',
+
+  'Fight For Survival': 'Lutte pour le maintien',
+  '“Nobody wants to talk about the table but we all know where we are. Work harder than them, run further than them.”': '« Personne ne veut parler du classement mais on sait tous où on en est. Travaillez plus qu’eux, courez plus qu’eux. »',
+  '“We’ll run until our legs fall off, boss.”': '« On courra jusqu’à ce que nos jambes lâchent, coach. »',
+  '“Look around — nobody here is giving up!”': '« Regardez autour de vous — personne ici n’abandonne ! »',
+  '“Stay calm. I’ll talk to the youngsters — they’re shaking.”': '« Restez calmes. Je vais parler aux jeunes — ils tremblent. »',
+
+  'The Kid Is Ready': 'Le petit est prêt',
+  '“You have shown me something in training. Today you start and I expect you to play without fear.”': '« Tu m’as montré quelque chose à l’entraînement. Aujourd’hui tu débutes et j’attends que tu joues sans peur. »',
+  '“Thank you for the trust, boss. I won’t let you down.”': '« Merci pour la confiance, coach. Je ne vous décevrai pas. »',
+  '“Finally! I was getting tired of the bench anyway.”': '« Enfin ! J’en avais marre du banc de toute façon. »',
+  '“I’m ready. Don’t be surprised if I take the game over.”': '« Je suis prêt. Ne soyez pas surpris si je prends le match à mon compte. »',
+
+  'Lead By Example': 'Montrer l’exemple',
+  '“You have been there before. The young ones look at you — show them what professionalism looks like.”': '« Tu es déjà passé par là. Les jeunes te regardent — montre-leur ce que veut dire être professionnel. »',
+  '“Leave it to me, boss. I’ll guide them out there.”': '« Laissez-moi faire, coach. Je les guiderai sur le terrain. »',
+  '“Always, boss. Standards don’t drop on my watch.”': '« Toujours, coach. Le niveau ne baisse pas tant que je suis là. »',
+  '“Experience wins matches. Follow my lead, lads.”': '« L’expérience gagne les matchs. Suivez-moi, les gars. »',
+
+  'Final Day': 'Jour de finale',
+  '“There are two kinds of players: those who remember finals and those who forget them. Make sure you are remembered.”': '« Il y a deux sortes de joueurs : ceux dont on se souvient en finale et ceux qu’on oublie. Faites en sorte qu’on se souvienne de vous. »',
+  '“Win it for the club, win it for each other!”': '« Gagnons-la pour le club, gagnons-la les uns pour les autres ! »',
+  'You close your eyes for a minute. When you open them, the nerves are gone.': 'Tu fermes les yeux une minute. Quand tu les rouvres, le trac a disparu.',
+  '“Give me the final, boss. I’ve been waiting for this all my life.”': '« Donnez-moi cette finale, coach. Je l’attends depuis toujours. »',
+
+  'The World Stage': 'La scène mondiale',
+  '“Knockout football at the highest level. The next ninety minutes will be replayed for decades. Be brave.”': '« Du football à élimination directe au plus haut niveau. Les quatre-vingt-dix prochaines minutes seront rejouées pendant des décennies. Soyez courageux. »',
+  '“We’re ready, coach. We’ve prepared for this.”': '« On est prêts, coach. On s’est préparés pour ça. »',
+  '“Relax, lads — it’s just a game in front of a billion people.”': '« Détendez-vous, les gars — ce n’est qu’un match devant un milliard de personnes. »',
+  '“I’d play them differently, coach. Trust me with a free role.”': '« Je les jouerais autrement, coach. Donnez-moi un rôle libre. »',
+
+  'Business As Usual': 'Comme d’habitude',
+  '“No big speech today. Do the simple things well, support each other and the result will take care of itself.”': '« Pas de grand discours aujourd’hui. Faites les choses simples, soutenez-vous et le résultat suivra. »',
+  '“Simple and solid, boss. We’ll deliver.”': '« Simple et solide, coach. On va assurer. »',
+  '“No speech? That’s the shortest and best one of the season!”': '« Pas de discours ? C’est le plus court et le meilleur de la saison ! »',
+  '“I’ll keep an eye on the kid in training — he’s a talent.”': '« Je garde un œil sur le petit à l’entraînement — c’est un talent. »',
+
   // expectation effects
   'You delivered a solid shift, as promised.': 'Tu as fourni une prestation solide, comme promis.',
   'Even a modest bar was too high today.': 'Même un objectif modeste était trop haut aujourd’hui.',

@@ -25,6 +25,7 @@ export interface TeamBadge {
 
 interface Props {
   ctx: MatchCtx;
+  meHome: boolean;
   me: TeamBadge;
   opp: TeamBadge;
   finishing: number;
@@ -38,7 +39,7 @@ const EVENT_STYLE: Record<MatchEvent['side'], string> = {
   neutral: 'border-white/15',
 };
 
-export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Props) {
+export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinished }: Props) {
   const t = useT();
   const [m, setM] = useState<MatchState>(() => createMatch(ctx, Math.random));
   const [mini, setMini] = useState<{ kind: MiniKind; optionId: string } | null>(null);
@@ -84,6 +85,19 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
     setMini(null);
   };
 
+  const homeBadge = meHome ? me : opp;
+  const awayBadge = meHome ? opp : me;
+  const homeScore = meHome ? m.myScore : m.oppScore;
+  const awayScore = meHome ? m.oppScore : m.myScore;
+  // positive momentum = my team on top; the bar grows toward the dominating club's side
+  const leftHot = meHome ? m.momentum > 10 : m.momentum < -10;
+  const rightHot = meHome ? m.momentum < -10 : m.momentum > 10;
+  const towardLeft = meHome ? m.momentum >= 0 : m.momentum < 0;
+  const mineOnTop = m.momentum >= 0;
+  const momentumFill = towardLeft
+    ? cn('right-1/2 rounded-l-full bg-gradient-to-l', mineOnTop ? 'from-neon-600 to-neon-300' : 'from-crimson-600 to-crimson-400')
+    : cn('left-1/2 rounded-r-full bg-gradient-to-r', mineOnTop ? 'from-neon-600 to-neon-300' : 'from-crimson-600 to-crimson-400');
+
   const events = useMemo(() => [...m.events].reverse().slice(0, 40), [m.events]);
 
   return (
@@ -102,15 +116,15 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
           )}
         </AnimatePresence>
         <div className="relative flex items-center justify-between">
-          <TeamSide badge={me} you />
+          <TeamSide badge={meHome ? me : opp} you={meHome} />
           <div className="text-center">
             <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
-              <motion.span key={m.myScore} initial={{ scale: 1.5, color: '#6ee7b7' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
-                {m.myScore}
+              <motion.span key={`h${homeScore}`} initial={{ scale: 1.5, color: meHome ? '#6ee7b7' : '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+                {homeScore}
               </motion.span>
               <span className="mx-1.5 text-zinc-600">–</span>
-              <motion.span key={`o${m.oppScore}`} initial={{ scale: 1.5, color: '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
-                {m.oppScore}
+              <motion.span key={`a${awayScore}`} initial={{ scale: 1.5, color: meHome ? '#fb4b5e' : '#6ee7b7' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+                {awayScore}
               </motion.span>
             </div>
             <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-bold text-neon-300">
@@ -118,7 +132,7 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
               {finished ? t('FULL TIME') : `${m.minute}'`}
             </div>
           </div>
-          <TeamSide badge={opp} />
+          <TeamSide badge={meHome ? opp : me} you={!meHome} />
         </div>
 
         {/* Timeline (clutch moments stay a surprise) */}
@@ -127,20 +141,20 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
           <span className="absolute left-1/2 top-1/2 h-3 w-px -translate-y-1/2 bg-white/20" />
         </div>
 
-        {/* Momentum */}
+        {/* Momentum: initials sit under their own club, home on the left */}
         <div className="mt-4">
-          <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em]">
-            <span className={m.momentum < -10 ? 'text-crimson-400' : 'text-zinc-600'}>{opp.short}</span>
-            <span className="text-zinc-500">{t('Momentum')}</span>
-            <span className={m.momentum > 10 ? 'text-neon-300' : 'text-zinc-600'}>{me.short}</span>
-          </div>
           <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.07]">
             <motion.div
-              className={cn('absolute inset-y-0', m.momentum >= 0 ? 'left-1/2 rounded-r-full bg-gradient-to-r from-neon-600 to-neon-300' : 'right-1/2 rounded-l-full bg-gradient-to-l from-crimson-600 to-crimson-400')}
+              className={cn('absolute inset-y-0', momentumFill)}
               animate={{ width: `${Math.abs(m.momentum) / 2}%` }}
               transition={{ type: 'spring', stiffness: 160, damping: 20 }}
             />
             <span className="absolute inset-y-0 left-1/2 w-px bg-white/30" />
+          </div>
+          <div className="mt-1 grid grid-cols-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+            <span className={cn('text-left', leftHot ? (meHome ? 'text-neon-300' : 'text-crimson-400') : 'text-zinc-600')}>{homeBadge.short}</span>
+            <span className="text-center text-zinc-500">{t('Momentum')}</span>
+            <span className={cn('text-right', rightHot ? (meHome ? 'text-crimson-400' : 'text-neon-300') : 'text-zinc-600')}>{awayBadge.short}</span>
           </div>
         </div>
       </Card>
@@ -212,8 +226,9 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
           <MiniGame
             key={`${m.nextClutch}-${mini.optionId}`}
             kind={mini.kind}
-            skill={mini.kind === 'power' || mini.kind === 'header' ? finishing : mini.kind === 'dribble' ? composure : ctx.attrs.stamina}
+            skill={miniSkill(mini.kind, ctx)}
             pressure={pressureFor(m, ctx)}
+            difficulty={Math.min(1, Math.max(0, (ctx.oppStr - 55) / 40))}
             onDone={(q) => miniDone(mini.optionId, q)}
           />
         )}
@@ -230,7 +245,7 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
             keeperLevel={ctx.oppStr}
             pressure={pressureFor(m, ctx)}
             title={kick === 'penalty' ? 'Spot Kick' : 'Dead Ball'}
-            subtitle={`${m.minute}' · ${me.name} ${m.myScore}–${m.oppScore} ${opp.name}`}
+            subtitle={`${m.minute}' · ${homeBadge.name} ${homeScore}–${awayScore} ${awayBadge.name}`}
             onDone={(o) => {
               setM((prev) => applyKick(prev, ctx, kick, o.result, o.curl !== 'straight'));
               setKick(null);
@@ -240,6 +255,22 @@ export function LiveMatch({ ctx, me, opp, finishing, composure, onFinished }: Pr
       </Sheet>
     </div>
   );
+}
+
+function miniSkill(kind: MiniKind, ctx: MatchCtx) {
+  switch (kind) {
+    case 'power':
+    case 'header':
+    case 'aim':
+      return ctx.attrs.finishing;
+    case 'dribble':
+      return ctx.attrs.composure;
+    case 'memory':
+    case 'charge':
+      return ctx.attrs.vision;
+    default:
+      return ctx.attrs.stamina;
+  }
 }
 
 function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {

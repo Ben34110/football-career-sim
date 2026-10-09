@@ -1,7 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Check, Home as HomeIcon, MapPin, Mic2, Zap } from 'lucide-react';
+import { AlertTriangle, Check, Heart, Home as HomeIcon, MapPin, Mic2 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
@@ -30,6 +31,7 @@ export function PreMatch({
   speech,
   bolts,
   msToNext,
+  fatigueRelief = 0,
   benchWhy,
   date,
   onKickoff,
@@ -41,6 +43,7 @@ export function PreMatch({
   speech: Speech;
   bolts: number;
   msToNext: number;
+  fatigueRelief?: number;
   benchWhy: 'trust' | 'form' | null;
   date: Date;
   onKickoff: (s: StanceEffect) => void;
@@ -51,6 +54,9 @@ export function PreMatch({
   const diff = myStrength - fixture.opponentStrength;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
   const exhausted = bolts < 1;
+  // home team on the left
+  const left = fixture.home ? me : opp;
+  const right = fixture.home ? opp : me;
 
   return (
     <div className="space-y-4">
@@ -62,19 +68,19 @@ export function PreMatch({
         </div>
         <div className="flex items-center justify-between">
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
-            <Crest short={me.short} color={me.color} size={56} />
-            <span className="line-clamp-2 text-xs font-bold">{me.name}</span>
+            <Crest short={left.short} color={left.color} size={56} />
+            <span className="line-clamp-2 text-xs font-bold">{left.name}</span>
           </div>
           <div className="text-center">
             <div className="font-display text-3xl font-extrabold text-zinc-600">VS</div>
             <div className="mt-1 flex items-center justify-center gap-1 text-[11px] font-semibold text-zinc-400">
               {fixture.home ? <HomeIcon className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-              {fixture.home ? t('Home') : t('Away')}
+              {fixture.home ? t('You are at home') : t('You are away')}
             </div>
           </div>
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
-            <Crest short={opp.short} color={opp.color} size={56} />
-            <span className="line-clamp-2 text-xs font-bold">{opp.name}</span>
+            <Crest short={right.short} color={right.color} size={56} />
+            <span className="line-clamp-2 text-xs font-bold">{right.name}</span>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between rounded-xl bg-black/30 px-3 py-2 text-xs">
@@ -86,7 +92,7 @@ export function PreMatch({
         {fixture.knockout && <p className="mt-2 text-center text-[11px] text-gold-300">{t('Knockout tie — a draw goes to penalties.')}</p>}
       </Card>
 
-      {(benchWhy || bolts < 5) && (
+      {(benchWhy || (bolts >= 1 && bolts + fatigueRelief < 5)) && (
         <div className="space-y-2">
           {benchWhy && (
             <Warn>
@@ -95,12 +101,19 @@ export function PreMatch({
                 : t('Your recent form is poor — the coach will leave you on the bench and bring you on after 55 minutes.')}
             </Warn>
           )}
-          {bolts < 5 && bolts >= 1 && (
+          {bolts + fatigueRelief < 5 && bolts >= 1 && (
             <Warn>
-              {t('Playing on {n} bolt(s): fatigue costs you −{m} effective OVR.', { n: bolts, m: 5 - bolts })}
+              {t('Playing on {n} life/lives: fatigue costs you −{m} effective OVR.', { n: bolts, m: Math.max(0, 5 - bolts - fatigueRelief) })}
             </Warn>
           )}
         </div>
+      )}
+
+      {exhausted && (
+        <Link href="/shop" className="flex items-center justify-between rounded-xl border border-crimson-500/30 bg-crimson-500/10 px-3 py-2.5 text-xs font-semibold text-crimson-400 active:scale-[0.98]">
+          <span>{t('Out of lives? Get more in the shop.')}</span>
+          <Heart className="h-4 w-4 fill-current" />
+        </Link>
       )}
 
       {/* Locker room talk */}
@@ -143,7 +156,7 @@ export function PreMatch({
                 <div className="flex items-center justify-between">
                   <span className="text-[15px] font-bold">{t(st.label)}</span>
                   <div className="flex items-center gap-1.5">
-                    <Chip tone={st.id === 'demand-ball' ? 'bad' : st.id === 'for-lads' ? 'gold' : 'good'}>{t(st.tag)}</Chip>
+                    <Chip tone={st.tone}>{t(st.tag)}</Chip>
                     {active && <Check className="h-4 w-4 text-neon-400" />}
                   </div>
                 </div>
@@ -176,10 +189,10 @@ export function PreMatch({
       <FloatingAction>
         <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked)}>
           {exhausted ? (
-            <>{t('No energy · next bolt in {time}', { time: fmtCountdown(msToNext) })}</>
+            <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (
             <>
-              {t('Kick off')} <span className="flex items-center gap-0.5 rounded-full bg-black/20 px-2 py-0.5 text-xs">−1 <Zap className="h-3 w-3 fill-current" /></span>
+              {t('Kick off')} <span className="flex items-center gap-0.5 rounded-full bg-black/20 px-2 py-0.5 text-xs">−1 <Heart className="h-3 w-3 fill-current" /></span>
             </>
           )}
         </Button>

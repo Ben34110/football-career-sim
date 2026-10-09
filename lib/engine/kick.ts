@@ -41,6 +41,8 @@ export interface KickInput {
   pressure: number;
   /** Free kicks only: bend the ball around the wall */
   curl?: Curl;
+  /** Free kicks only: which part of the goal the wall covers */
+  wall?: WallSide;
 }
 
 export interface KickOutcome {
@@ -53,12 +55,21 @@ export interface KickOutcome {
   curl: Curl;
 }
 
-export function pickDiveZone(rng: Rng): number {
+/** How often the keeper reads where you are aiming (free kicks are the most readable). */
+const READ_CHANCE: Record<KickKind, number> = { penalty: 0.1, freekick: 0.3, shootout: 0.1 };
+
+export function pickDiveZone(rng: Rng, aim?: number, read = 0): number {
+  // Sometimes the keeper simply guesses right — but never so often that aiming is pointless.
+  if (aim !== undefined && rng() < read) return aim;
   const idx = Array.from({ length: ZONE_COUNT }, (_, i) => i);
   // Every keeper has a bias on the day — keeps the game from having a "solved" corner.
   const bias = idx.map(() => 0.65 + rng() * 0.7);
   return weightedPick(idx, (i) => DIVE_WEIGHTS[i] * bias[i], rng);
 }
+
+export type WallSide = 'left' | 'center' | 'right';
+/** Columns of the goal the wall hides from the kicker. */
+export const WALL_COLS: Record<WallSide, number[]> = { left: [0, 1], center: [1, 2], right: [2, 3] };
 
 export function saveChance(shot: number, dive: number, keeperLevel: number, kind: KickKind): number {
   const kq = clamp(0.8 + (keeperLevel - 60) / 100, 0.75, 1.2);
@@ -91,11 +102,13 @@ export function resolveKick(input: KickInput, rng: Rng): KickOutcome {
     0.015,
     0.55,
   );
-  const diveZone = pickDiveZone(rng);
+  const diveZone = pickDiveZone(rng, zone, READ_CHANCE[kind] * (bend === 'with' ? 0.5 : 1));
   const saveP = clamp(saveChance(zone, diveZone, input.keeperLevel, kind) * saveMul, 0, 0.92);
 
-  // Free kicks: low shots can hit the wall
-  const wallP = kind === 'freekick' ? (zoneRow(zone) === 1 ? 0.22 : 0.04) * wallMul : 0;
+  // Free kicks: the wall hides part of the goal — low shots behind it are the ones that get blocked
+  const hidden = input.wall ? WALL_COLS[input.wall].includes(zoneCol(zone)) : false;
+  const wallBase = !hidden ? 0.02 : zoneRow(zone) === 1 ? 0.5 : 0.12;
+  const wallP = kind === 'freekick' ? wallBase * wallMul : 0;
 
   let result: KickResult;
   if (rng() < wallP) result = 'blocked';

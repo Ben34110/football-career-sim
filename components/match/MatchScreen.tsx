@@ -8,10 +8,10 @@ import { Card } from '@/components/ui/Card';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
-import { EXPECTATION_TARGET, expectationEffect, SPEECHES, type Speech, type StanceEffect } from '@/lib/data/speeches';
+import { EXPECTATION_TARGET, expectationEffect, pickSpeech, type StanceEffect } from '@/lib/data/speeches';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
 import { ovrOf, syncEnergy } from '@/lib/engine/player';
-import { currentFixture } from '@/lib/engine/season';
+import { currentFixture, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate } from '@/lib/dates';
 import { useT } from '@/lib/i18n';
@@ -27,14 +27,6 @@ import { PressZone } from './PressZone';
 import { Shootout, type ShootoutResult } from './Shootout';
 
 type Stage = 'brief' | 'live' | 'shootout' | 'press' | 'summary';
-
-function pickSpeech(f: Fixture, diff: number, trust: number): Speech {
-  if (f.kind === 'intl' || f.kind === 'tournament') return SPEECHES.international;
-  if (f.kind === 'cup') return SPEECHES.cup;
-  if (trust < 30) return SPEECHES.trust;
-  if (/Matchday (5|10)$/.test(f.label)) return SPEECHES.derby;
-  return diff <= -4 ? SPEECHES.underdog : SPEECHES.favourite;
-}
 
 export function MatchScreen() {
   const t = useT();
@@ -76,6 +68,25 @@ export function MatchScreen() {
     const strength = national ? nat.strength : club?.strength ?? 55;
     return { me, opp, strength };
   }, [player, fixture, t]);
+
+  /** One talk per fixture, chosen from the situation (form, results, table, opposition…) */
+  const speech = useMemo(() => {
+    if (!player || !season || !fixture || !badges) return null;
+    const played = season.fixtures.filter((f) => f.status === 'played' && f.result);
+    return pickSpeech({
+      kind: fixture.kind,
+      label: fixture.label,
+      diff: badges.strength - fixture.opponentStrength,
+      trust: player.rep.coachTrust,
+      age: player.age,
+      formAvg: player.form.length >= 3 ? player.form.slice(-3).reduce((a, b) => a + b, 0) / 3 : null,
+      recent: played.slice(-3).map((f) => f.result!.outcome),
+      leaguePos: leaguePosition(season),
+      played: played.length,
+    });
+    // a new talk only when the fixture changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixture?.id, !!player, !!season, !!badges]);
 
   // the season can vanish mid-flow (contract terminated after a scandal): keep the report on screen
   if (!player || (!season && stage === 'brief' && gamePhase === 'playing')) return null;
@@ -129,6 +140,8 @@ export function MatchScreen() {
         kind: fixture.kind,
         mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] },
         benched: startsOnBench(p0.rep.coachTrust, p0.form, fixture.kind),
+        meHome: fixture.home,
+        fatigueRelief: p.upgrades?.nutrition ?? 0,
       }),
     );
     setStage('live');
@@ -175,11 +188,10 @@ export function MatchScreen() {
 
   const onPress = (a: PressAnswer) => useGameStore.getState().applyPress(a);
 
-  const speech = pickSpeech(fixture, badges.strength - fixture.opponentStrength, player.rep.coachTrust);
 
   return (
     <div className="pb-4">
-      {stage === 'brief' && (
+      {stage === 'brief' && speech && (
         <PreMatch
           fixture={fixture}
           me={badges.me}
@@ -188,6 +200,7 @@ export function MatchScreen() {
           speech={speech}
           bolts={bolts}
           msToNext={msToNext}
+          fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)
@@ -200,10 +213,10 @@ export function MatchScreen() {
         />
       )}
       {stage === 'live' && ctx && (
-        <LiveMatch ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
+        <LiveMatch ctx={ctx} meHome={fixture.home} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
       )}
       {stage === 'shootout' && ctx && finalMatch && (
-        <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onDone={(r) => finalise(finalMatch, r)} />
+        <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
       {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} onAnswer={onPress} onContinue={() => setStage('summary')} />}
       {stage === 'summary' && result && snap && expect && (

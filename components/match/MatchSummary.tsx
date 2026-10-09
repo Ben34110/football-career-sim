@@ -70,20 +70,20 @@ export function MatchSummary({
       <Card strong gold className="p-5 text-center">
         <div className="eyebrow">{t(fixture.label)} · {t('Full time')}</div>
         <div className="mt-3 flex items-center justify-between">
-          <Crest short={me.short} color={me.color} size={44} />
+          <Crest short={(fixture.home ? me : opp).short} color={(fixture.home ? me : opp).color} size={44} />
           <div>
             <div className="font-num text-5xl font-extrabold leading-none">
-              {result.myScore}
+              {fixture.home ? result.myScore : result.oppScore}
               <span className="mx-2 text-zinc-600">–</span>
-              {result.oppScore}
+              {fixture.home ? result.oppScore : result.myScore}
             </div>
             {result.shootout && (
               <div className="mt-1 text-xs font-semibold text-gold-300">
-                {t('Pens')} {result.shootout.my}–{result.shootout.opp}
+                {t('Pens')} {fixture.home ? result.shootout.my : result.shootout.opp}–{fixture.home ? result.shootout.opp : result.shootout.my}
               </div>
             )}
           </div>
-          <Crest short={opp.short} color={opp.color} size={44} />
+          <Crest short={(fixture.home ? opp : me).short} color={(fixture.home ? opp : me).color} size={44} />
         </div>
         <div className={cn('mt-3 font-display text-2xl font-extrabold uppercase', tone)}>
           {result.outcome === 'W' ? t('Victory') : result.outcome === 'L' ? t('Defeat') : t('Draw')}

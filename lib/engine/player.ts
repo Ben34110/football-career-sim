@@ -17,7 +17,9 @@ export const ATTR_KEYS: AttrKey[] = ['finishing', 'composure', 'vision', 'stamin
 export const REP_KEYS: RepKey[] = ['coachTrust', 'fanPopularity', 'lockerRoom', 'mediaHeat'];
 
 export const MAX_BOLTS = 5;
-export const REGEN_MS = 4 * 60 * 1000;
+/** Lives bought with real money can stack above the regenerating five */
+export const MAX_PAID_LIVES = 25;
+export const REGEN_MS = 2 * 60 * 1000;
 export const CALL_UP_OVR = 75;
 export const START_AGE = 18;
 export const ALLOCATION_POINTS = 12;
@@ -96,7 +98,7 @@ export const seasonLabel = (year: number) => `${year}/${String((year + 1) % 100)
 /* ───────── Energy (5 bolts) ───────── */
 
 export function syncEnergy(e: EnergyState, now: number): EnergyState {
-  if (e.bolts >= MAX_BOLTS) return { bolts: MAX_BOLTS, at: now };
+  if (e.bolts >= MAX_BOLTS) return { bolts: e.bolts, at: now };
   const gained = Math.floor((now - e.at) / REGEN_MS);
   if (gained <= 0) return e;
   const bolts = Math.min(MAX_BOLTS, e.bolts + gained);
@@ -111,8 +113,15 @@ export function spendBolts(e: EnergyState, n: number, now: number): EnergyState 
 
 export function gainBolts(e: EnergyState, n: number, now: number): EnergyState {
   const s = syncEnergy(e, now);
-  const bolts = Math.min(MAX_BOLTS, s.bolts + n);
+  // the clinic refills the regenerating lives only; bought lives are never reduced
+  const bolts = Math.max(s.bolts, Math.min(MAX_BOLTS, s.bolts + n));
   return { bolts, at: bolts >= MAX_BOLTS ? now : s.at };
+}
+
+/** Lives added through a purchase. */
+export function addPaidLives(e: EnergyState, n: number, now: number): EnergyState {
+  const s = syncEnergy(e, now);
+  return { bolts: Math.min(MAX_PAID_LIVES, s.bolts + n), at: s.bolts >= MAX_BOLTS ? now : s.at };
 }
 
 export function msToNextBolt(e: EnergyState, now: number): number {
@@ -175,21 +184,37 @@ export function createPlayer(input: CreateInput, now: number): Player {
 
 /* ───────── Progression ───────── */
 
-/** Distribute match XP across attributes relevant to the position. */
+export interface MatchPerformance {
+  rating: number;
+  goals: number;
+  assists: number;
+  clutchWins: number;
+  /** Played the whole match */
+  fullMatch: boolean;
+}
+
+/**
+ * Attributes grow from what you do on the pitch: a strong rating, goals, assists,
+ * decisions won and a full 90 minutes. A personal coach multiplies it.
+ */
 export function gainMatchXp(
   p: Player,
-  rating: number,
+  perf: MatchPerformance,
   rng: Rng,
 ): { attrs: Attributes; xp: Attributes; gained: AttrKey[] } {
   const attrs = { ...p.attrs };
   const xp = { ...p.xp };
   const gained: AttrKey[] = [];
-  const amount = Math.max(0, rating - 5.8) * 0.08;
-  if (amount > 0) {
-    const w = POSITION_WEIGHTS[p.position];
-    const key = weightedPick(ATTR_KEYS, (k) => w[k] + 0.05, rng);
-    xp[key] += amount;
-  }
+  const mult = 1 + 0.25 * (p.upgrades?.coach ?? 0);
+
+  const w = POSITION_WEIGHTS[p.position];
+  const general = Math.max(0, perf.rating - 6.2) * 0.1 * mult;
+  if (general > 0) xp[weightedPick(ATTR_KEYS, (k) => w[k] + 0.05, rng)] += general;
+  xp.finishing += perf.goals * 0.075 * mult;
+  xp.vision += perf.assists * 0.06 * mult;
+  xp.composure += perf.clutchWins * 0.035 * mult;
+  if (perf.fullMatch) xp.stamina += 0.025 * mult;
+
   for (const k of ATTR_KEYS) {
     while (xp[k] >= 1 && attrs[k] < 99) {
       xp[k] -= 1;
@@ -200,19 +225,6 @@ export function gainMatchXp(
   return { attrs, xp, gained };
 }
 
-export function trainAttr(p: Player, key: AttrKey, rng: Rng): { attrs: Attributes; xp: Attributes; levelUp: boolean } {
-  const attrs = { ...p.attrs };
-  const xp = { ...p.xp };
-  xp[key] += 0.5 + rng() * 0.3;
-  let levelUp = false;
-  while (xp[key] >= 1 && attrs[key] < 99) {
-    xp[key] -= 1;
-    attrs[key] += 1;
-    levelUp = true;
-  }
-  return { attrs, xp, levelUp };
-}
-
 /** End-of-season development / decline. */
 export function seasonDevelopment(
   p: Player,
@@ -220,7 +232,7 @@ export function seasonDevelopment(
   rng: Rng,
 ): { attrs: Attributes; delta: Attributes } {
   const a = p.age;
-  const baseGrowth = a <= 20 ? 2.2 : a <= 22 ? 1.7 : a <= 24 ? 1.1 : a <= 27 ? 0.4 : a <= 29 ? -0.2 : a <= 31 ? -1 : a <= 34 ? -1.7 : -2.5;
+  const baseGrowth = a <= 20 ? 1.5 : a <= 22 ? 1.1 : a <= 24 ? 0.7 : a <= 27 ? 0.2 : a <= 29 ? -0.3 : a <= 31 ? -1 : a <= 34 ? -1.7 : -2.5;
   const perfMod = avgRating >= 7.4 ? 0.6 : avgRating >= 6.8 ? 0.2 : avgRating > 0 && avgRating < 6.1 ? -0.5 : 0;
   const attrs = { ...p.attrs };
   const delta: Attributes = { finishing: 0, composure: 0, vision: 0, stamina: 0 };

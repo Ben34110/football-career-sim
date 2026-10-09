@@ -7,12 +7,14 @@ import { getNationality } from './data/nationalities';
 import type { StanceEffect } from './data/speeches';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
+import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } from './data/shop';
 import {
   applyRep,
   ATTR_LABEL,
   CALL_UP_OVR,
   createPlayer,
   fmtMoneyK,
+  addPaidLives,
   gainBolts,
   gainMatchXp,
   ovrOf,
@@ -20,7 +22,6 @@ import {
   seasonLabel,
   spendBolts,
   syncEnergy,
-  trainAttr,
   wageFor,
   type CreateInput,
 } from './engine/player';
@@ -96,8 +97,12 @@ interface GameActions {
   resolveControversy: (e: Effect, title: string) => boolean;
   /** Feed the media with an extra headline (+Media Heat, small fan boost) */
   stirMedia: () => void;
-  train: (attr: AttrKey) => Result;
   physio: () => Result;
+  buyUpgrade: (id: UpgradeId) => Result;
+  /** Charity gala: once a season, money for goodwill */
+  donate: () => Result;
+  /** Adds lives after a successful purchase */
+  grantLives: (n: number) => void;
   ensureOffers: () => void;
   approach: (clubId: string) => Result;
   requestTransfer: () => Result;
@@ -193,7 +198,11 @@ export const useGameStore = create<GameStore>()(
         if (!fixture) return;
 
         let nextSeason = applyFixtureResult(season, result, Math.random);
-        const xp = gainMatchXp(player, result.rating, Math.random);
+        const xp = gainMatchXp(
+          player,
+          { rating: result.rating, goals: result.goals, assists: result.assists, clutchWins: result.clutchWins ?? 0, fullMatch: !result.subbedOff && !result.benched },
+          Math.random,
+        );
         const intl = fixture.kind === 'intl' || fixture.kind === 'tournament';
         const contract = player.contract;
 
@@ -320,23 +329,6 @@ export const useGameStore = create<GameStore>()(
         set({ player: { ...player, rep: applyRep(player.rep, { mediaHeat: 6, fanPopularity: 2, coachTrust: -1 }) } });
       },
 
-      train: (attr) => {
-        const { player, season } = get();
-        if (!player || !season) return { ok: false, msg: tr('No active career.') };
-        const used = season.training.cursor === season.cursor ? season.training.count : 0;
-        if (used >= MAX_TRAININGS_PER_FIXTURE) {
-          return { ok: false, msg: tr('Coaches say that’s enough training before the next fixture.') };
-        }
-        const e = spendBolts(player.energy, 1, Date.now());
-        if (!e) return { ok: false, msg: tr('Not enough energy — rest up first.') };
-        const t = trainAttr(player, attr, Math.random);
-        set({
-          player: { ...player, energy: e, attrs: t.attrs, xp: t.xp, morale: clamp(player.morale + 1, 0, 100) },
-          season: { ...season, training: { cursor: season.cursor, count: used + 1 } },
-        });
-        return { ok: true, msg: t.levelUp ? tr('Breakthrough! {attr} +1', { attr: tr(ATTR_LABEL[attr]) }) : tr('Solid session. Progress banked.') };
-      },
-
       physio: () => {
         const { player } = get();
         if (!player || !player.contract) return { ok: false, msg: tr('No active career.') };
@@ -346,7 +338,39 @@ export const useGameStore = create<GameStore>()(
         const cost = player.contract.wage * 3;
         if (player.money < cost) return { ok: false, msg: tr('You need {cost} for the recovery clinic.', { cost: fmtMoneyK(cost) }) };
         set({ player: { ...player, money: player.money - cost, energy: gainBolts(e, 2, now) } });
-        return { ok: true, msg: tr('Recovery clinic: +2 bolts (−{cost}).', { cost: fmtMoneyK(cost) }) };
+        return { ok: true, msg: tr('Recovery clinic: +2 lives (−{cost}).', { cost: fmtMoneyK(cost) }) };
+      },
+
+      buyUpgrade: (id) => {
+        const { player } = get();
+        const def = UPGRADES.find((u) => u.id === id);
+        if (!player || !def) return { ok: false, msg: tr('No active career.') };
+        const level = player.upgrades?.[id] ?? 0;
+        const cost = upgradeCost(def, level, player.contract?.wage ?? 4);
+        if (cost === null || level >= MAX_UPGRADE_LEVEL) return { ok: false, msg: tr('Already at the maximum level.') };
+        if (player.money < cost) return { ok: false, msg: tr('You need {cost} for this upgrade.', { cost: fmtMoneyK(cost) }) };
+        const upgrades = { coach: 0, pr: 0, agent: 0, nutrition: 0, ...player.upgrades, [id]: level + 1 };
+        set({ player: { ...player, money: player.money - cost, upgrades } });
+        return { ok: true, msg: tr('{name} upgraded to level {n}!', { name: tr(def.name), n: level + 1 }) };
+      },
+
+      donate: () => {
+        const { player, year, news } = get();
+        if (!player) return { ok: false, msg: tr('No active career.') };
+        if (player.donatedYear === year) return { ok: false, msg: tr('You already hosted a gala this season.') };
+        const cost = galaCost(player.contract?.wage ?? 4);
+        if (player.money < cost) return { ok: false, msg: tr('You need {cost} for the gala.', { cost: fmtMoneyK(cost) }) };
+        set({
+          player: { ...player, money: player.money - cost, donatedYear: year, rep: applyRep(player.rep, { fanPopularity: 5, lockerRoom: 2, mediaHeat: 3, coachTrust: 1 }) },
+          news: addNews(news, mkNews(tr('Your charity gala wins hearts across the city.'), 'good')),
+        });
+        return { ok: true, msg: tr('The gala was a success: fans and media love it.') };
+      },
+
+      grantLives: (n) => {
+        const { player } = get();
+        if (!player) return;
+        set({ player: { ...player, energy: addPaidLives(player.energy, n, Date.now()) } });
       },
 
       ensureOffers: () => {

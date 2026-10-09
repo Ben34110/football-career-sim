@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import { ATTR_LABEL, calcOvr, fmtMoneyM, marketValue } from '@/lib/engine/player';
@@ -26,8 +27,28 @@ interface Props {
 
 const SHORT: Record<AttrKey, string> = { finishing: 'FIN', composure: 'COM', vision: 'VIS', stamina: 'STA' };
 
+const ATTR_INFO: Record<AttrKey, string> = {
+  finishing: 'How clinically you convert chances. Drives your goals, shots and mini-game strikes.',
+  composure: 'Nerve under pressure: penalties, free kicks, one-on-ones and tough decisions.',
+  vision: 'Reading the game and finding the killer pass. Drives your assists and playmaking choices.',
+  stamina: 'Energy over 90 minutes. Helps you press, track back and win physical duels.',
+};
+
 export function PlayerCard({ name, nationality, position, attrs, age, clubId, look, className, compact }: Props) {
   const t = useT();
+  const [info, setInfo] = useState<AttrKey | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+  const showInfo = (k: AttrKey) => {
+    if (timer.current) clearTimeout(timer.current);
+    setInfo((cur) => (cur === k ? null : k));
+    timer.current = setTimeout(() => setInfo(null), 4000);
+  };
   const nat = getNationality(nationality);
   const club = getClub(clubId);
   const ovr = calcOvr(attrs, position);
@@ -72,12 +93,37 @@ export function PlayerCard({ name, nationality, position, attrs, age, clubId, lo
       </div>
       <div className="relative mt-3 grid grid-cols-4 gap-1.5">
         {(Object.keys(SHORT) as AttrKey[]).map((k) => (
-          <div key={k} className="rounded-xl border border-white/[0.07] bg-black/30 py-1.5 text-center" title={t(ATTR_LABEL[k])}>
+          <button
+            key={k}
+            type="button"
+            onClick={() => showInfo(k)}
+            aria-pressed={info === k}
+            aria-label={t(ATTR_LABEL[k])}
+            className={cn(
+              'rounded-xl border bg-black/30 py-1.5 text-center transition-all active:scale-95',
+              info === k ? 'border-gold-300/60 bg-gold-400/10' : 'border-white/[0.07]',
+            )}
+          >
             <div className="font-num text-xl font-bold leading-none text-zinc-50">{attrs[k]}</div>
             <div className="mt-0.5 text-[9px] font-bold tracking-[0.16em] text-gold-300/80">{t(SHORT[k])}</div>
-          </div>
+          </button>
         ))}
       </div>
+      <AnimatePresence initial={false}>
+        {info && (
+          <motion.div
+            key={info}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="relative overflow-hidden"
+          >
+            <p className="mt-2 rounded-xl border border-gold-300/25 bg-black/40 px-3 py-2 text-[12px] leading-snug text-zinc-200">
+              <b className="text-gold-300">{t(ATTR_LABEL[info])}</b> — {t(ATTR_INFO[info])}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="relative mt-3 flex items-center justify-between text-xs">
         <span className="eyebrow">{t('Market value')}</span>
         <span className="font-num text-base font-bold text-gold-300">{fmtMoneyM(value)}</span>

@@ -130,7 +130,7 @@ export const SPEECHES: Record<string, Speech> = {
 };
 
 export interface SpeechContext {
-  kind: 'league' | 'cup' | 'intl' | 'tournament';
+  kind: 'league' | 'cup' | 'intl' | 'tournament' | 'euro';
   label: string;
   /** Strength difference (mine − theirs) */
   diff: number;
@@ -154,6 +154,11 @@ export function pickSpeech(c: SpeechContext, rng: () => number = Math.random): S
   if (c.kind === 'intl' || c.kind === 'tournament') {
     add('international', 3);
     if (c.kind === 'tournament' && c.label !== 'Group Stage Decider') add('stage', 4);
+  }
+  if (c.kind === 'euro') {
+    add('stage', c.label.endsWith('Final') || c.label.endsWith('Semi-Final') ? 5 : 2);
+    add('cup', 2);
+    if (c.label.endsWith(' Final')) add('final', 6);
   }
   if (c.kind === 'cup') {
     add('cup', 3);

@@ -46,7 +46,20 @@ export interface Contract {
   yearsLeft: number;
 }
 
-export type FixtureKind = 'league' | 'cup' | 'intl' | 'tournament';
+export type FixtureKind = 'league' | 'cup' | 'intl' | 'tournament' | 'euro';
+
+/** 1 = top flight, 2 = second tier, 3 = lower leagues */
+export type Division = 1 | 2 | 3;
+export type EuroComp = 'Champions League' | 'Europa League';
+export type LeagueZone = 'champions' | 'europa' | 'promoted' | 'relegated' | 'safe';
+
+/** How many places of the table lead somewhere (counted from the top, or the bottom for relegation). */
+export interface SeasonZones {
+  champions: number;
+  europa: number;
+  promo: number;
+  relegation: number;
+}
 export type Outcome = 'W' | 'D' | 'L';
 
 export interface FixtureResult {
@@ -129,6 +142,13 @@ export interface SeasonState {
   callUpQueued: boolean;
   /** Summer tournament fixtures already appended */
   tournamentQueued: boolean;
+  /** Division played this season (absent on older saves = top flight) */
+  division?: Division;
+  zones?: SeasonZones;
+  /** European competition played this season */
+  europe?: EuroComp | null;
+  /** Points collected in the European group stage */
+  euroPts?: number;
   /** Training sessions used at the current cursor (capped per fixture) */
   training: { cursor: number; count: number };
   stats: SeasonStats;
@@ -217,6 +237,11 @@ export interface SeasonSummary {
   table: TableRow[];
   retiring: boolean;
   ballonDor?: BallonDorResult;
+  /** Where the league finish leads */
+  zone?: LeagueZone;
+  division?: Division;
+  nextDivision?: Division;
+  nextEurope?: EuroComp | null;
 }
 
 export interface BallonDorEntry {

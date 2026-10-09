@@ -451,7 +451,7 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
 /* ───────────── Pressure & results ───────────── */
 
 export function pressureFor(m: MatchState, ctx: MatchCtx): number {
-  const base: Record<FixtureKind, number> = { league: 0.15, cup: 0.35, intl: 0.4, tournament: 0.55 };
+  const base: Record<FixtureKind, number> = { league: 0.15, cup: 0.35, intl: 0.4, tournament: 0.55, euro: 0.5 };
   let p = base[ctx.kind];
   if (m.minute > 75) p += 0.2;
   if (Math.abs(m.myScore - m.oppScore) <= 1) p += 0.15;

@@ -12,7 +12,7 @@ import { LangToggle } from '@/components/ui/LangToggle';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { getClub } from '@/lib/data/clubs';
 import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
-import { currentFixture, leaguePosition } from '@/lib/engine/season';
+import { currentFixture, leaguePosition, leagueZone } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtShortDate, fmtToday } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
@@ -77,7 +77,7 @@ export function HomeScreen() {
           <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Next fixture')}</SectionTitle>
           <Card strong className="overflow-hidden p-4">
             <div className="flex items-center justify-between">
-              <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'intl' ? 'International' : 'Tournament')}</Chip>
+              <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'euro' ? 'Europe' : fixture.kind === 'intl' ? 'International' : 'Tournament')}</Chip>
               <span className="eyebrow">{t(fixture.label)}{season && fixtureIdx >= 0 ? ` · ${fmtShortDate(fixtureDate(season, fixtureIdx), lang)}` : ''}</span>
             </div>
             <div className="mt-4 flex items-center gap-4">
@@ -144,6 +144,15 @@ export function HomeScreen() {
             <Tile label="GA" value={season.stats.goals + season.stats.assists} />
             <Tile label={t('Avg')} value={avg ? avg.toFixed(1) : '–'} />
           </div>
+          {season && (() => {
+            const z = leagueZone(pos, season.division ?? 1, season.table.length);
+            const label = z === 'champions' ? 'Champions League place' : z === 'europa' ? 'Europa League place' : z === 'promoted' ? 'Promotion place' : z === 'relegated' ? 'Relegation zone' : null;
+            return label ? (
+              <p className={cn('mt-2.5 rounded-xl px-3 py-2 text-xs font-semibold', z === 'relegated' ? 'bg-crimson-500/10 text-crimson-400' : z === 'promoted' ? 'bg-neon-400/10 text-neon-300' : 'bg-sky-400/10 text-sky-300')}>
+                {z === 'relegated' ? '⬇️' : z === 'promoted' ? '⬆️' : '⭐'} {t(label)}
+              </p>
+            ) : null;
+          })()}
           {(() => {
             const goal = nextNationalGoal(ovr, player.age);
             return goal ? (

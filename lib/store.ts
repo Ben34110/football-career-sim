@@ -32,7 +32,9 @@ import { ordinalOf, translate as tr } from './i18n';
 import {
   applyDraw,
   applyFixtureResult,
+  baseDivision,
   generateSeason,
+  leagueZone,
   leaguePosition,
   queueCallUps,
   seasonFinished,
@@ -48,6 +50,8 @@ import {
   transferWindow,
 } from './engine/transfers';
 import type {
+  Division,
+  EuroComp,
   AttrKey,
   FixtureResult,
   GamePhase,
@@ -70,6 +74,10 @@ interface Result {
 }
 
 interface GameData {
+  /** Division the club plays in (changes with promotion / relegation) */
+  division: Division;
+  /** European competition qualified for next season */
+  europe: EuroComp | null;
   hasCareer: boolean;
   phase: GamePhase;
   year: number;
@@ -121,6 +129,8 @@ interface GameActions {
 export type GameStore = GameData & GameActions;
 
 const initial: GameData = {
+  division: 1,
+  europe: null,
   hasCareer: false,
   phase: 'playing',
   year: START_YEAR,
@@ -157,6 +167,8 @@ export const useGameStore = create<GameStore>()(
         set({
           ...initial,
           hasCareer: true,
+          division: baseDivision(club),
+          europe: null,
           year: START_YEAR,
           player,
           season,
@@ -511,6 +523,7 @@ export const useGameStore = create<GameStore>()(
         set({
           player: moved,
           season: keepSeason,
+          ...(offer.source === 'renewal' ? {} : { division: baseDivision(club), europe: null }),
           phase: 'playing',
           offers: [],
           pendingMove: null,
@@ -586,7 +599,9 @@ export const useGameStore = create<GameStore>()(
         set({
           year: nextYear,
           player: p,
-          season: generateSeason(nextYear, club, Math.random),
+          // a new club starts in its own division; otherwise the promotion / relegation / European place earned carries over
+          season: generateSeason(nextYear, club, Math.random, pendingMove && pendingMove.source !== 'renewal' ? {} : { division: get().division, europe: get().europe }),
+          ...(pendingMove && pendingMove.source !== 'renewal' ? { division: baseDivision(club), europe: null } : {}),
           phase: 'playing',
           pendingMove: null,
           lastSummary: null,
@@ -698,7 +713,27 @@ function finishSeason(set: Setter, get: Getter) {
     nextNews = addNews(nextNews, mkNews(tr('Ballon d’Or: you finish {rank} in the vote.', { rank: ordinalOf(award.rank) }), 'neutral'));
   }
 
+  // Where the league finish leads: Europe, promotion or relegation
+  const divNow: Division = season.division ?? 1;
+  const zone = leagueZone(pos, divNow, season.table.length);
+  const nextDivision: Division = zone === 'promoted' ? ((divNow - 1) as Division) : zone === 'relegated' ? ((divNow + 1) as Division) : divNow;
+  const nextEurope: EuroComp | null = zone === 'champions' ? 'Champions League' : zone === 'europa' ? 'Europa League' : null;
+  if (zone === 'relegated') {
+    p = { ...p, morale: clamp(p.morale - 10, 0, 100), rep: applyRep(p.rep, { fanPopularity: -4, coachTrust: -3 }) };
+    nextNews = addNews(nextNews, mkNews(tr('⬇️ Relegation: the club drops to Division {n}.', { n: nextDivision }), 'bad'));
+  } else if (zone === 'promoted') {
+    p = { ...p, morale: clamp(p.morale + 10, 0, 100), rep: applyRep(p.rep, { fanPopularity: 5, coachTrust: 2, mediaHeat: 2 }) };
+    nextNews = addNews(nextNews, mkNews(tr('⬆️ Promotion! The club rises to Division {n}.', { n: nextDivision }), 'gold'));
+  } else if (nextEurope) {
+    p = { ...p, rep: applyRep(p.rep, { fanPopularity: 3, mediaHeat: 3 }) };
+    nextNews = addNews(nextNews, mkNews(tr('⭐ Qualified for the {comp} next season!', { comp: tr(nextEurope) }), 'gold'));
+  }
+
   const summary: SeasonSummary = {
+    zone,
+    division: divNow,
+    nextDivision,
+    nextEurope,
     record,
     ovrBefore,
     ovrAfter,
@@ -716,6 +751,8 @@ function finishSeason(set: Setter, get: Getter) {
     history: [...history, record],
     lastSummary: summary,
     news: nextNews,
+    division: nextDivision,
+    europe: nextEurope,
     offerKey: '',
   });
 }

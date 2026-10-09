@@ -48,6 +48,30 @@ export function SeasonEnd() {
         )}
       </Card>
 
+      {summary.zone && summary.zone !== 'safe' && (
+        <Card
+          className={cn(
+            'flex items-center gap-3 p-4',
+            summary.zone === 'relegated' ? 'border-crimson-500/40 bg-crimson-500/[0.07]' : summary.zone === 'promoted' ? 'border-neon-400/40 bg-neon-400/[0.07]' : 'border-sky-400/40 bg-sky-400/[0.07]',
+          )}
+        >
+          <div className="text-3xl">{summary.zone === 'relegated' ? '⬇️' : summary.zone === 'promoted' ? '⬆️' : '⭐'}</div>
+          <div>
+            <div className="font-display text-2xl font-extrabold uppercase leading-none">
+              {summary.zone === 'relegated' ? t('Relegated!') : summary.zone === 'promoted' ? t('Promoted!') : t('Qualified for Europe!')}
+            </div>
+            <p className="mt-1 text-xs text-zinc-300">
+              {summary.zone === 'relegated' && t('Next season you play in Division {n}.', { n: summary.nextDivision ?? 2 })}
+              {summary.zone === 'promoted' && t('Next season you play in Division {n}.', { n: summary.nextDivision ?? 1 })}
+              {summary.nextEurope && t('Next season: {comp}. Extra matches, bigger stakes.', { comp: t(summary.nextEurope) })}
+            </p>
+          </div>
+        </Card>
+      )}
+      {summary.zone === 'safe' && (summary.division ?? 1) === 2 && (
+        <p className="px-1 text-center text-xs text-zinc-500">{t('Mid-table finish: the club stays in Division {n}.', { n: summary.division ?? 1 })}</p>
+      )}
+
       {summary.ballonDor && <BallonDorCard result={summary.ballonDor} />}
 
       <div>

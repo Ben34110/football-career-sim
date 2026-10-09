@@ -22,8 +22,14 @@ export interface SeasonForAward {
 
 const trophyPoints = (t: string) => {
   if (t.startsWith('League Title')) return 10;
+  if (t.startsWith('Champions League')) return 14;
+  if (t.startsWith('Europa League')) return 7;
   if (t.startsWith('Domestic Cup')) return 5;
   if (t.startsWith('FIFA World Cup')) return 22;
+  // youth trophies are a stepping stone, not a Ballon d’Or argument
+  if (t.startsWith('U20')) return 2;
+  if (t.startsWith('U23')) return 3;
+  if (t.startsWith('Olympic')) return 6;
   return 13; // continental nations tournament
 };
 

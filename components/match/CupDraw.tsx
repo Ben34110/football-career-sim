@@ -37,7 +37,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
   return (
     <div className="space-y-4">
       <div>
-        <div className="eyebrow text-gold-300">{t(tournament ? 'Tournament draw' : 'Cup draw')}</div>
+        <div className="eyebrow text-gold-300">{t(tournament ? 'Tournament draw' : fixture.kind === 'euro' ? 'European draw' : 'Cup draw')}</div>
         <h2 className="font-display text-4xl font-extrabold uppercase leading-none">{t(fixture.label)}</h2>
         <p className="mt-1 text-sm text-zinc-400">
           {picked === null ? t('You are on stage. Pick a ball to reveal your opponent.') : opened ? t('Your opponent is…') : t('The ball opens…')}

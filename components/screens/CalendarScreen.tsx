@@ -1,21 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check, CircleDot, Flag, Globe, Lock, Minus, Trophy, X } from 'lucide-react';
+import { Check, CircleDot, Flag, Globe, Lock, Minus, Star, Trophy, X } from 'lucide-react';
 import { useState } from 'react';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality, tournamentFor, youthTournamentFor } from '@/lib/data/nationalities';
 import { CALL_UP_OVR, nationalLevel, nextNationalGoal, ovrOf, seasonLabel, U20_CALL_UP_OVR, U23_CALL_UP_OVR } from '@/lib/engine/player';
-import { sortTable } from '@/lib/engine/season';
+import { seasonZones, sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import type { Fixture, SeasonState } from '@/lib/types';
 import { cn, crestShort } from '@/lib/utils';
 
-const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe };
+const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe, euro: Star };
 const TABS = ['Fixtures', 'Table', 'History'] as const;
 
 export function CalendarScreen() {
@@ -33,9 +33,9 @@ export function CalendarScreen() {
   const level = nationalLevel(ovr, player.age);
   const goal = nextNationalGoal(ovr, player.age);
   const teamName = `${t(nat.name)}${level && level !== 'A' ? ' ' + level : ''}`;
-  const nextTournament = level === 'A' || !level ? tournamentFor(year + 1, nat) : youthTournamentFor(level, year + 1);
+  const nextTournament = level === 'A' || !level ? tournamentFor(year + 1, nat) : youthTournamentFor(level, year + 1, nat);
   const upcoming = [1, 2, 3, 4, 5]
-    .map((d) => ({ y: year + d, name: level && level !== 'A' ? youthTournamentFor(level, year + d) : tournamentFor(year + d, nat) }))
+    .map((d) => ({ y: year + d, name: level && level !== 'A' ? youthTournamentFor(level, year + d, nat) : tournamentFor(year + d, nat) }))
     .filter((x): x is { y: number; name: string } => !!x.name)
     .slice(0, 3);
 
@@ -92,7 +92,7 @@ export function CalendarScreen() {
             <div className="eyebrow mb-2">{t('Next major tournaments')}</div>
             <div className="flex flex-wrap gap-1.5">
               {upcoming.map((u) => (
-                <Chip key={`${u.name}-${u.y}`} tone={u.name === 'FIFA World Cup' ? 'gold' : 'neutral'}>
+                <Chip key={`${u.name}-${u.y}`} tone={u.name.includes('World Cup') ? 'gold' : 'neutral'}>
                   🏆 {t(u.name)} {u.y}
                 </Chip>
               ))}
@@ -149,10 +149,12 @@ function Fixtures({ season }: { season: SeasonState }) {
   const { fixtures, cursor } = season;
   // Later cup rounds / tournament stages stay hidden until the previous round is won
   const firstOpen: Partial<Record<Fixture['kind'], string>> = {};
-  for (const f of fixtures) if (f.status === 'upcoming' && (f.kind === 'cup' || f.kind === 'tournament') && !firstOpen[f.kind]) firstOpen[f.kind] = f.id;
+  for (const f of fixtures) if (f.status === 'upcoming' && f.drawn === false && !firstOpen[f.kind]) firstOpen[f.kind] = f.id;
+  const groupLeft = fixtures.some((x) => x.kind === 'euro' && x.status === 'upcoming' && x.drawn !== false);
   const visible = fixtures
     .map((f, i) => ({ f, i }))
-    .filter(({ f }) => !((f.kind === 'cup' || f.kind === 'tournament') && f.status === 'upcoming' && firstOpen[f.kind] !== f.id));
+    // later knockout rounds stay hidden until you reach them (European knockouts also wait for the group stage)
+    .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && (firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
   return (
     <ol className="relative space-y-2 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-white/10">
       {visible.map(({ f, i }) => {
@@ -197,36 +199,72 @@ function Table() {
   const season = useGameStore((s) => s.season);
   if (!season) return null;
   const rows = sortTable(season.table);
+  const z = seasonZones(season);
+  const div = season.division ?? 1;
+  const total = rows.length;
+  /** Colour of the left edge: Europe, promotion, relegation */
+  const zoneOf = (i: number) => {
+    if (i < z.champions) return { bar: '#38bdf8', key: 'champions' as const };
+    if (i < z.champions + z.europa) return { bar: '#f97316', key: 'europa' as const };
+    if (i < z.promo) return { bar: '#34d399', key: 'promo' as const };
+    if (z.relegation > 0 && i >= total - z.relegation) return { bar: '#ef4444', key: 'relegation' as const };
+    return null;
+  };
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 border-b border-white/[0.06] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-        <span>#</span>
-        <span>{t('Club')}</span>
-        <span className="text-center">{t('P')}</span>
-        <span className="text-center">{t('W')}</span>
-        <span className="text-center">{t('D')}</span>
-        <span className="text-center">{t('GD')}</span>
-        <span className="text-right">{t('Pts')}</span>
+    <div className="space-y-2.5">
+      <div className="px-1 text-[11px] font-semibold text-zinc-500">
+        {t('Division {n}', { n: div })}
+        {season.europe ? ` · ${t(season.europe)}` : ''}
       </div>
-      {rows.map((r, i) => (
-        <div
-          key={r.id}
-          className={cn(
-            'grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 px-3 py-2.5 text-[13px]',
-            r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300',
-            i === 0 && 'shadow-[inset_3px_0_0_#f2c14e]',
-          )}
-        >
-          <span className="font-num text-zinc-500">{i + 1}</span>
-          <span className="truncate">{r.name}</span>
-          <span className="font-num text-center">{r.played}</span>
-          <span className="font-num text-center">{r.won}</span>
-          <span className="font-num text-center">{r.drawn}</span>
-          <span className="font-num text-center">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</span>
-          <span className="font-num text-right text-base font-extrabold">{r.pts}</span>
+      <Card className="overflow-hidden p-0">
+        <div className="grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 border-b border-white/[0.06] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          <span>#</span>
+          <span>{t('Club')}</span>
+          <span className="text-center">{t('P')}</span>
+          <span className="text-center">{t('W')}</span>
+          <span className="text-center">{t('D')}</span>
+          <span className="text-center">{t('GD')}</span>
+          <span className="text-right">{t('Pts')}</span>
         </div>
-      ))}
-    </Card>
+        {rows.map((r, i) => {
+          const zone = zoneOf(i);
+          return (
+            <div
+              key={r.id}
+              style={zone ? { boxShadow: `inset 3px 0 0 ${zone.bar}` } : undefined}
+              className={cn(
+                'grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 px-3 py-2.5 text-[13px]',
+                r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300',
+                zone?.key === 'relegation' && !r.isMe && 'bg-crimson-500/[0.06]',
+              )}
+            >
+              <span className="font-num text-zinc-500">{i + 1}</span>
+              <span className="truncate">{r.name}</span>
+              <span className="font-num text-center">{r.played}</span>
+              <span className="font-num text-center">{r.won}</span>
+              <span className="font-num text-center">{r.drawn}</span>
+              <span className="font-num text-center">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</span>
+              <span className="font-num text-right text-base font-extrabold">{r.pts}</span>
+            </div>
+          );
+        })}
+      </Card>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-[11px] text-zinc-400">
+        {z.champions > 0 && <Legend color="#38bdf8" label={t('Champions League')} />}
+        {z.europa > 0 && <Legend color="#f97316" label={t('Europa League')} />}
+        {z.promo > 0 && <Legend color="#34d399" label={t('Promotion')} />}
+        {z.relegation > 0 && <Legend color="#ef4444" label={t('Relegation')} />}
+      </div>
+    </div>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="h-2.5 w-1 rounded-full" style={{ backgroundColor: color }} />
+      {label}
+    </span>
   );
 }
 

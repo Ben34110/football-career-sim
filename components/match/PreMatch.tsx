@@ -21,6 +21,7 @@ const KIND_LABEL: Record<Fixture['kind'], string> = {
   cup: 'Domestic Cup',
   intl: 'International',
   tournament: 'Tournament',
+  euro: 'Europe',
 };
 
 export function PreMatch({

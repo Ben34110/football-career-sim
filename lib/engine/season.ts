@@ -1,12 +1,16 @@
-import { COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
+import { CLUBS, COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
 import { OPPONENT_NATIONS, tournamentFor, youthTournamentFor } from '../data/nationalities';
 import type {
   Club,
+  Division,
   DrawCandidate,
+  EuroComp,
   Fixture,
   FixtureResult,
+  LeagueZone,
   Nationality,
   SeasonState,
+  SeasonZones,
   TableRow,
 } from '../types';
 import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
@@ -21,8 +25,90 @@ const shortOf = (name: string) => {
 
 const LEAGUE_MATCHES = 10;
 
-export function generateSeason(year: number, club: Club, rng: Rng): SeasonState {
+/* ───────── Divisions: relegation, promotion and European places ───────── */
+
+/** The division a club naturally plays in. */
+export const baseDivision = (club: Club): Division => (club.tier <= 3 ? 1 : club.tier === 4 ? 2 : 3);
+
+export const zonesFor = (d: Division): SeasonZones =>
+  d === 1 ? { champions: 3, europa: 1, promo: 0, relegation: 2 } : d === 2 ? { champions: 0, europa: 0, promo: 2, relegation: 2 } : { champions: 0, europa: 0, promo: 2, relegation: 0 };
+
+/** Where finishing `pos` (1-based, out of the whole table) leads. */
+export function leagueZone(pos: number, d: Division, total: number): LeagueZone {
+  const z = zonesFor(d);
+  if (pos <= z.champions) return 'champions';
+  if (pos <= z.champions + z.europa) return 'europa';
+  if (pos <= z.promo) return 'promoted';
+  if (z.relegation > 0 && pos > total - z.relegation) return 'relegated';
+  return 'safe';
+}
+
+export const seasonZones = (s: SeasonState): SeasonZones => s.zones ?? zonesFor(s.division ?? 1);
+
+/** Opposition is a notch stronger one division up, weaker one down. */
+const divisionOffset = (club: Club, d: Division) => (baseDivision(club) - d) * 6;
+
+export interface SeasonOptions {
+  division?: Division;
+  europe?: EuroComp | null;
+}
+
+/** The European run: a short group stage with fixed opponents, then four draws. */
+function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixture[] {
+  const boost = comp === 'Champions League' ? 6 : 1;
+  const foreign = shuffle(CLUBS.filter((c) => c.country !== club.country && c.tier <= 3), rng);
+  const used = new Set<string>();
+  const next = (): Club => {
+    const c = foreign.find((x) => !used.has(x.id)) ?? foreign[0];
+    used.add(c.id);
+    return c;
+  };
+  const cand = (c: Club, str: number): DrawCandidate => ({
+    opponent: c.name,
+    opponentShort: c.short,
+    opponentStrength: clamp(Math.round(str), 45, 95),
+    opponentColor: c.color,
+  });
+
+  const groupSpread = shuffle([-3, 1, 4], rng);
+  const group: Fixture[] = groupSpread.map((sp, i) => ({
+    id: `${year}-E${i + 1}`,
+    kind: 'euro' as const,
+    label: `${comp} Group Match ${i + 1}`,
+    ...cand(next(), club.strength + boost + sp),
+    home: i !== 1,
+    knockout: false,
+    status: 'upcoming' as const,
+  }));
+
+  const rounds: [string, number][] = [
+    ['Round of 16', 1],
+    ['Quarter-Final', 2],
+    ['Semi-Final', 3],
+    ['Final', 4],
+  ];
+  const knock: Fixture[] = rounds.map(([r, extra], i) => {
+    const spread = shuffle([-5, -1, 2, 6], rng);
+    const pool = spread.map((sp) => cand(next(), club.strength + boost + extra + sp));
+    return {
+      id: `${year}-E${i + 4}`,
+      kind: 'euro' as const,
+      label: `${comp} ${r}`,
+      ...pool[0],
+      home: i % 2 === 0,
+      knockout: true,
+      status: 'upcoming' as const,
+      drawn: false,
+      pool,
+    };
+  });
+  return [...group, ...knock];
+}
+
+export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonOptions = {}): SeasonState {
   const tier = club.tier;
+  const division = opts.division ?? baseDivision(club);
+  const offset = divisionOffset(club, division);
   // Starter leagues are played against clubs named after towns of that country
   // Opponents always come from the club's own country: first its league, then any town of the country
   const local = LOCAL_RIVALS[`${club.country}|${club.league}`] ?? LOCAL_RIVALS[club.league] ?? COUNTRY_RIVALS[club.country];
@@ -32,7 +118,7 @@ export function generateSeason(year: number, club: Club, rng: Rng): SeasonState 
     id: `${year}-r${i}`,
     name,
     short: shortOf(name),
-    strength: clamp(Math.round(club.strength + rand(-9, 9, rng)), 45, 92),
+    strength: clamp(Math.round(club.strength + offset + rand(-9, 9, rng)), 45, 92),
     color: RIVAL_COLORS[i % RIVAL_COLORS.length],
   }));
 
@@ -98,15 +184,26 @@ export function generateSeason(year: number, club: Club, rng: Rng): SeasonState 
     };
   });
 
-  // Interleave cup rounds with the league run
+  // Interleave cup rounds (and the European run, if qualified) with the league run
+  const eu = opts.europe ? buildEurope(year, club, opts.europe, rng) : [];
   const fixtures: Fixture[] = [
-    ...league.slice(0, 3),
+    league[0],
+    ...(eu[0] ? [eu[0]] : []),
+    ...league.slice(1, 3),
     cup[0],
-    ...league.slice(3, 6),
+    ...(eu[1] ? [eu[1]] : []),
+    ...league.slice(3, 5),
+    ...(eu[2] ? [eu[2]] : []),
+    league[5],
     cup[1],
-    ...league.slice(6, 9),
+    ...(eu[3] ? [eu[3]] : []),
+    ...league.slice(6, 8),
+    ...(eu[4] ? [eu[4]] : []),
+    league[8],
     cup[2],
-    ...league.slice(9),
+    ...(eu[5] ? [eu[5]] : []),
+    league[9],
+    ...(eu[6] ? [eu[6]] : []),
   ];
 
   return {
@@ -119,6 +216,10 @@ export function generateSeason(year: number, club: Club, rng: Rng): SeasonState 
     tournamentName: null,
     callUpQueued: false,
     tournamentQueued: false,
+    division,
+    zones: zonesFor(division),
+    europe: opts.europe ?? null,
+    euroPts: 0,
     training: { cursor: 0, count: 0 },
     stats: { apps: 0, goals: 0, assists: 0, ratingSum: 0 },
     trophies: [],
@@ -235,6 +336,19 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
     }
   }
 
+  if (fixture.kind === 'euro') {
+    const comp = (season.europe ?? 'Champions League') as EuroComp;
+    if (!fixture.knockout) {
+      next.euroPts = (next.euroPts ?? 0) + (result.outcome === 'W' ? 3 : result.outcome === 'D' ? 1 : 0);
+      // three group games: 4 points (a win and a draw) are needed to go through
+      if (fixture.label.endsWith('Group Match 3') && (next.euroPts ?? 0) < 4) skipRest('euro');
+    } else if (result.outcome === 'L') {
+      skipRest('euro');
+    } else if (fixture.label.endsWith(' Final')) {
+      next.trophies = [...next.trophies, `${comp} ${seasonLabel(season.year)}`];
+    }
+  }
+
   if (fixture.kind === 'tournament') {
     if (result.outcome === 'L') {
       next.tournamentAlive = false;
@@ -290,8 +404,8 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
   }
 
   // Summer tournament once the domestic calendar is done
-  const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1);
-  const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl'));
+  const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
+  const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl' || f.kind === 'euro'));
   if (!next.tournamentQueued && tournament && !domesticLeft) {
     const stages: [string, number, boolean][] = [
       ['Group Stage Decider', -3, false],

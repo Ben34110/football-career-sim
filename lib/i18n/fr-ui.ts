@@ -164,6 +164,28 @@ export const FR_UI: Record<string, string> = {
 
   'Youth caps': 'Sélections jeunes',
 
+  // divisions & Europe
+  'Division {n}': 'Division {n}',
+  'Champions League': 'Ligue des champions',
+  'Europa League': 'Ligue Europa',
+  'Round of 16': 'Huitième de finale',
+  Promotion: 'Promotion',
+  Relegation: 'Relégation',
+  'Relegated!': 'Relégué !',
+  'Promoted!': 'Promu !',
+  'Qualified for Europe!': 'Qualifié en Europe !',
+  'Next season you play in Division {n}.': 'La saison prochaine, tu joues en Division {n}.',
+  'Next season: {comp}. Extra matches, bigger stakes.': 'Saison prochaine : {comp}. Des matchs en plus et de plus gros enjeux.',
+  'Mid-table finish: the club stays in Division {n}.': 'Milieu de tableau : le club reste en Division {n}.',
+  'Champions League place': 'Place en Ligue des champions',
+  'Europa League place': 'Place en Ligue Europa',
+  'Promotion place': 'Place de promotion',
+  'Relegation zone': 'Zone de relégation',
+  'European draw': 'Tirage européen',
+  '⬇️ Relegation: the club drops to Division {n}.': '⬇️ Relégation : le club descend en Division {n}.',
+  '⬆️ Promotion! The club rises to Division {n}.': '⬆️ Promotion ! Le club monte en Division {n}.',
+  '⭐ Qualified for the {comp} next season!': '⭐ Qualifié pour la {comp} la saison prochaine !',
+
   // youth national teams
   'U20 from OVR {a} · U23 from {b} · senior from {c}': 'U20 dès {a} d’OVR · U23 dès {b} · A dès {c}',
   'Next: {level} call-up': 'Prochaine sélection : {level}',
@@ -174,6 +196,17 @@ export const FR_UI: Record<string, string> = {
   'U20 International': 'Match international U20',
   'U23 International': 'Match international U23',
   'U20 World Cup': 'Coupe du monde U20',
+  'U23 World Cup': 'Coupe du monde U23',
+  'U20 European Championship': 'Euro U20',
+  'U23 European Championship': 'Euro U23',
+  'U20 Africa Cup of Nations': 'CAN U20',
+  'U23 Africa Cup of Nations': 'CAN U23',
+  'U20 Copa América': 'Copa América U20',
+  'U23 Copa América': 'Copa América U23',
+  'U20 Asian Cup': 'Coupe d’Asie U20',
+  'U23 Asian Cup': 'Coupe d’Asie U23',
+  'U20 Gold Cup': 'Gold Cup U20',
+  'U23 Gold Cup': 'Gold Cup U23',
   'Olympic Games': 'Jeux olympiques',
 
   // outcome variety

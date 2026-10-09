@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
-import { getNationality, tournamentFor } from '@/lib/data/nationalities';
-import { CALL_UP_OVR, ovrOf, seasonLabel } from '@/lib/engine/player';
+import { getNationality, tournamentFor, youthTournamentFor } from '@/lib/data/nationalities';
+import { CALL_UP_OVR, nationalLevel, nextNationalGoal, ovrOf, seasonLabel, U20_CALL_UP_OVR, U23_CALL_UP_OVR } from '@/lib/engine/player';
 import { sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
@@ -30,9 +30,12 @@ export function CalendarScreen() {
 
   const ovr = ovrOf(player);
   const nat = getNationality(player.nationality);
-  const nextTournament = tournamentFor(year + 1, nat);
+  const level = nationalLevel(ovr, player.age);
+  const goal = nextNationalGoal(ovr, player.age);
+  const teamName = `${t(nat.name)}${level && level !== 'A' ? ' ' + level : ''}`;
+  const nextTournament = level === 'A' || !level ? tournamentFor(year + 1, nat) : youthTournamentFor(level, year + 1);
   const upcoming = [1, 2, 3, 4, 5]
-    .map((d) => ({ y: year + d, name: tournamentFor(year + d, nat) }))
+    .map((d) => ({ y: year + d, name: level && level !== 'A' ? youthTournamentFor(level, year + d) : tournamentFor(year + d, nat) }))
     .filter((x): x is { y: number; name: string } => !!x.name)
     .slice(0, 3);
 
@@ -44,25 +47,25 @@ export function CalendarScreen() {
       </div>
 
       {/* National team status */}
-      <Card gold={ovr >= CALL_UP_OVR} className="p-4">
+      <Card gold={!!level} className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-2xl">{nat.flag}</div>
           <div className="flex-1">
-            <div className="text-sm font-bold">{ovr >= CALL_UP_OVR ? t('{team} national team', { team: t(nat.name) }) : t('National team call-ups')}</div>
-            {ovr >= CALL_UP_OVR ? (
+            <div className="text-sm font-bold">{level ? t('{team} national team', { team: teamName }) : t('National team call-ups')}</div>
+            {level ? (
               <div className="text-xs text-zinc-400">
                 {season?.tournamentQueued ? t('Playing: {name}', { name: t(season.tournamentName ?? '') }) : nextTournament ? t('Eligible for the {name} this summer', { name: t(nextTournament) }) : t('No major tournament this summer')}
               </div>
             ) : (
-              <div className="text-xs text-zinc-400">{t('Requires OVR {n}+ · you’re {m}', { n: CALL_UP_OVR, m: ovr })}</div>
+              <div className="text-xs text-zinc-400">{t('U20 from OVR {a} · U23 from {b} · senior from {c}', { a: U20_CALL_UP_OVR, b: U23_CALL_UP_OVR, c: CALL_UP_OVR })}</div>
             )}
           </div>
-          {ovr >= CALL_UP_OVR ? <Chip tone="gold">{t('Called up')}</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
+          {level ? <Chip tone="gold">{t('Called up')}</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
         </div>
-        {ovr >= CALL_UP_OVR && (
+        {level && (
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-black/30 py-2">
-              <div className="font-num text-xl font-extrabold">{player.national?.caps ?? 0}</div>
+              <div className="font-num text-xl font-extrabold">{(player.national?.caps ?? 0) + (player.national?.youthCaps ?? 0)}</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('Caps')}</div>
             </div>
             <div className="rounded-xl bg-black/30 py-2">
@@ -71,19 +74,29 @@ export function CalendarScreen() {
             </div>
           </div>
         )}
-        <div className="mt-3 border-t border-white/[0.06] pt-3">
-          <div className="eyebrow mb-2">{t('Next major tournaments')}</div>
-          <div className="flex flex-wrap gap-1.5">
-            {upcoming.map((u) => (
-              <Chip key={`${u.name}-${u.y}`} tone={u.name === 'FIFA World Cup' ? 'gold' : 'neutral'}>
-                🏆 {t(u.name)} {u.y}
-              </Chip>
-            ))}
+        {goal && (
+          <div className="mt-3">
+            <div className="mb-1 flex justify-between text-[11px] text-zinc-400">
+              <span>{t('Next: {level} call-up', { level: goal.level === 'A' ? t('senior') : goal.level })}</span>
+              <span className="font-num font-semibold text-zinc-200">
+                {ovr} / {goal.ovr}
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200" animate={{ width: `${Math.min(100, ((ovr - 55) / (goal.ovr - 55)) * 100)}%` }} />
+            </div>
           </div>
-        </div>
-        {ovr < CALL_UP_OVR && (
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200" animate={{ width: `${Math.min(100, ((ovr - 55) / (CALL_UP_OVR - 55)) * 100)}%` }} />
+        )}
+        {upcoming.length > 0 && (
+          <div className="mt-3 border-t border-white/[0.06] pt-3">
+            <div className="eyebrow mb-2">{t('Next major tournaments')}</div>
+            <div className="flex flex-wrap gap-1.5">
+              {upcoming.map((u) => (
+                <Chip key={`${u.name}-${u.y}`} tone={u.name === 'FIFA World Cup' ? 'gold' : 'neutral'}>
+                  🏆 {t(u.name)} {u.y}
+                </Chip>
+              ))}
+            </div>
           </div>
         )}
       </Card>

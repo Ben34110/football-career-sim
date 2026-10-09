@@ -1,5 +1,5 @@
 import { COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
-import { OPPONENT_NATIONS, tournamentFor } from '../data/nationalities';
+import { OPPONENT_NATIONS, tournamentFor, youthTournamentFor } from '../data/nationalities';
 import type {
   Club,
   DrawCandidate,
@@ -9,7 +9,7 @@ import type {
   SeasonState,
   TableRow,
 } from '../types';
-import { CALL_UP_OVR, seasonLabel } from './player';
+import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
 import { clamp, rand, randInt, shuffle, type Rng } from './rng';
 
 const RIVAL_COLORS = ['#38bdf8', '#f97316', '#a78bfa', '#f43f5e', '#22c55e', '#eab308', '#14b8a6', '#fb7185', '#60a5fa', '#c084fc', '#f59e0b'];
@@ -251,7 +251,7 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
 
 /* ───────── National team call-ups ───────── */
 
-function nationOpponent(own: Nationality, boost: number, label: string, id: string, kind: Fixture['kind'], knockout: boolean, rng: Rng): Fixture {
+function nationOpponent(own: Nationality, boost: number, label: string, id: string, kind: Fixture['kind'], knockout: boolean, rng: Rng, level: NationalLevel = 'A'): Fixture {
   // opponents come from the competitive half of the world
   const pool = OPPONENT_NATIONS.filter((n) => n.code !== own.code && n.strength >= 66);
   const opp = pool[Math.floor(rng() * pool.length)];
@@ -259,13 +259,14 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
     id,
     kind,
     label,
-    opponent: opp.name,
+    opponent: level === 'A' ? opp.name : `${opp.name} ${level}`,
     opponentShort: `${opp.flag} ${opp.code}`,
-    opponentStrength: clamp(Math.round(opp.strength + boost + rand(-2, 2, rng)), 55, 95),
+    opponentStrength: clamp(Math.round(opp.strength + LEVEL_STRENGTH[level] + boost + rand(-2, 2, rng)), 50, 95),
     opponentColor: '#fbbf24',
     home: rng() < 0.5,
     knockout,
     status: 'upcoming',
+    level: level === 'A' ? undefined : level,
   };
 }
 
@@ -273,22 +274,23 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
  * Insert international fixtures when the player's OVR qualifies them.
  * Safe to call after every match.
  */
-export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality, rng: Rng): SeasonState {
-  if (ovr < CALL_UP_OVR) return season;
+export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality, rng: Rng, age = 18): SeasonState {
+  const level = nationalLevel(ovr, age);
+  if (!level) return season;
   let next = season;
   const upcomingIdx = firstUpcoming(next);
   const played = next.fixtures.filter((f) => f.status === 'played').length;
 
   // International window mid-season
   if (!next.callUpQueued && upcomingIdx !== -1 && played >= 4 && next.fixtures.some((f) => f.kind === 'league' && f.status === 'upcoming')) {
-    const qualifier = nationOpponent(nat, -2, 'International Qualifier', `${next.year}-I1`, 'intl', false, rng);
+    const qualifier = nationOpponent(nat, -2, level === 'A' ? 'International Qualifier' : level === 'U23' ? 'U23 International' : 'U20 International', `${next.year}-I1`, 'intl', false, rng, level);
     const fixtures = [...next.fixtures];
     fixtures.splice(upcomingIdx + 1, 0, qualifier);
     next = { ...next, fixtures, callUpQueued: true };
   }
 
   // Summer tournament once the domestic calendar is done
-  const tournament = tournamentFor(next.year + 1, nat);
+  const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1);
   const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl'));
   if (!next.tournamentQueued && tournament && !domesticLeft) {
     const stages: [string, number, boolean][] = [
@@ -300,7 +302,7 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
     const extra = stages.map(([label, boost, ko], i) => {
       // four possible opponents per stage, of different strength
       const spread = shuffle([-5, -1, 2, 6], rng);
-      const options = Array.from({ length: 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng));
+      const options = Array.from({ length: 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng, level));
       const names = new Set<string>();
       const pool: DrawCandidate[] = options
         .filter((o) => !names.has(o.opponent) && names.add(o.opponent))

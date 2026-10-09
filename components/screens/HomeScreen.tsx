@@ -11,7 +11,7 @@ import { Crest } from '@/components/ui/Crest';
 import { LangToggle } from '@/components/ui/LangToggle';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { getClub } from '@/lib/data/clubs';
-import { ATTR_KEYS, ATTR_LABEL, CALL_UP_OVR, fmtMoneyK, ovrOf } from '@/lib/engine/player';
+import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
 import { currentFixture, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtShortDate, fmtToday } from '@/lib/dates';
@@ -144,11 +144,15 @@ export function HomeScreen() {
             <Tile label="GA" value={season.stats.goals + season.stats.assists} />
             <Tile label={t('Avg')} value={avg ? avg.toFixed(1) : '–'} />
           </div>
-          {ovr < CALL_UP_OVR && (
-            <p className="mt-2.5 flex items-center gap-1.5 px-1 text-[11px] text-zinc-500">
-              <Trophy className="h-3 w-3 text-gold-400" /> {t('Reach OVR {n} for national-team call-ups ({m} to go).', { n: CALL_UP_OVR, m: CALL_UP_OVR - ovr })}
-            </p>
-          )}
+          {(() => {
+            const goal = nextNationalGoal(ovr, player.age);
+            return goal ? (
+              <p className="mt-2.5 flex items-center gap-1.5 px-1 text-[11px] text-zinc-500">
+                <Trophy className="h-3 w-3 text-gold-400" />{' '}
+                {t('Reach OVR {n} for a {level} call-up ({m} to go).', { n: goal.ovr, m: goal.ovr - ovr, level: goal.level === 'A' ? t('national team') : goal.level })}
+              </p>
+            ) : null;
+          })()}
         </div>
       )}
 

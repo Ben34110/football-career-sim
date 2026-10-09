@@ -12,7 +12,7 @@ import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } fr
 import {
   applyRep,
   ATTR_LABEL,
-  CALL_UP_OVR,
+  nationalLevel,
   createPlayer,
   fmtMoneyK,
   addPaidLives,
@@ -248,7 +248,9 @@ export const useGameStore = create<GameStore>()(
           morale: clamp(morale + (result.subbedOff ? -4 : 0), 0, 100),
           rep: applyRep(player.rep, result.subbedOff ? { ...repDelta, coachTrust: repDelta.coachTrust - 2, lockerRoom: repDelta.lockerRoom - 1 } : repDelta),
           national: intl
-            ? { caps: (player.national?.caps ?? 0) + 1, goals: (player.national?.goals ?? 0) + result.goals }
+            ? fixture.level
+              ? { caps: player.national?.caps ?? 0, goals: player.national?.goals ?? 0, youthCaps: (player.national?.youthCaps ?? 0) + 1 }
+              : { caps: (player.national?.caps ?? 0) + 1, goals: (player.national?.goals ?? 0) + result.goals, youthCaps: player.national?.youthCaps }
             : player.national,
           money: player.money + (contract ? contract.wage * 2 + (result.outcome === 'W' ? contract.wage * 0.5 : 0) : 0),
           trophies: [...player.trophies, ...newTrophies],
@@ -268,16 +270,23 @@ export const useGameStore = create<GameStore>()(
         }
         if (result.subbedOff) nextNews = addNews(nextNews, mkNews(tr('The coach hauled you off early after a poor display.'), 'bad'));
         for (const t of newTrophies) nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — silverware!', { t: tr(t) }), 'gold'));
-        if (newOvr >= CALL_UP_OVR && ovrOf(player) < CALL_UP_OVR) {
-          nextNews = addNews(nextNews, mkNews(tr('📣 OVR {n}! The national team is watching you.', { n: newOvr }), 'gold'));
+        const rank = { U20: 1, U23: 2, A: 3 } as const;
+        const lvlBefore = nationalLevel(ovrOf(player), player.age);
+        const lvlNow = nationalLevel(newOvr, player.age);
+        if (lvlNow && (!lvlBefore || rank[lvlNow] > rank[lvlBefore])) {
+          nextNews = addNews(
+            nextNews,
+            mkNews(lvlNow === 'A' ? tr('📣 OVR {n}! The national team is watching you.', { n: newOvr }) : tr('📣 OVR {n}! The {level} national team is watching you.', { n: newOvr, level: lvlNow }), 'gold'),
+          );
         }
         if (fixture.kind === 'cup' && result.outcome === 'L') {
           nextNews = addNews(nextNews, mkNews(tr('Knocked out of the cup by {opp}.', { opp: fixture.opponent }), 'bad'));
         }
 
-        nextSeason = queueCallUps(nextSeason, newOvr, getNationality(player.nationality), Math.random);
+        nextSeason = queueCallUps(nextSeason, newOvr, getNationality(player.nationality), Math.random, player.age);
         if (nextSeason.callUpQueued && !season.callUpQueued) {
-          nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: tr(getNationality(player.nationality).name) }), 'gold'));
+          const teamName = `${tr(getNationality(player.nationality).name)}${lvlNow && lvlNow !== 'A' ? ' ' + lvlNow : ''}`;
+          nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: teamName }), 'gold'));
         }
         if (nextSeason.tournamentQueued && !season.tournamentQueued) {
           nextNews = addNews(nextNews, mkNews(tr('🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));

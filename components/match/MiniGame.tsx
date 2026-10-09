@@ -89,6 +89,9 @@ const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
   miss: { text: 'MISSED', color: 'text-crimson-400' },
 };
 
+/** Games with no time pressure — waiting never hurts — begin by themselves; the others wait for the first tap. */
+const AUTO_START: MiniKind[] = ['power', 'aim', 'charge'];
+
 export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const t = useT();
   // The first frame stays frozen until the player taps once; that first tap only starts the game.
@@ -107,8 +110,13 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
 
   useEffect(() => {
     const id = setTimeout(() => setArmed(true), 500);
-    return () => clearTimeout(id);
-  }, []);
+    // a short beat so the screen is readable, then the self-starting games go
+    const auto = AUTO_START.includes(kind) ? setTimeout(() => setRunning(true), 400) : null;
+    return () => {
+      clearTimeout(id);
+      if (auto) clearTimeout(auto);
+    };
+  }, [kind]);
 
   useEffect(
     () => () => {
@@ -139,10 +147,18 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         </Chip>
       </div>
 
-      <p className="-mt-1 text-center text-[13px] font-semibold text-zinc-300">
-        {t(HINT[kind])}
-        {!running && <span className="ml-1.5 font-normal text-zinc-500">{t('Tap to begin.')}</span>}
-      </p>
+      <div className="-mt-1 text-center">
+        <p className="text-[13px] font-semibold text-zinc-300">{t(HINT[kind])}</p>
+        {!running && !AUTO_START.includes(kind) && (
+          <motion.p
+            animate={{ opacity: [1, 0.45, 1] }}
+            transition={{ repeat: Infinity, duration: 1.4 }}
+            className="mt-1 text-[13px] font-bold text-gold-300"
+          >
+            👆 {t('Tap the screen to start the game.')}
+          </motion.p>
+        )}
+      </div>
 
       <div className="relative">
         {kind === 'power' && <PowerBar {...game} />}
@@ -155,7 +171,7 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         {kind === 'charge' && <ChargeGame {...game} />}
 
         {/* The first frame stays frozen: the first tap anywhere starts the game (and is not a move) */}
-        {!running && (
+        {!running && !AUTO_START.includes(kind) && (
           <button
             type="button"
             onClick={() => {

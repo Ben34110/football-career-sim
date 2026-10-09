@@ -88,6 +88,8 @@ export interface Fixture {
   drawn?: boolean;
   /** The balls in the pot: one of them becomes the opponent */
   pool?: DrawCandidate[];
+  /** Youth national team fixture (absent = senior) */
+  level?: 'U20' | 'U23';
   status: 'upcoming' | 'played' | 'skipped';
   result?: FixtureResult;
 }
@@ -184,7 +186,7 @@ export interface Player {
   /** Head customisation (absent on saves made before the editor existed) */
   look?: Look;
   /** International record */
-  national?: { caps: number; goals: number };
+  national?: { caps: number; goals: number; youthCaps?: number };
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
   /** Permanent upgrades bought with money */

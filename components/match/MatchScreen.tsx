@@ -10,7 +10,7 @@ import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { EXPECTATION_TARGET, expectationEffect, pickSpeech, type StanceEffect } from '@/lib/data/speeches';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
-import { ovrOf, syncEnergy } from '@/lib/engine/player';
+import { LEVEL_STRENGTH, ovrOf, syncEnergy } from '@/lib/engine/player';
 import { currentFixture, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate } from '@/lib/dates';
@@ -63,10 +63,10 @@ export function MatchScreen() {
     const nat = getNationality(player.nationality);
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     const me: TeamBadge = national
-      ? { name: t(nat.name), short: nat.code, color: '#fbbf24' }
+      ? { name: `${t(nat.name)}${fixture.level ? ' ' + fixture.level : ''}`, short: nat.code, color: '#fbbf24' }
       : { name: club?.name ?? t('Free agent'), short: club?.short ?? 'FA', color: club?.color ?? '#a1a1aa' };
     const opp: TeamBadge = { name: t(fixture.opponent), short: crestShort(fixture.opponentShort), color: fixture.opponentColor };
-    const strength = national ? nat.strength : club?.strength ?? 55;
+    const strength = national ? nat.strength + LEVEL_STRENGTH[fixture.level ?? 'A'] : club?.strength ?? 55;
     return { me, opp, strength };
   }, [player, fixture, t]);
 

@@ -162,6 +162,20 @@ export const FR_UI: Record<string, string> = {
   'Progress to the next level': 'Progression vers le niveau suivant',
   Overall: 'Niveau général',
 
+  'Youth caps': 'Sélections jeunes',
+
+  // youth national teams
+  'U20 from OVR {a} · U23 from {b} · senior from {c}': 'U20 dès {a} d’OVR · U23 dès {b} · A dès {c}',
+  'Next: {level} call-up': 'Prochaine sélection : {level}',
+  senior: 'équipe A',
+  'national team': 'équipe nationale',
+  'Reach OVR {n} for a {level} call-up ({m} to go).': 'Atteins {n} d’OVR pour une sélection en {level} (encore {m}).',
+  '📣 OVR {n}! The {level} national team is watching you.': '📣 OVR {n} ! La sélection {level} te surveille.',
+  'U20 International': 'Match international U20',
+  'U23 International': 'Match international U23',
+  'U20 World Cup': 'Coupe du monde U20',
+  'Olympic Games': 'Jeux olympiques',
+
   // outcome variety
   'The crowd erupts!': 'Le public explose !',
   'What a moment!': 'Quel moment !',
@@ -274,6 +288,7 @@ export const FR_UI: Record<string, string> = {
   'GO!': 'GO !',
   'Tap to start': 'Touche pour commencer',
   'Tap to begin.': 'Touche pour commencer.',
+  'Tap the screen to start the game.': 'Touche l’écran pour lancer le jeu.',
   'Stop the cursor in the gold zone.': 'Arrête le curseur dans la zone dorée.',
   'Tap when the ring closes on the ball.': 'Appuie quand l’anneau se referme sur le ballon.',
   'Tap only on the green flash.': 'Appuie uniquement sur l’éclair vert.',
@@ -368,7 +383,6 @@ export const FR_UI: Record<string, string> = {
   GA: 'B+PD',
   'Full season': 'Saison complète',
   'This season': 'Cette saison',
-  'Reach OVR {n} for national-team call-ups ({m} to go).': 'Atteins un OVR de {n} pour les convocations en sélection (encore {m}).',
   '{n} of {max} lives': '{n} vies sur {max}',
 
   // match

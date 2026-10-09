@@ -31,5 +31,7 @@ export const FR_PATTERNS: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^(.+) see you as a first-team starter\.$/, (m) => `${m[1]} te voit comme un titulaire.`],
   [/^(.+) see you as a rotation option\.$/, (m) => `${m[1]} te voit comme une option de rotation.`],
   [/^(.+) want to build around you\.$/, (m) => `${m[1]} veut construire son équipe autour de toi.`],
+  // youth national teams: "Brazil U20"
+  [/^(.+) (U20|U23)$/, (m) => (FR[m[1]] ? `${FR[m[1]]} ${m[2]}` : m[0])],
   [/^Kick (\d+)$/, (m) => `Tir ${m[1]}`],
 ];

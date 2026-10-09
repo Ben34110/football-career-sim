@@ -68,6 +68,12 @@ export function ProfileScreen() {
             <div className="font-num text-2xl font-extrabold">{player.national?.goals ?? 0}</div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('Goals')}</div>
           </div>
+          {(player.national?.youthCaps ?? 0) > 0 && (
+            <div>
+              <div className="font-num text-2xl font-extrabold">{player.national?.youthCaps}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('Youth caps')}</div>
+            </div>
+          )}
         </div>
       </Card>
 

@@ -21,6 +21,28 @@ export const MAX_BOLTS = 5;
 export const MAX_PAID_LIVES = 25;
 export const REGEN_MS = 2 * 60 * 1000;
 export const CALL_UP_OVR = 75;
+export const U23_CALL_UP_OVR = 72;
+export const U20_CALL_UP_OVR = 69;
+
+export type NationalLevel = 'A' | 'U23' | 'U20';
+/** How much weaker the national side is at each level (youth teams are not full strength). */
+export const LEVEL_STRENGTH: Record<NationalLevel, number> = { A: 0, U23: -4, U20: -8 };
+
+/** The national team you are good enough for: senior from 75, U23 from 72 (≤23 years), U20 from 69 (≤20 years). */
+export function nationalLevel(ovr: number, age: number): NationalLevel | null {
+  if (ovr >= CALL_UP_OVR) return 'A';
+  if (ovr >= U23_CALL_UP_OVR && age <= 23) return 'U23';
+  if (ovr >= U20_CALL_UP_OVR && age <= 20) return 'U20';
+  return null;
+}
+
+/** The next call-up still to be earned, if any. */
+export function nextNationalGoal(ovr: number, age: number): { level: NationalLevel; ovr: number } | null {
+  if (ovr >= CALL_UP_OVR) return null;
+  if (age <= 20 && ovr < U20_CALL_UP_OVR) return { level: 'U20', ovr: U20_CALL_UP_OVR };
+  if (age <= 23 && ovr < U23_CALL_UP_OVR) return { level: 'U23', ovr: U23_CALL_UP_OVR };
+  return { level: 'A', ovr: CALL_UP_OVR };
+}
 export const START_AGE = 18;
 export const ALLOCATION_POINTS = 12;
 export const MAX_ALLOC_PER_ATTR = 12;

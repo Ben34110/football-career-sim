@@ -216,6 +216,7 @@ export const FR_UI: Record<string, string> = {
 
   // mini-game intros
   'How to play': 'Comment jouer',
+  'GO!': 'GO !',
   Start: 'Commencer',
   'Steady…': 'Doucement…',
   'Inverted!': 'Inversé !',

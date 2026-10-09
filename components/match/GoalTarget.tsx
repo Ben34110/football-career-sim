@@ -68,6 +68,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
   const shoot = (zone: number) => {
     if (phase !== 'aim') return;
     haptic(18);
+    setHover(null);
     const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, curl, wall: kind === 'freekick' ? wall : undefined }, Math.random);
     setOutcome(o);
     setPhase('flying');
@@ -148,14 +149,13 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
                 <button
                   key={z}
                   onClick={() => shoot(z)}
-                  onPointerEnter={() => setHover(z)}
+                  onPointerEnter={(e) => e.pointerType === 'mouse' && setHover(z)}
                   onPointerLeave={() => setHover(null)}
-                  onFocus={() => setHover(z)}
                   disabled={phase !== 'aim'}
                   aria-label={`${t('Shoot')} ${t(ZONE_NAMES[z])}`}
                   className={cn(
                     'group relative flex items-center justify-center border border-white/[0.14] outline-none transition-colors',
-                    phase === 'aim' && 'cursor-crosshair hover:bg-neon-400/20 focus-visible:bg-neon-400/20 active:bg-neon-400/35',
+                    phase === 'aim' && 'cursor-crosshair hover:bg-neon-400/20 active:bg-neon-400/35',
                     phase !== 'aim' && !isShot && !isDive && 'opacity-60',
                   )}
                 >

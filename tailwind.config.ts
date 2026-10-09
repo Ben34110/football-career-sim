@@ -1,6 +1,8 @@
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
+  // hover styles only on devices that really hover: no tint stuck on the last tapped zone on phones
+  future: { hoverOnlyWhenSupported: true },
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
     extend: {

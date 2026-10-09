@@ -80,7 +80,11 @@ const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
 
 export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const t = useT();
-  const [started, setStarted] = useState(false);
+  // intro (frozen) → short countdown → play
+  const [phase, setPhase] = useState<'intro' | 'count' | 'play'>('intro');
+  const [count, setCount] = useState(3);
+  // a tap that arrives the instant the screen opens (the one that chose this skill moment) must not start it
+  const [armed, setArmed] = useState(false);
   const [result, setResult] = useState<MiniQuality | null>(null);
   const done = useRef(false);
   const onDoneRef = useRef(onDone);
@@ -90,6 +94,22 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
   const Icon = meta.icon;
   /** −0.02 … +0.08: better players get a slightly more forgiving sweet spot */
   const bonus = Math.max(-0.02, Math.min(0.08, (skill - 68) / 400));
+
+  useEffect(() => {
+    const id = setTimeout(() => setArmed(true), 700);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== 'count') return;
+    if (count <= 0) {
+      setPhase('play');
+      return;
+    }
+    haptic(8);
+    const id = setTimeout(() => setCount((c) => c - 1), 420);
+    return () => clearTimeout(id);
+  }, [phase, count]);
 
   useEffect(
     () => () => {
@@ -120,7 +140,7 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         </Chip>
       </div>
 
-      {!started ? (
+      {phase === 'intro' ? (
         /* Frozen explanation — nothing moves until the player taps START */
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
           <Card strong className="space-y-3 p-4">
@@ -141,14 +161,32 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
           <Button
             block
             size="lg"
+            disabled={!armed}
             onClick={() => {
+              if (!armed) return;
               haptic(15);
-              setStarted(true);
+              setCount(3);
+              setPhase('count');
             }}
           >
             <Play className="h-5 w-5 fill-current" /> {t('Start')}
           </Button>
         </motion.div>
+      ) : phase === 'count' ? (
+        <div className="flex h-[260px] items-center justify-center rounded-3xl border border-white/10 bg-black/40">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={count}
+              initial={{ scale: 1.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              className="font-display text-8xl font-extrabold text-gold-300 drop-shadow-[0_0_24px_rgba(242,193,78,0.7)]"
+            >
+              {count > 0 ? count : t('GO!')}
+            </motion.span>
+          </AnimatePresence>
+        </div>
       ) : (
         <div className="relative">
           {kind === 'power' && <PowerBar {...game} />}
@@ -195,18 +233,18 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const [pos, setPos] = useState(0);
   const posRef = useRef(0);
   const [center] = useState(() => 0.25 + Math.random() * 0.5);
-  const perfect = (0.035 + bonus * 0.25) * (1 - 0.3 * difficulty);
-  const good = (0.1 + bonus * 0.8) * (1 - 0.25 * difficulty);
+  const perfect = (0.05 + bonus * 0.25) * (1 - 0.25 * difficulty);
+  const good = (0.145 + bonus * 0.8) * (1 - 0.2 * difficulty);
 
   useEffect(() => {
     if (locked) return;
-    const base = 0.95 + pressure * 0.6 + difficulty * 0.45; // traversals per second
+    const base = 0.78 + pressure * 0.45 + difficulty * 0.3; // traversals per second
     let raf = 0;
     let last = performance.now();
     let phase = Math.random();
     const loop = (now: number) => {
       // speed wobbles so the rhythm can't simply be memorised
-      const speed = base * (1 + 0.4 * Math.sin(now / 330));
+      const speed = base * (1 + 0.28 * Math.sin(now / 380));
       phase = (phase + ((now - last) / 1000) * speed) % 2;
       last = now;
       const p = phase <= 1 ? phase : 2 - phase;
@@ -248,14 +286,14 @@ function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const [r, setR] = useState(1);
   const rRef = useRef(1);
-  const total = 1350 - pressure * 350 - difficulty * 200;
+  const total = 1700 - pressure * 350 - difficulty * 200;
   const perfect = (0.05 + bonus * 0.3) * (1 - 0.3 * difficulty);
   const good = (0.14 + bonus * 0.8) * (1 - 0.25 * difficulty);
 
   useEffect(() => {
     if (locked) return;
     let raf = 0;
-    const start = performance.now() + 450;
+    const start = performance.now() + 700;
     const loop = (now: number) => {
       const p = Math.max(0, (now - start) / total);
       const v = 1 - p;
@@ -369,11 +407,12 @@ const DIRS: Dir[] = ['L', 'U', 'D', 'R'];
 function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const STEPS = 5;
-  const window = 980 - pressure * 220 - difficulty * 160 + bonus * 1200;
+  // generous windows; the first arrow gets a little extra time to read the screen
+  const window = 1950 - pressure * 300 - difficulty * 250 + bonus * 1500;
   const [seq] = useState(() =>
     Array.from({ length: STEPS }, (_, i) => ({
       dir: DIRS[Math.floor(Math.random() * 4)],
-      inverted: i >= 1 && Math.random() < 0.3,
+      inverted: i >= 2 && Math.random() < 0.25,
     })),
   );
   const [step, setStep] = useState(0);
@@ -401,7 +440,7 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps)
 
   useEffect(() => {
     if (locked) return;
-    const id = setTimeout(() => advance(false), window);
+    const id = setTimeout(() => advance(false), window + (key === 0 ? 700 : 0));
     return () => clearTimeout(id);
   }, [key, locked, window, advance]);
 
@@ -441,7 +480,7 @@ function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps)
         {!locked && cur.inverted && <span className="text-[11px] font-bold uppercase tracking-widest text-crimson-400">{t('Inverted!')}</span>}
         {!locked && (
           <div className="absolute inset-x-6 bottom-4 h-1 overflow-hidden rounded-full bg-white/10">
-            <motion.div key={key} className="h-full origin-left rounded-full bg-gold-400" initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: window / 1000, ease: 'linear' }} />
+            <motion.div key={key} className="h-full origin-left rounded-full bg-gold-400" initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: (window + (key === 0 ? 700 : 0)) / 1000, ease: 'linear' }} />
           </div>
         )}
       </div>
@@ -614,13 +653,14 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const [target] = useState(() => ({ x: 0.22 + Math.random() * 0.56, y: 0.25 + Math.random() * 0.5 }));
   const [cross, setCross] = useState({ x: 0.5, y: 0.5 });
   const ref = useRef({ x: 0.5, y: 0.5 });
-  const perfect = (0.055 + bonus * 0.2) * (1 - 0.25 * difficulty);
-  const good = (0.135 + bonus * 0.5) * (1 - 0.2 * difficulty);
+  // a big target: the crosshair crosses it often and the gold centre is easy to read
+  const perfect = (0.09 + bonus * 0.2) * (1 - 0.2 * difficulty);
+  const good = (0.2 + bonus * 0.5) * (1 - 0.15 * difficulty);
 
   useEffect(() => {
     if (locked) return;
-    const speed = 1 + pressure * 0.5 + difficulty * 0.35;
-    const [fa, fb, pa, pb] = [1.3 + Math.random() * 0.5, 1.9 + Math.random() * 0.6, Math.random() * 6, Math.random() * 6];
+    const speed = 0.9 + pressure * 0.4 + difficulty * 0.3;
+    const [fa, fb, pa, pb] = [1.1 + Math.random() * 0.4, 1.5 + Math.random() * 0.5, Math.random() * 6, Math.random() * 6];
     let raf = 0;
     const start = performance.now();
     const loop = (now: number) => {
@@ -637,7 +677,7 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const shoot = () => {
     if (locked) return;
     // distance measured in the (wider) horizontal unit so the hitbox feels round
-    const d = Math.hypot((ref.current.x - target.x) * 1.45, ref.current.y - target.y);
+    const d = Math.hypot((ref.current.x - target.x) * 1.6, ref.current.y - target.y);
     onStop(d <= perfect ? 'perfect' : d <= good ? 'good' : 'miss');
   };
 
@@ -645,8 +685,14 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
     <div className="space-y-4">
       <div className="relative aspect-[16/10] select-none overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_50%_100%,rgba(16,224,138,0.18),#050a08_80%)]">
         <div className="goal-net absolute inset-[8%] rounded-t-md border-x-[5px] border-t-[5px] border-zinc-100/80" />
-        <div className="absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold-400 shadow-[0_0_14px_rgba(242,193,78,0.7)]" style={{ left: `${target.x * 100}%`, top: `${target.y * 100}%` }}>
-          <span className="absolute inset-[11px] rounded-full bg-gold-400" />
+        <div
+          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-neon-400/70 bg-neon-400/10"
+          style={{ left: `${target.x * 100}%`, top: `${target.y * 100}%`, width: `${(good * 2 * 100) / 1.6}%`, aspectRatio: '1 / 1' }}
+        >
+          <span
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold-400 bg-gold-400/30 shadow-[0_0_14px_rgba(242,193,78,0.7)]"
+            style={{ width: `${(perfect / good) * 100}%`, aspectRatio: '1 / 1' }}
+          />
         </div>
         <div className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2" style={{ left: `${cross.x * 100}%`, top: `${cross.y * 100}%` }}>
           <span className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-white/90" />

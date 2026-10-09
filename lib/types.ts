@@ -298,6 +298,15 @@ export interface ClutchOption {
   /** Narrative texts */
   successText: string;
   failText: string;
+  /** Several possible ways for this decision to go wrong; when set it replaces `failText` */
+  fail?: FailVariant[];
+}
+
+export interface FailVariant {
+  text: string;
+  w: number;
+  /** card: booked; penalty: awarded after all (VAR); oppfk: free kick for the opponent */
+  fx?: 'card' | 'penalty' | 'oppfk';
 }
 
 export interface ClutchMoment {

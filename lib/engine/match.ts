@@ -2,6 +2,7 @@ import { AMBIENT, fill } from '../data/commentary';
 import { CLUTCH_DECK } from '../data/clutch';
 import { SURNAMES } from '../data/names';
 import type {
+  FailVariant,
   Attributes,
   ClutchMoment,
   ClutchOption,
@@ -120,6 +121,9 @@ const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] || name;
 
 /** The last situations shown: they are far less likely to come back soon. */
 let recentMoments: string[] = [];
+
+const WIN_FLAVOUR = ['The crowd erupts!', 'What a moment!', 'Pure class.', 'The bench goes wild.', 'Sensational.'];
+const LOSE_FLAVOUR = ['Unlucky.', 'So close!', 'Not this time.', 'The crowd groans.', 'A big chance gone.'];
 
 function scheduleClutches(startMinute: number, starter: boolean, rng: Rng): ClutchMoment[] {
   const count = starter ? (rng() < 0.5 ? 3 : 4) : 3;
@@ -336,6 +340,9 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
   const moment = m.clutches[m.nextClutch];
   const who = surname(ctx.playerName);
   const said = (text: string) => tr(text);
+  const pickOne = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+  // a short reaction line tacked on most of the time, so identical outcomes never read identically
+  const flavour = (good: boolean) => (rng() < 0.65 ? ' ' + tr(pickOne(good ? WIN_FLAVOUR : LOSE_FLAVOUR)) : '');
 
   if (success && (opt.onSuccess === 'kick-penalty' || opt.onSuccess === 'kick-freekick')) {
     const kick: KickKind = opt.onSuccess === 'kick-penalty' ? 'penalty' : 'freekick';
@@ -349,6 +356,13 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
   let s: MatchState = { ...m, clutchTotal: m.clutchTotal + 1, nextClutch: m.nextClutch + 1, status: 'playing' };
   s.minute = Math.min(89, s.minute + 1);
   const act = said(opt.successText);
+
+  // VAR can overturn a goal: even a perfect decision does not always pay off
+  if (success && (opt.onSuccess === 'goal' || opt.onSuccess === 'assist') && rng() < 0.09) {
+    s = { ...s, rating: s.rating + 0.15, momentum: clamp(s.momentum - 6, -100, 100) };
+    s = push(s, s.minute, 'miss', 'me', tr('🚩 {who} {act} — but VAR rules it out for offside!', { who, act }), true);
+    return { state: s, success: false };
+  }
 
   if (success) {
     s.clutchWins += 1;
@@ -369,12 +383,35 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
         s = { ...s, rating: s.rating + 0.25, momentum: clamp(s.momentum + 30, -100, 100) };
         s = push(s, s.minute, 'clutch', 'me', `🔥 ${who} ${act}.`, true);
     }
+    // flavour line on the last event
+    s = { ...s, events: s.events.map((e, i) => (i === s.events.length - 1 ? { ...e, text: e.text + flavour(true) } : e)) };
     return { state: s, success: true };
   }
 
-  // Failure
+  // Failure — several possible outcomes for the same decision
+  let variant: FailVariant | undefined;
+  if (opt.fail?.length) variant = weightedPick(opt.fail, (v) => v.w, rng);
+  if (variant?.fx === 'penalty') {
+    const text = tr('🎯 {who} {act}. Penalty to {me}!', { who, act: said(variant.text), me: ctx.myTeam });
+    // the clutch counter only advances once the kick has been taken
+    return { state: push(m, m.minute, 'clutch', 'me', text, true), success: true, kick: 'penalty' };
+  }
   s = { ...s, rating: s.rating - 0.2, momentum: clamp(s.momentum - 12, -100, 100) };
-  s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${said(opt.failText)}.`, true);
+  if (variant?.fx === 'card') s = { ...s, rating: s.rating - 0.4 };
+  if (variant?.fx === 'oppfk') s = { ...s, momentum: clamp(s.momentum - 8, -100, 100) };
+  const failText = variant ? variant.text : opt.failText;
+  s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${said(failText)}.${variant ? '' : flavour(false)}`, true);
+  if (!variant && !moment.defensive) {
+    // a lucky break now and then: second chance or a foul won
+    const r = rng();
+    if (r < 0.07) {
+      s = { ...s, myScore: s.myScore + 1, rating: s.rating + 0.3, momentum: clamp(s.momentum + 22, -100, 100) };
+      s = push(s, s.minute, 'goal', 'me', tr('🍀 …but the rebound falls to a teammate who scores! {a}–{b}', { ...sc(ctx, s.myScore, s.oppScore) }));
+    } else if (r < 0.18) {
+      s = { ...s, rating: s.rating + 0.2, momentum: clamp(s.momentum + 14, -100, 100) };
+      s = push(s, s.minute, 'foul', 'me', tr('🟨 A foul is given — a free kick in a good position.'));
+    }
+  }
   if (moment.defensive && rng() < 0.55) {
     s = { ...s, oppScore: s.oppScore + 1, rating: s.rating - 0.4, momentum: clamp(s.momentum - 20, -100, 100) };
     s = push(s, s.minute, 'goal', 'opp', tr('💔 {opp} punish the mistake and score! {a}–{b}', { opp: ctx.oppName, ...sc(ctx, s.myScore, s.oppScore) }));
@@ -383,7 +420,7 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
 }
 
 /** Called once the 8-zone goal UI has produced a result. */
-export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: KickResult, curled = false): MatchState {
+export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: KickResult, curled = false, miss?: 'post' | 'bar' | 'wide' | 'over'): MatchState {
   const who = surname(ctx.playerName);
   const label = tr(kind === 'penalty' ? 'penalty' : 'free kick');
   let s: MatchState = { ...m, clutchTotal: m.clutchTotal + 1, nextClutch: m.nextClutch + 1, status: 'playing' };
@@ -397,7 +434,14 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
   }
   const text: Record<Exclude<KickResult, 'goal'>, string> = {
     saved: tr('🧤 SAVED! The keeper denies {who} from the {label}.', { who, label }),
-    missed: tr('😱 {who} blazes the {label} wide!', { who, label }),
+    missed:
+      miss === 'post'
+        ? tr('😱 {who} hits the post with the {label}!', { who, label })
+        : miss === 'bar'
+          ? tr('😱 {who} smashes the {label} against the crossbar!', { who, label })
+          : miss === 'over'
+            ? tr('😱 {who} sends the {label} over the bar!', { who, label })
+            : tr('😱 {who} drags the {label} wide!', { who, label }),
     blocked: tr('🧱 {who}’s free kick crashes into the wall.', { who }),
   };
   s = { ...s, missedKick: true, rating: s.rating - 0.5, momentum: clamp(s.momentum - 18, -100, 100) };

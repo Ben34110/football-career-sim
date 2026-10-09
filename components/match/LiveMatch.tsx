@@ -248,7 +248,7 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
             title={kick === 'penalty' ? 'Spot Kick' : 'Dead Ball'}
             subtitle={`${m.minute}' · ${homeBadge.name} ${homeScore}–${awayScore} ${awayBadge.name}`}
             onDone={(o) => {
-              setM((prev) => applyKick(prev, ctx, kick, o.result, o.curl !== 'straight'));
+              setM((prev) => applyKick(prev, ctx, kick, o.result, o.curl !== 'straight', o.miss));
               setKick(null);
             }}
           />

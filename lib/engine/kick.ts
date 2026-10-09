@@ -45,8 +45,12 @@ export interface KickInput {
   wall?: WallSide;
 }
 
+export type MissKind = 'post' | 'bar' | 'wide' | 'over';
+
 export interface KickOutcome {
   result: KickResult;
+  /** Why a shot that was not saved still did not go in */
+  miss?: MissKind;
   shotZone: number;
   diveZone: number;
   /** For UI flavour */
@@ -85,6 +89,19 @@ export function saveChance(shot: number, dive: number, keeperLevel: number, kind
   return clamp(p * kq, 0, 0.92);
 }
 
+/** Which way an off-target shot goes: corners clip the woodwork, high shots skim the bar or sail over. */
+export function missKindFor(zone: number, rng: Rng): MissKind {
+  const top = zoneRow(zone) === 0;
+  const corner = zone === 0 || zone === 3 || zone === 4 || zone === 7;
+  const r = rng();
+  if (corner) {
+    if (top) return r < 0.35 ? 'post' : r < 0.7 ? 'bar' : r < 0.85 ? 'over' : 'wide';
+    return r < 0.55 ? 'post' : 'wide';
+  }
+  if (top) return r < 0.45 ? 'bar' : 'over';
+  return r < 0.5 ? 'wide' : 'post';
+}
+
 export function resolveKick(input: KickInput, rng: Rng): KickOutcome {
   const { zone, kind } = input;
   const curl: Curl = kind === 'freekick' ? input.curl ?? 'straight' : 'straight';
@@ -116,7 +133,7 @@ export function resolveKick(input: KickInput, rng: Rng): KickOutcome {
   else if (rng() < saveP) result = 'saved';
   else result = 'goal';
 
-  return { result, shotZone: zone, diveZone, missP, saveP, curl };
+  return { result, miss: result === 'missed' ? missKindFor(zone, rng) : undefined, shotZone: zone, diveZone, missP, saveP, curl };
 }
 
 /** Quick auto-resolve for teammates in a shootout */

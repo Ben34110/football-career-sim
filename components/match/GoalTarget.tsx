@@ -39,7 +39,18 @@ const RESULT_COPY = {
   goal: { text: 'GOAL!', color: 'text-neon-300', glow: 'drop-shadow-[0_0_18px_rgba(52,211,153,0.9)]' },
   saved: { text: 'SAVED!', color: 'text-crimson-400', glow: 'drop-shadow-[0_0_18px_rgba(239,44,69,0.9)]' },
   missed: { text: 'MISSED!', color: 'text-crimson-400', glow: 'drop-shadow-[0_0_18px_rgba(239,44,69,0.9)]' },
+  post: { text: 'POST!', color: 'text-gold-300', glow: 'drop-shadow-[0_0_18px_rgba(242,193,78,0.9)]' },
+  bar: { text: 'CROSSBAR!', color: 'text-gold-300', glow: 'drop-shadow-[0_0_18px_rgba(242,193,78,0.9)]' },
+  wide: { text: 'WIDE!', color: 'text-crimson-400', glow: 'drop-shadow-[0_0_18px_rgba(239,44,69,0.9)]' },
+  over: { text: 'OVER THE BAR!', color: 'text-crimson-400', glow: 'drop-shadow-[0_0_18px_rgba(239,44,69,0.9)]' },
   blocked: { text: 'BLOCKED!', color: 'text-crimson-400', glow: 'drop-shadow-[0_0_18px_rgba(239,44,69,0.9)]' },
+} as const;
+
+const MISS_TEXT = {
+  post: 'The ball clanged off the post — unlucky!',
+  bar: 'The ball smashed against the crossbar!',
+  wide: 'The shot dragged wide of the post.',
+  over: 'The shot flew over the crossbar.',
 } as const;
 
 function pressureLabel(p: number) {
@@ -88,10 +99,18 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
     if (!outcome) return { left: '50%', top: '93%', scale: 1 };
     const c = zoneCenter(outcome.shotZone);
     if (outcome.result === 'missed') {
-      const top = zoneRow(outcome.shotZone) === 0;
-      return top
-        ? { left: `${c.x + (zoneCol(outcome.shotZone) < 2 ? -3 : 3)}%`, top: '-2%', scale: 0.4 }
-        : { left: zoneCol(outcome.shotZone) < 2 ? '-2%' : '102%', top: `${c.y}%`, scale: 0.45 };
+      const left = zoneCol(outcome.shotZone) < 2;
+      const postX = left ? GOAL.left : GOAL.left + GOAL.width;
+      switch (outcome.miss) {
+        case 'post':
+          return { left: `${postX}%`, top: `${c.y}%`, scale: 0.55 };
+        case 'bar':
+          return { left: `${c.x}%`, top: `${GOAL.top}%`, scale: 0.55 };
+        case 'over':
+          return { left: `${c.x + (left ? -3 : 3)}%`, top: '-4%', scale: 0.35 };
+        default:
+          return { left: left ? '-3%' : '103%', top: `${c.y}%`, scale: 0.45 };
+      }
     }
     if (outcome.result === 'blocked') {
       // the ball smacks into a player of the wall: aim for the middle of the covered columns, chest height
@@ -114,6 +133,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
   const bt = ballTarget();
   // Curled free kicks swing out first, then bend back toward the target
   const curved = !!outcome && outcome.curl !== 'straight' && kind === 'freekick';
+  const woodwork = outcome?.result === 'missed' && (outcome.miss === 'post' || outcome.miss === 'bar');
   const midLeft = curved && outcome ? `${parseFloat(String(bt.left)) + (outcome.curl === 'left' ? 16 : -16)}%` : bt.left;
   const midTop = curved ? '62%' : bt.top;
   const revealed = phase === 'revealed' && outcome;
@@ -192,6 +212,19 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
 
         </div>
 
+        {revealed && outcome?.result === 'missed' && (outcome.miss === 'post' || outcome.miss === 'bar') && (
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute z-[9] h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold-300"
+            style={{
+              left: `${outcome.miss === 'post' ? (zoneCol(outcome.shotZone) < 2 ? GOAL.left : GOAL.left + GOAL.width) : zoneCenter(outcome.shotZone).x}%`,
+              top: `${outcome.miss === 'post' ? zoneCenter(outcome.shotZone).y : GOAL.top}%`,
+            }}
+            initial={{ scale: 0.4, opacity: 1 }}
+            animate={{ scale: 2.2, opacity: 0 }}
+            transition={{ duration: 0.7 }}
+          />
+        )}
         {kind === 'freekick' && <Wall side={wall} color={wallColor} phase={phase} result={outcome?.result} />}
         {kind === 'freekick' && phase === 'aim' && hover !== null && <TrajectoryPreview zone={hover} curl={curl} />}
 
@@ -223,9 +256,16 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
           animate={
             phase === 'aim'
               ? { left: '50%', top: '93%', scale: 1 }
-              : curved
-                ? { left: ['50%', midLeft, bt.left], top: ['93%', midTop, bt.top], scale: [1, 0.8, bt.scale] }
-                : { left: bt.left, top: bt.top, scale: bt.scale }
+              : woodwork && outcome
+                ? {
+                    // clangs off the woodwork and bounces back into play
+                    left: ['50%', bt.left, `${parseFloat(String(bt.left)) + (zoneCol(outcome.shotZone) < 2 ? 7 : -7)}%`],
+                    top: ['93%', bt.top, outcome.miss === 'bar' ? '36%' : '68%'],
+                    scale: [1, bt.scale, 0.8],
+                  }
+                : curved
+                  ? { left: ['50%', midLeft, bt.left], top: ['93%', midTop, bt.top], scale: [1, 0.8, bt.scale] }
+                  : { left: bt.left, top: bt.top, scale: bt.scale }
           }
           transition={reduce ? { duration: 0 } : { duration: curved ? 0.75 : 0.55, ease: curved ? 'easeInOut' : [0.2, 0.7, 0.3, 1] }}
         >
@@ -245,8 +285,8 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
               transition={{ type: 'spring', stiffness: 380, damping: 16 }}
               className="pointer-events-none absolute inset-x-0 top-[58%] z-30 text-center"
             >
-              <span className={cn('font-display text-6xl font-extrabold italic tracking-tight', RESULT_COPY[outcome.result].color, RESULT_COPY[outcome.result].glow)}>
-                {t(RESULT_COPY[outcome.result].text)}
+              <span className={cn('font-display text-6xl font-extrabold italic tracking-tight', RESULT_COPY[outcome.result === 'missed' && outcome.miss ? outcome.miss : outcome.result].color, RESULT_COPY[outcome.result === 'missed' && outcome.miss ? outcome.miss : outcome.result].glow)}>
+                {t(RESULT_COPY[outcome.result === 'missed' && outcome.miss ? outcome.miss : outcome.result].text)}
               </span>
             </motion.div>
           )}
@@ -307,6 +347,10 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
         {phase === 'flying' && <p className="pt-3 text-center text-sm font-semibold text-zinc-400">{t('Struck… the keeper is diving…')}</p>}
         {revealed && outcome && (
           <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-2">
+            {outcome.result === 'missed' && outcome.miss && (
+              <p className="text-center text-sm font-semibold text-zinc-200">{t(MISS_TEXT[outcome.miss])}</p>
+            )}
+            {outcome.result === 'blocked' && <p className="text-center text-sm font-semibold text-zinc-200">{t('The shot hit the wall.')}</p>}
             <p className="text-center text-xs text-zinc-400">
               {t('You aimed')} <span className="font-semibold text-zinc-200">{t(ZONE_NAMES[outcome.shotZone])}</span> · {t('keeper dived')}{' '}
               <span className="font-semibold text-zinc-200">{t(ZONE_NAMES[outcome.diveZone])}</span>

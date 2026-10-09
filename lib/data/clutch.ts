@@ -43,7 +43,13 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'A defender stumbles into your heels inside the area. The referee hesitates.',
     options: [
       { id: 'stay', label: 'Stay up & shoot', hint: 'Fight through the contact', risk: 'Balanced', mini: 'power', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'stays on his feet and fires home', failText: 'is unbalanced and shoots wide' },
-      { id: 'appeal', label: 'Go down — appeal', hint: 'Win the penalty (the ref decides)', risk: 'Bold', attr: 'composure', base: 0.5, onSuccess: 'kick-penalty', successText: 'goes down and the referee points to the spot', failText: 'goes down — the referee waves play on and books him for simulation' },
+      { id: 'appeal', label: 'Go down — appeal', hint: 'Win the penalty (the ref decides)', risk: 'Bold', attr: 'composure', base: 0.5, onSuccess: 'kick-penalty', successText: 'goes down and the referee points to the spot', failText: 'goes down — the referee waves play on', fail: [
+        { text: 'goes down — the referee waves play on', w: 4 },
+        { text: 'goes down and is booked for simulation', w: 2, fx: 'card' },
+        { text: 'goes down; the referee checks the monitor and awards the penalty', w: 1.2, fx: 'penalty' },
+        { text: 'goes down — the referee gives a free kick the other way', w: 1.4, fx: 'oppfk' },
+        { text: 'goes down but the referee points at the defender’s clean challenge', w: 2 },
+      ] },
       { id: 'pass', label: 'Play it across', hint: 'Find the free man', risk: 'Safe', mini: 'memory', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'cuts it back for a simple finish', failText: 'sees the pass blocked' },
     ],
   },

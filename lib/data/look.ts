@@ -1,6 +1,11 @@
-export type HairStyle = 'bald' | 'buzz' | 'short' | 'quiff' | 'afro' | 'curls' | 'long' | 'braids';
+export type HairStyle = 'bald' | 'buzz' | 'short' | 'quiff' | 'afro' | 'curls' | 'long' | 'braids' | 'bob' | 'ponytail' | 'bun' | 'pixie';
 export type BeardStyle = 'none' | 'stubble' | 'short' | 'full';
 export type FaceShape = 'oval' | 'round' | 'square';
+export type Gender = 'male' | 'female';
+export type Hat = 'none' | 'cap' | 'beanie' | 'headband';
+export type Glasses = 'none' | 'round' | 'square' | 'sun';
+export type EarGear = 'none' | 'stud' | 'hoop' | 'earbuds' | 'headphones';
+export type Piercing = 'none' | 'nose' | 'brow' | 'lip';
 
 export interface Look {
   /** Index into SKINS */
@@ -12,6 +17,15 @@ export interface Look {
   /** Index into EYE_COLORS (older saves: brown) */
   eyes?: number;
   face?: FaceShape;
+  gender?: Gender;
+  // accessories
+  hat?: Hat;
+  glasses?: Glasses;
+  ears?: EarGear;
+  piercing?: Piercing;
+  chain?: boolean;
+  /** Index into ACC_COLORS: cap, frames, headphones */
+  accColor?: number;
 }
 
 export const SKINS = ['#f7d9c0', '#efc29b', '#d9a577', '#b57d52', '#8a5a3b', '#5c3b28'] as const;
@@ -39,7 +53,26 @@ export const EYE_COLORS = [
 export const FACE_SHAPES: FaceShape[] = ['oval', 'round', 'square'];
 export const FACE_LABEL: Record<FaceShape, string> = { oval: 'Oval', round: 'Round', square: 'Square' };
 
-export const HAIR_STYLES: HairStyle[] = ['bald', 'buzz', 'short', 'quiff', 'afro', 'curls', 'long', 'braids'];
+export const ACC_COLORS = [
+  { id: 'black', hex: '#1c1c20' },
+  { id: 'white', hex: '#f4f4f5' },
+  { id: 'navy', hex: '#1e3a8a' },
+  { id: 'red', hex: '#dc2626' },
+  { id: 'emerald', hex: '#059669' },
+  { id: 'gold', hex: '#d9a42b' },
+] as const;
+
+export const HAT_STYLES: Hat[] = ['none', 'cap', 'beanie', 'headband'];
+export const GLASSES_STYLES: Glasses[] = ['none', 'round', 'square', 'sun'];
+export const EAR_STYLES: EarGear[] = ['none', 'stud', 'hoop', 'earbuds', 'headphones'];
+export const PIERCINGS: Piercing[] = ['none', 'nose', 'brow', 'lip'];
+
+export const HAT_LABEL: Record<Hat, string> = { none: 'No hat', cap: 'Cap', beanie: 'Beanie', headband: 'Headband' };
+export const GLASSES_LABEL: Record<Glasses, string> = { none: 'No glasses', round: 'Round', square: 'Square', sun: 'Sunglasses' };
+export const EAR_LABEL: Record<EarGear, string> = { none: 'Nothing', stud: 'Stud', hoop: 'Hoop', earbuds: 'Earbuds', headphones: 'Headphones' };
+export const PIERCING_LABEL: Record<Piercing, string> = { none: 'None', nose: 'Nose', brow: 'Eyebrow', lip: 'Lip' };
+
+export const HAIR_STYLES: HairStyle[] = ['bald', 'buzz', 'short', 'quiff', 'afro', 'curls', 'long', 'braids', 'bob', 'ponytail', 'bun', 'pixie'];
 export const BEARD_STYLES: BeardStyle[] = ['none', 'stubble', 'short', 'full'];
 
 export const HAIR_LABEL: Record<HairStyle, string> = {
@@ -51,6 +84,10 @@ export const HAIR_LABEL: Record<HairStyle, string> = {
   curls: 'Curls',
   long: 'Long',
   braids: 'Braids',
+  bob: 'Bob',
+  ponytail: 'Ponytail',
+  bun: 'Bun',
+  pixie: 'Pixie cut',
 };
 
 export const BEARD_LABEL: Record<BeardStyle, string> = {
@@ -60,17 +97,27 @@ export const BEARD_LABEL: Record<BeardStyle, string> = {
   full: 'Full beard',
 };
 
-export const DEFAULT_LOOK: Look = { skin: 2, hair: 'short', hairColor: 0, beard: 'none', eyes: 1, face: 'oval' };
+export const DEFAULT_LOOK: Look = { skin: 2, hair: 'short', hairColor: 0, beard: 'none', eyes: 1, face: 'oval', gender: 'male', hat: 'none', glasses: 'none', ears: 'none', piercing: 'none', chain: false, accColor: 0 };
 
 export const lookOf = (p: { look?: Look } | null | undefined): Look => p?.look ?? DEFAULT_LOOK;
 
 const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 
-export const randomLook = (): Look => ({
-  skin: Math.floor(Math.random() * SKINS.length),
-  hair: pick(HAIR_STYLES),
-  hairColor: Math.floor(Math.random() * 6),
-  beard: pick(BEARD_STYLES),
-  eyes: Math.floor(Math.random() * EYE_COLORS.length),
-  face: pick(FACE_SHAPES),
-});
+export const randomLook = (): Look => {
+  const female = Math.random() < 0.4;
+  return {
+    skin: Math.floor(Math.random() * SKINS.length),
+    hair: pick(female ? (['long', 'bob', 'ponytail', 'bun', 'pixie', 'curls', 'braids', 'afro', 'short'] as HairStyle[]) : (['buzz', 'short', 'quiff', 'afro', 'curls', 'braids', 'bald', 'long'] as HairStyle[])),
+    hairColor: Math.floor(Math.random() * 6),
+    beard: female ? 'none' : pick(BEARD_STYLES),
+    eyes: Math.floor(Math.random() * EYE_COLORS.length),
+    face: pick(FACE_SHAPES),
+    gender: female ? 'female' : 'male',
+    hat: Math.random() < 0.15 ? pick(['cap', 'beanie', 'headband'] as Hat[]) : 'none',
+    glasses: Math.random() < 0.2 ? pick(['round', 'square', 'sun'] as Glasses[]) : 'none',
+    ears: Math.random() < 0.25 ? pick(['stud', 'hoop', 'earbuds', 'headphones'] as EarGear[]) : 'none',
+    piercing: Math.random() < 0.12 ? pick(['nose', 'brow', 'lip'] as Piercing[]) : 'none',
+    chain: Math.random() < 0.15,
+    accColor: Math.floor(Math.random() * ACC_COLORS.length),
+  };
+};

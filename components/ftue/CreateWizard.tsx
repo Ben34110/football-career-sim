@@ -16,15 +16,25 @@ import { startersFor } from '@/lib/data/clubs';
 import {
   BEARD_LABEL,
   BEARD_STYLES,
+  ACC_COLORS,
   DEFAULT_LOOK,
+  EAR_LABEL,
+  EAR_STYLES,
   EYE_COLORS,
   FACE_LABEL,
   FACE_SHAPES,
+  GLASSES_LABEL,
+  GLASSES_STYLES,
+  HAT_LABEL,
+  HAT_STYLES,
+  PIERCING_LABEL,
+  PIERCINGS,
   HAIR_COLORS,
   HAIR_LABEL,
   HAIR_STYLES,
   randomLook,
   SKINS,
+  type Gender,
   type Look,
 } from '@/lib/data/look';
 import { NATIONALITIES } from '@/lib/data/nationalities';
@@ -43,6 +53,7 @@ import { useGameStore } from '@/lib/store';
 import type { AttrKey, Attributes, Foot, Position } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+const LOOK_TABS = { face: 'Face', hair: 'Hair', extras: 'Extras' } as const;
 const STEPS = ['Identity', 'Look', 'Style', 'First club', 'Attributes'];
 
 const POS_DOT: Record<Position, [number, number]> = { ST: [50, 14], CAM: [50, 34], RW: [82, 24], LW: [18, 24] };
@@ -64,6 +75,7 @@ export function CreateWizard() {
 
   const [name, setName] = useState('');
   const [look, setLook] = useState<Look>(DEFAULT_LOOK);
+  const [lookTab, setLookTab] = useState<'face' | 'hair' | 'extras'>('face');
   const [nationality, setNationality] = useState('FRA');
   const [position, setPosition] = useState<Position>('ST');
   const [foot, setFoot] = useState<Foot>('Right');
@@ -172,83 +184,188 @@ export function CreateWizard() {
             {step === 1 && (
               <>
                 <Header eyebrow={t('Step {n}', { n: 2 })} title={t('Your look')} sub={t('Customise your head. It appears on your player card.')} />
-                <div className="flex flex-col items-center gap-3">
-                  <motion.div key={`${look.skin}-${look.hair}-${look.hairColor}-${look.beard}`} initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}>
-                    <HeadAvatar look={look} size={168} className="drop-shadow-[0_10px_24px_rgba(0,0,0,0.6)]" />
-                  </motion.div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setLook(randomLook());
-                      haptic(12);
-                    }}
-                  >
-                    <Dices className="h-4 w-4" /> {t('Surprise me')}
-                  </Button>
-                </div>
 
-                <div>
-                  <span className="eyebrow">{t('Skin tone')}</span>
-                  <div className="mt-2 flex flex-wrap gap-2.5">
-                    {SKINS.map((c, i) => (
-                      <Swatch key={c} color={c} active={look.skin === i} label={`${t('Skin tone')} ${i + 1}`} onClick={() => setLook((l) => ({ ...l, skin: i }))} />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="eyebrow">{t('Face shape')}</span>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {FACE_SHAPES.map((f) => (
-                      <Thumb key={f} active={(look.face ?? 'oval') === f} label={t(FACE_LABEL[f])} onClick={() => setLook((l) => ({ ...l, face: f }))}>
-                        <HeadAvatar look={{ ...look, face: f }} size={54} />
-                      </Thumb>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="eyebrow">{t('Eye colour')}</span>
-                  <div className="mt-2 flex flex-wrap gap-2.5">
-                    {EYE_COLORS.map((c, i) => (
-                      <Swatch key={c.id} color={c.hex} active={(look.eyes ?? 1) === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, eyes: i }))} />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="eyebrow">{t('Hairstyle')}</span>
-                  <div className="mt-2 grid grid-cols-4 gap-2">
-                    {HAIR_STYLES.map((h) => (
-                      <Thumb key={h} active={look.hair === h} label={t(HAIR_LABEL[h])} onClick={() => setLook((l) => ({ ...l, hair: h }))}>
-                        <HeadAvatar look={{ ...look, hair: h }} size={54} />
-                      </Thumb>
-                    ))}
-                  </div>
-                </div>
-
-                {look.hair !== 'bald' && (
-                  <div>
-                    <span className="eyebrow">{t('Hair colour')}</span>
-                    <div className="mt-2 flex flex-wrap gap-2.5">
-                      {HAIR_COLORS.map((c, i) => (
-                        <Swatch key={c.id} color={c.hex} active={look.hairColor === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, hairColor: i }))} />
-                      ))}
+                {/* the preview stays in view whatever you scroll to */}
+                <div className="sticky top-0 z-30 -mx-4 border-b border-white/[0.06] bg-zinc-950/90 px-4 pb-2 pt-[max(env(safe-area-inset-top),0.5rem)] backdrop-blur-xl">
+                  <div className="flex items-center justify-between gap-3">
+                    <HeadAvatar look={look} size={120} className="drop-shadow-[0_8px_18px_rgba(0,0,0,0.6)]" />
+                    <div className="flex flex-1 flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(['male', 'female'] as Gender[]).map((g) => (
+                          <button
+                            key={g}
+                            onClick={() => {
+                              haptic(10);
+                              setLook((l) => ({ ...l, gender: g, beard: g === 'female' ? 'none' : l.beard }));
+                            }}
+                            aria-pressed={(look.gender ?? 'male') === g}
+                            className={cn('h-10 rounded-xl border text-[13px] font-bold transition-all active:scale-95', (look.gender ?? 'male') === g ? 'border-neon-400/60 bg-neon-400/10 text-neon-300' : 'border-white/[0.08] bg-white/[0.04] text-zinc-400')}
+                          >
+                            {g === 'male' ? '♂ ' + t('Man') : '♀ ' + t('Woman')}
+                          </button>
+                        ))}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setLook(randomLook());
+                          haptic(12);
+                        }}
+                      >
+                        <Dices className="h-4 w-4" /> {t('Surprise me')}
+                      </Button>
                     </div>
                   </div>
-                )}
-
-                <div>
-                  <span className="eyebrow">{t('Facial hair')}</span>
-                  <div className="mt-2 grid grid-cols-4 gap-2">
-                    {BEARD_STYLES.map((b) => (
-                      <Thumb key={b} active={look.beard === b} label={t(BEARD_LABEL[b])} onClick={() => setLook((l) => ({ ...l, beard: b }))}>
-                        <HeadAvatar look={{ ...look, beard: b }} size={54} />
-                      </Thumb>
+                  <div className="mt-2 grid grid-cols-3 gap-1.5 rounded-xl bg-white/[0.04] p-1">
+                    {(['face', 'hair', 'extras'] as const).map((k) => (
+                      <button key={k} onClick={() => setLookTab(k)} aria-pressed={lookTab === k} className={cn('h-8 rounded-lg text-[12px] font-bold transition-all', lookTab === k ? 'bg-white/15 text-zinc-50' : 'text-zinc-500')}>
+                        {t(LOOK_TABS[k])}
+                      </button>
                     ))}
                   </div>
                 </div>
+
+                {lookTab === 'face' && (
+                  <>
+                    <div>
+                      <span className="eyebrow">{t('Skin tone')}</span>
+                      <div className="mt-2 flex flex-wrap gap-2.5">
+                        {SKINS.map((c, i) => (
+                          <Swatch key={c} color={c} active={look.skin === i} label={`${t('Skin tone')} ${i + 1}`} onClick={() => setLook((l) => ({ ...l, skin: i }))} />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Face shape')}</span>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        {FACE_SHAPES.map((f) => (
+                          <Thumb key={f} active={(look.face ?? 'oval') === f} label={t(FACE_LABEL[f])} onClick={() => setLook((l) => ({ ...l, face: f }))}>
+                            <HeadAvatar look={{ ...look, face: f }} size={54} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Eye colour')}</span>
+                      <div className="mt-2 flex flex-wrap gap-2.5">
+                        {EYE_COLORS.map((c, i) => (
+                          <Swatch key={c.id} color={c.hex} active={(look.eyes ?? 1) === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, eyes: i }))} />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {lookTab === 'hair' && (
+                  <>
+                    <div>
+                      <span className="eyebrow">{t('Hairstyle')}</span>
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        {HAIR_STYLES.map((h) => (
+                          <Thumb key={h} active={look.hair === h} label={t(HAIR_LABEL[h])} onClick={() => setLook((l) => ({ ...l, hair: h }))}>
+                            <HeadAvatar look={{ ...look, hair: h }} size={54} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    {look.hair !== 'bald' && (
+                      <div>
+                        <span className="eyebrow">{t('Hair colour')}</span>
+                        <div className="mt-2 flex flex-wrap gap-2.5">
+                          {HAIR_COLORS.map((c, i) => (
+                            <Swatch key={c.id} color={c.hex} active={look.hairColor === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, hairColor: i }))} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {look.gender !== 'female' && (
+                      <div>
+                        <span className="eyebrow">{t('Facial hair')}</span>
+                        <div className="mt-2 grid grid-cols-4 gap-2">
+                          {BEARD_STYLES.map((b) => (
+                            <Thumb key={b} active={look.beard === b} label={t(BEARD_LABEL[b])} onClick={() => setLook((l) => ({ ...l, beard: b }))}>
+                              <HeadAvatar look={{ ...look, beard: b }} size={54} />
+                            </Thumb>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {lookTab === 'extras' && (
+                  <>
+                    <div>
+                      <span className="eyebrow">{t('Headwear')}</span>
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        {HAT_STYLES.map((h) => (
+                          <Thumb key={h} active={(look.hat ?? 'none') === h} label={t(HAT_LABEL[h])} onClick={() => setLook((l) => ({ ...l, hat: h }))}>
+                            <HeadAvatar look={{ ...look, hat: h }} size={54} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Glasses')}</span>
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        {GLASSES_STYLES.map((g) => (
+                          <Thumb key={g} active={(look.glasses ?? 'none') === g} label={t(GLASSES_LABEL[g])} onClick={() => setLook((l) => ({ ...l, glasses: g }))}>
+                            <HeadAvatar look={{ ...look, glasses: g }} size={54} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Ears')}</span>
+                      <div className="mt-2 grid grid-cols-5 gap-1.5">
+                        {EAR_STYLES.map((g) => (
+                          <Thumb key={g} active={(look.ears ?? 'none') === g} label={t(EAR_LABEL[g])} onClick={() => setLook((l) => ({ ...l, ears: g }))}>
+                            <HeadAvatar look={{ ...look, ears: g }} size={46} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Piercing')}</span>
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        {PIERCINGS.map((g) => (
+                          <Thumb key={g} active={(look.piercing ?? 'none') === g} label={t(PIERCING_LABEL[g])} onClick={() => setLook((l) => ({ ...l, piercing: g }))}>
+                            <HeadAvatar look={{ ...look, piercing: g }} size={54} />
+                          </Thumb>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="eyebrow">{t('Chain')}</span>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {[false, true].map((on) => (
+                          <button
+                            key={String(on)}
+                            onClick={() => {
+                              haptic(8);
+                              setLook((l) => ({ ...l, chain: on }));
+                            }}
+                            aria-pressed={!!look.chain === on}
+                            className={cn('h-10 rounded-xl border text-[13px] font-bold', !!look.chain === on ? 'border-neon-400/60 bg-neon-400/10 text-neon-300' : 'border-white/[0.08] bg-white/[0.04] text-zinc-400')}
+                          >
+                            {on ? t('Gold chain') : t('None')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {((look.hat ?? 'none') !== 'none' || (look.glasses ?? 'none') === 'round' || (look.glasses ?? 'none') === 'square' || look.ears === 'headphones') && (
+                      <div>
+                        <span className="eyebrow">{t('Accessory colour')}</span>
+                        <div className="mt-2 flex flex-wrap gap-2.5">
+                          {ACC_COLORS.map((c, i) => (
+                            <Swatch key={c.id} color={c.hex} active={(look.accColor ?? 0) === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, accColor: i }))} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 

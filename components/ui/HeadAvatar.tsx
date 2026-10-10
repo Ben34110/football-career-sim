@@ -38,6 +38,8 @@ interface Props {
   kit?: string;
   /** Facial expression (neutral by default) */
   expression?: Expression;
+  /** Head and neck only: the shirt is drawn by whoever places the avatar (a full-body scene) */
+  bare?: boolean;
 }
 
 /** Hair that sits behind the head. */
@@ -210,7 +212,7 @@ const BROW: Record<Expression, { rot: number; dy: number }> = {
   shock: { rot: 0, dy: -2.8 },
 };
 
-export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false, kit = '#0f9d6c', expression = 'neutral' }: Props) {
+export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false, kit = '#0f9d6c', expression = 'neutral', bare = false }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const id = (n: string) => `${n}${uid}`;
   const url = (n: string) => `url(#${id(n)})`;
@@ -385,8 +387,8 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
 
         {/* neck (in shadow under the jaw) and shirt */}
         <path d="M40.500 64h19v20c-3 5.500-16 5.500-19 0z" fill={url('neck')} />
-        <path d="M5 106c1-15 16-23 35-25 5 7 15 7 20 0 19 2 34 10 35 25z" fill={url('kit')} />
-        <path d="M5 106c1-15 16-23 35-25 5 7 15 7 20 0 19 2 34 10 35 25z" fill="#000" opacity=".12" />
+        {!bare && <path d="M5 106c1-15 16-23 35-25 5 7 15 7 20 0 19 2 34 10 35 25z" fill={url('kit')} />}
+        {!bare && <path d="M5 106c1-15 16-23 35-25 5 7 15 7 20 0 19 2 34 10 35 25z" fill="#000" opacity=".12" />}
         <path d="M38.500 80.500c3.500 8 19.500 8 23 0" fill="none" stroke={gold} strokeWidth="2.400" strokeLinecap="round" />
         {look.chain && (
           <g>

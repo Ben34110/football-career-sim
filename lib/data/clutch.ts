@@ -71,8 +71,8 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'The referee points to the spot. Every eye in the stadium turns to you.',
     options: [
       { id: 'take', label: 'Take it yourself', hint: 'Pick your zone in the 8-zone goal', risk: 'Bold', attr: 'composure', base: 1, onSuccess: 'kick-penalty', successText: 'grabs the ball and walks to the spot', failText: '' },
-      { id: 'captain', label: 'Hand it to the captain', hint: 'Let the designated taker go', risk: 'Safe', attr: 'composure', base: 0.72, onSuccess: 'goal', successText: 'hands over the ball and the captain converts', failText: 'sees the captain’s penalty saved' },
-      { id: 'trust', label: 'Back a youngster', hint: 'Build locker-room trust', risk: 'Balanced', attr: 'vision', base: 0.64, onSuccess: 'goal', successText: 'hands the ball to the youngster who scores confidently', failText: 'watches the youngster blaze it over' },
+      { id: 'captain', label: 'Hand it to the captain', hint: 'Let the designated taker go', risk: 'Safe', attr: 'composure', base: 0.72, taker: 0.84, onSuccess: 'goal', successText: 'hands over the ball and the captain converts', failText: 'sees the captain’s penalty saved' },
+      { id: 'trust', label: 'Back a youngster', hint: 'Build locker-room trust', risk: 'Balanced', attr: 'vision', base: 0.64, taker: 0.72, onSuccess: 'goal', successText: 'hands the ball to the youngster who scores confidently', failText: 'watches the youngster blaze it over' },
     ],
   },
   {

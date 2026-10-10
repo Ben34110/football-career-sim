@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Loader2, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Crowd } from "./Crowd";
-import { MomentScene } from "./MomentScene";
+import { MomentScene, SCENE_BLEED } from "./MomentScene";
 import { PhotoFx } from "./PhotoFx";
 import type { Look } from "@/lib/data/look";
 import { buildFrontPage, type PaperCtx, type Pose } from "@/lib/data/newspaper";
@@ -129,7 +129,8 @@ export function Newspaper({
               <Crowd kit={kit} joy={joy} />
               <PhotoFx pose={page.pose} kit={kit} />
               <motion.div
-                className="absolute inset-x-0 bottom-0 flex origin-bottom justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]"
+                className="absolute inset-x-0 flex origin-bottom justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]"
+                style={{ bottom: -178 * SCENE_BLEED }}
                 animate={SCENE_MOTION[page.pose]}
                 transition={{ repeat: Infinity, repeatType: "mirror", ease: "easeInOut", duration: SCENE_SPEED[page.pose] }}
               >

@@ -332,6 +332,8 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
 
 export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): number {
   if (opt.base >= 1) return 1;
+  // a teammate takes the penalty: a real conversion rate (~75-85%), nudged by how well you read the moment
+  if (opt.taker !== undefined) return clamp(opt.taker + ctx.clutchBonus + (m.clutchBoost ?? 0) + (ctx.attrs[opt.attr] - 70) / 500 + m.momentum / 1500, 0.4, 0.93);
   const attr = ctx.attrs[opt.attr];
   // Better opposition makes every decision harder
   const opposition = (ctx.oppStr - ctx.myStr) / 100;

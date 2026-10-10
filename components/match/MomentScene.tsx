@@ -121,7 +121,7 @@ function HandShape({ kind, fill, line }: { kind: Hand; fill: string; line: strin
   );
 }
 
-function Limb({ arm, kit, skin, line, ids }: { arm: Arm; kit: string; skin: string; line: string; ids: { s: string; k: string } }) {
+function Limb({ arm, skin, line, ids, clip }: { arm: Arm; skin: string; line: string; ids: { s: string; k: string; shade: string; out: string }; clip: boolean }) {
   const c = spline(arm.pts);
   const body = ribbon(c, width, 0, 1, true);
   const sleeve = ribbon(c, width, 0, 0.5, false, 3.4);
@@ -132,7 +132,8 @@ function Limb({ arm, kit, skin, line, ids }: { arm: Arm; kit: string; skin: stri
   return (
     <g>
       {/* one outline behind everything, so the arm reads as a single shape */}
-      <g fill={line} stroke={line} strokeWidth="2.200" strokeLinejoin="round">
+      {/* the outline stops where the arm meets the body, so shoulder and chest are one piece */}
+      <g fill={line} stroke={line} strokeWidth="2.200" strokeLinejoin="round" clipPath={clip ? `url(#${ids.out})` : undefined}>
         <path d={body} />
         <path d={sleeve} />
       </g>
@@ -173,6 +174,11 @@ function MatchBall() {
 }
 
 /** The player in the middle of a moment: body language, tilt and a little staging. */
+/** The scene runs a little below the photo so the body never ends in view, even while it bobs. */
+export const SCENE_BLEED = 20 / 170;
+
+const TORSO = 'M46 190L52 140C53 126 57 114 66 108C74 104 84 103 90 102L110 102C116 103 126 104 134 108C143 114 147 126 148 140L154 190Z';
+
 export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178 }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const skin = SKINS[look.skin] ?? SKINS[2];
@@ -180,23 +186,27 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
   const kitLine = shade(kit, -0.62);
   const arms = ARMS[pose];
   const tilt = TILT[pose];
-  const ids = { s: `skin${uid}`, k: `kit${uid}`, g: `gold${uid}`, t: `torso${uid}` };
+  const ids = { s: `skin${uid}`, k: `shirt${uid}`, g: `gold${uid}`, t: `shirt${uid}`, shade: `shade${uid}`, out: `out${uid}` };
 
   return (
-    <svg viewBox="0 0 200 170" height={height} width={(height * 200) / 170} role="img" aria-hidden className="shrink-0">
+    <svg viewBox="0 0 200 190" height={height * (190 / 170)} width={(height * 200) / 170} role="img" aria-hidden className="shrink-0">
       <defs>
         <linearGradient id={ids.s} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={shade(skin, 0.1)} />
           <stop offset="1" stopColor={shade(skin, -0.22)} />
         </linearGradient>
-        <linearGradient id={ids.k} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={shade(kit, 0.14)} />
-          <stop offset="1" stopColor={shade(kit, -0.32)} />
+        {/* one shirt gradient for chest and sleeves, so the shoulders blend into the body */}
+        <linearGradient id={ids.k} gradientUnits="userSpaceOnUse" x1="0" y1="96" x2="0" y2="190">
+          <stop offset="0" stopColor={shade(kit, -0.04)} />
+          <stop offset="1" stopColor={shade(kit, -0.5)} />
         </linearGradient>
-        <linearGradient id={ids.t} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={shade(kit, -0.28)} />
-          <stop offset="1" stopColor={shade(kit, -0.52)} />
+        <linearGradient id={ids.shade} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#000" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity=".16" />
         </linearGradient>
+        <clipPath id={ids.out}>
+          <path clipRule="evenodd" d={`M-60 -60H260V260H-60Z ${TORSO}`} />
+        </clipPath>
         <linearGradient id={ids.g} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#fde68a" />
           <stop offset=".5" stopColor="#fbbf24" />
@@ -204,19 +214,20 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
         </linearGradient>
       </defs>
 
-      {/* shoulders and chest: one shape that flows into the sleeves */}
-      <path d="M48 170L56 134C58 120 72 110 90 106L110 106C128 110 142 120 144 134L152 170Z" fill={kitLine} stroke={kitLine} strokeWidth="2.200" strokeLinejoin="round" />
-      <path d="M48 170L56 134C58 120 72 110 90 106L110 106C128 110 142 120 144 134L152 170Z" fill={`url(#${ids.t})`} />
+      {/* shoulders and body: one silhouette, long enough that it never ends in view */}
+      <path d={TORSO} fill={kitLine} stroke={kitLine} strokeWidth="2.200" strokeLinejoin="round" />
+      <path d={TORSO} fill={`url(#${ids.t})`} />
+      <path d="M90 102C94 112 106 112 110 102" fill="none" stroke={shade(kit, -0.62)} strokeWidth=".8" opacity=".5" />
 
       {/* the head, tilted from the neck */}
       <g transform={`rotate(${tilt} 100 112)`}>
         <g transform="translate(55 38)">
-          <HeadAvatar look={look} kit={kit} expression={expression} size={90} />
+          <HeadAvatar look={look} kit={kit} expression={expression} size={90} bare />
         </g>
       </g>
 
       {arms.map((a, i) => (
-        <Limb key={i} arm={a} kit={kit} skin={skin} line={line} ids={ids} />
+        <Limb key={i} arm={a} skin={skin} line={line} ids={ids} clip={pose !== 'crossed'} />
       ))}
 
       {/* props and effects */}

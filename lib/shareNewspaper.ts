@@ -200,7 +200,8 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
   const scene = await loadScene(p, sceneH);
   if (scene) {
     const w = (sceneH * 200) / 170;
-    g.drawImage(scene, (W - w) / 2, photoTop + photoH - sceneH, w, sceneH);
+    // the scene runs a little below the photo (clipped), like on screen
+    g.drawImage(scene, (W - w) / 2, photoTop + photoH - sceneH, w, (sceneH * 190) / 170);
   }
   const vg = g.createRadialGradient(W / 2, photoTop + photoH / 2, photoH * 0.35, W / 2, photoTop + photoH / 2, W * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)');

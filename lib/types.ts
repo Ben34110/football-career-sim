@@ -402,6 +402,8 @@ export interface ClutchOption {
   attr: AttrKey;
   /** Base success chance before attributes/momentum */
   base: number;
+  /** A teammate's kick: the real conversion rate of the taker (replaces the scaled-down base) */
+  taker?: number;
   /** When set, the choice opens a skill mini-game instead of rolling dice */
   mini?: MiniKind;
   /** What happens on success */

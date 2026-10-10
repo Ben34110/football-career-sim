@@ -419,9 +419,11 @@ function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
         <span className={cn('whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
       )}
       <Crest short={badge.short} color={badge.color} size={48} />
-      <span className="line-clamp-2 min-h-[2.5em] text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
-      {/* always takes its line, so both crests sit at the same height */}
-      <span className={cn('-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300', !you && 'invisible')}>{t('You')}</span>
+      {/* the name and "You" stay together; the block has a fixed height so both crests sit at the same level */}
+      <div className="flex min-h-[2.9rem] flex-col items-center gap-0.5">
+        <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
+        <span className={cn('text-[9px] font-bold uppercase leading-none tracking-widest text-gold-300', !you && 'invisible')}>{t('You')}</span>
+      </div>
     </div>
   );
 }

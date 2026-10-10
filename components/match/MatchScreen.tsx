@@ -25,6 +25,7 @@ import { useUiStore } from '@/lib/ui';
 import { crestShort } from '@/lib/utils';
 import type { Fixture, FixtureResult, MatchState } from '@/lib/types';
 import { CupDraw } from './CupDraw';
+import { GroupDraw } from './GroupDraw';
 import { LiveMatch, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
@@ -215,7 +216,10 @@ export function MatchScreen() {
 
   return (
     <div className="pb-4">
-      {stage === 'brief' && fixture.drawn === false && (
+      {stage === 'brief' && fixture.drawn === false && fixture.kind === 'tournament' && season?.tourney && !season.tourney.drawn && (
+        <GroupDraw tourney={season.tourney} tournament={season.tournamentName ?? ''} onDraw={(picks) => useGameStore.getState().drawTournamentGroup(picks)} />
+      )}
+      {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
       {stage === 'brief' && fixture.drawn !== false && ritual && (
@@ -247,7 +251,7 @@ export function MatchScreen() {
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
-      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} look={player.look} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
+      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} look={player.look} kit={badges.me.color} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
       {stage === 'summary' && result && snap && expect && (
         <MatchSummary
           fixture={fixture}

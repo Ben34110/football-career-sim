@@ -23,10 +23,12 @@ export interface RoundupLine {
 export function Newspaper({
   ctx,
   look,
+  kit,
   date,
 }: {
   ctx: PaperCtx;
   look?: Look;
+  kit?: string;
   date: Date;
   roundup?: RoundupLine[];
 }) {
@@ -57,6 +59,7 @@ export function Newspaper({
         rating: ctx.rating.toFixed(1),
         joy,
         look,
+        kit,
         footer: t("Built in Pitch Legacy"),
       },
       t("{name} made the front page! Can you beat my career?", {
@@ -144,7 +147,7 @@ export function Newspaper({
                 </g>
               </svg>
               <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 [filter:grayscale(0.2)_contrast(1.08)_sepia(0.18)_drop-shadow(0_8px_10px_rgba(0,0,0,0.5))]">
-                <HeadAvatar look={look} size={168} />
+                <HeadAvatar look={look} size={168} kit={kit} />
               </div>
               {/* print grain and vignette */}
               <div className="pointer-events-none absolute inset-0 mix-blend-multiply [background-image:radial-gradient(rgba(0,0,0,0.28)_0.9px,transparent_1.1px)] [background-size:3.5px_3.5px]" />

@@ -35,6 +35,7 @@ import { runBallonDor } from './engine/awards';
 import { ordinalOf, translate as tr } from './i18n';
 import {
   applyDraw,
+  applyGroupDraw,
   applyFixtureResult,
   baseDivision,
   generateSeason,
@@ -105,6 +106,8 @@ interface GameActions {
   beginMatch: () => boolean;
   /** The player picks a ball in the cup / tournament draw */
   drawFixture: (fixtureId: string, index: number) => void;
+  /** The tournament group draw: one ball per pot */
+  drawTournamentGroup: (picks: number[]) => void;
   applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult, others?: OtherGame[]) => void;
@@ -215,6 +218,12 @@ export const useGameStore = create<GameStore>()(
         const { season } = get();
         if (!season) return;
         set({ season: applyDraw(season, fixtureId, index) });
+      },
+
+      drawTournamentGroup: (picks) => {
+        const { season } = get();
+        if (!season) return;
+        set({ season: applyGroupDraw(season, picks) });
       },
 
       applyStance: (s) => {
@@ -331,13 +340,14 @@ export const useGameStore = create<GameStore>()(
             ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, matches: [], reason });
           } else {
             nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: teamName }), 'gold'));
-            const idx = nextSeason.fixtures.findIndex((f) => f.kind === 'intl' && f.status === 'upcoming');
-            const f = nextSeason.fixtures[idx];
-            if (f) ui.pushCallUp({ outcome: 'called', level: lvlNow, nationCode: player.nationality, matches: [{ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, idx).toISOString() }] });
+            const games = nextSeason.fixtures.map((f, i) => ({ f, i })).filter(({ f }) => f.kind === 'intl' && f.status === 'upcoming');
+            if (games.length) ui.pushCallUp({ outcome: 'called', level: lvlNow, nationCode: player.nationality, matches: games.map(({ f, i }) => ({ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, i).toISOString() })) });
           }
         }
         if (nextSeason.tournamentQueued && !season.tournamentQueued && lvlNow) {
-          if (nextSeason.tournamentOmitted) {
+          if (nextSeason.tournamentFailed) {
+            nextNews = addNews(nextNews, mkNews(tr('{team} failed to qualify for the {name}.', { team: teamName, name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
+          } else if (nextSeason.tournamentOmitted) {
             const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
             nextNews = addNews(nextNews, mkNews(tr('You miss the {name}: the coach left you out.', { name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
             ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason });
@@ -606,6 +616,15 @@ export const useGameStore = create<GameStore>()(
             pendingMove: offer,
             news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Agreed: new deal at {club} next season.' : 'Agreed: joining {club} next season.', { club: club.name }), 'gold')),
           });
+          // After the season, the summer window ends the story: sign, watch the ceremony, and the new season starts
+          if (phase === 'season-end') {
+            if (offer.source === 'renewal') {
+              useUiStore.getState().showSigning({ kind: 'renewal', clubId: club.id, playerName: player.name, position: player.position, wage: offer.wage, years: offer.years, fee: offer.fee });
+            }
+            // a transfer shows its own ceremony as the new season begins
+            get().startNextSeason();
+            return { ok: true, msg: tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : 'Welcome to {club}!', { club: club.name }) };
+          }
           useUiStore.getState().showSigning({
             kind: offer.source === 'renewal' ? 'renewal' : 'agreed',
             clubId: club.id,

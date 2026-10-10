@@ -34,6 +34,8 @@ interface Props {
   className?: string;
   /** Bare bust by default; `framed` adds a round dark portrait background */
   framed?: boolean;
+  /** Shirt colour (the club's colour); emerald by default */
+  kit?: string;
 }
 
 /** Hair that sits behind the head. */
@@ -194,7 +196,7 @@ function HairFront({ style, fill, dark, light }: { style: Look['hair']; fill: st
   }
 }
 
-export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false }: Props) {
+export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false, kit = '#0f9d6c' }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const id = (n: string) => `${n}${uid}`;
   const url = (n: string) => `url(#${id(n)})`;
@@ -277,8 +279,8 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
           <stop offset="1" stopColor="#09090b" />
         </radialGradient>
         <linearGradient id={id('kit')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#14c28a" />
-          <stop offset="1" stopColor="#046c4e" />
+          <stop offset="0" stopColor={shade(kit, 0.16)} />
+          <stop offset="1" stopColor={shade(kit, -0.4)} />
         </linearGradient>
         <linearGradient id={id('skin')} x1=".1" y1="0" x2=".9" y2="1">
           <stop offset="0" stopColor={skinHi} />

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Check, CircleDot, Flag, Globe, Lock, Minus, Star, Trophy, X } from 'lucide-react';
 import { useState } from 'react';
+import { TournamentView } from './TournamentView';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
@@ -54,7 +55,7 @@ export function CalendarScreen() {
             <div className="text-sm font-bold">{level ? t('{team} national team', { team: teamName }) : t('National team call-ups')}</div>
             {level ? (
               <div className="text-xs text-zinc-400">
-                {season?.tournamentQueued ? t('Playing: {name}', { name: t(season.tournamentName ?? '') }) : nextTournament ? t('Eligible for the {name} this summer', { name: t(nextTournament) }) : t('No major tournament this summer')}
+                {season?.tournamentFailed ? t('Did not qualify for the {name}', { name: t(season.tournamentName ?? '') }) : season?.tournamentQueued ? t('Playing: {name}', { name: t(season.tournamentName ?? '') }) : nextTournament ? t('Eligible for the {name} this summer', { name: t(nextTournament) }) : t('No major tournament this summer')}
               </div>
             ) : (
               <div className="text-xs text-zinc-400">{t('U20 from OVR {a} · U23 from {b} · senior from {c}', { a: U20_CALL_UP_OVR, b: U23_CALL_UP_OVR, c: CALL_UP_OVR })}</div>
@@ -156,7 +157,7 @@ function Fixtures({ season }: { season: SeasonState }) {
     // rounds you can no longer reach (knocked out) simply disappear
     .filter(({ f }) => f.status !== 'skipped')
     // later knockout rounds stay hidden until you reach them (European knockouts also wait for the group stage)
-    .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && (firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
+    .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && (f.kind === 'tournament' && season.tourney ? false : firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
   return (
     <ol className="relative space-y-2 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-white/10">
       {visible.map(({ f, i }) => {
@@ -199,15 +200,28 @@ function Fixtures({ season }: { season: SeasonState }) {
 function Table() {
   const t = useT();
   const season = useGameStore((s) => s.season);
-  const [view, setView] = useState<'league' | 'europe'>('league');
+  const [view, setView] = useState<View>(() => (season?.tourney ? 'tournament' : 'league'));
   if (!season) return null;
+  const views: { id: View; label: string }[] = [
+    { id: 'league', label: t('League') },
+    ...(season.europe ? [{ id: 'europe' as View, label: t(season.europe) }] : []),
+    ...(season.tourney ? [{ id: 'tournament' as View, label: t(season.tournamentName ?? 'Tournament') }] : []),
+  ];
   // saves from before the group table existed get one rebuilt from the matches already played
   const euroTable = season.euroTable ?? deriveEuroTable(season);
   const hasEurope = !!season.europe && !!euroTable;
+  if (season.tourney && view === 'tournament') {
+    return (
+      <div className="space-y-2.5">
+        {views.length > 1 && <ViewSwitch view={view} onChange={setView} options={views} />}
+        <TournamentView tourney={season.tourney} name={season.tournamentName ?? ''} />
+      </div>
+    );
+  }
   if (hasEurope && view === 'europe') {
     return (
       <div className="space-y-2.5">
-        <ViewSwitch view={view} onChange={setView} europe={season.europe!} />
+        <ViewSwitch view={view} onChange={setView} options={views} />
         <EuropeTable season={season} table={euroTable!} />
       </div>
     );
@@ -226,8 +240,8 @@ function Table() {
   };
   return (
     <div className="space-y-2.5">
-      {hasEurope ? (
-        <ViewSwitch view={view} onChange={setView} europe={season.europe!} />
+      {views.length > 1 ? (
+        <ViewSwitch view={view} onChange={setView} options={views} />
       ) : (
         <div className="px-1 text-[11px] font-semibold text-zinc-500">
           {t('Division {n}', { n: div })}
@@ -277,18 +291,19 @@ function Table() {
   );
 }
 
-function ViewSwitch({ view, onChange, europe }: { view: 'league' | 'europe'; onChange: (v: 'league' | 'europe') => void; europe: string }) {
-  const t = useT();
+type View = 'league' | 'europe' | 'tournament';
+
+function ViewSwitch({ view, onChange, options }: { view: View; onChange: (v: View) => void; options: { id: View; label: string }[] }) {
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
-      {(['league', 'europe'] as const).map((v) => (
+    <div className={cn('grid gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+      {options.map((o) => (
         <button
-          key={v}
-          onClick={() => onChange(v)}
-          aria-pressed={view === v}
-          className={cn('h-9 rounded-lg text-[13px] font-bold transition-colors', view === v ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-zinc-950' : 'text-zinc-400')}
+          key={o.id}
+          onClick={() => onChange(o.id)}
+          aria-pressed={view === o.id}
+          className={cn('h-9 truncate rounded-lg px-1 text-[13px] font-bold transition-colors', view === o.id ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-zinc-950' : 'text-zinc-400')}
         >
-          {v === 'league' ? t('League') : t(europe)}
+          {o.label}
         </button>
       ))}
     </div>

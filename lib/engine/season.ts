@@ -14,6 +14,7 @@ import type {
   TableRow,
 } from '../types';
 import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
+import { createTournament, drawGroup, groupMatchday, knockoutFixture, myGroupRank, opponentKey, playOut, playRound, roundIndex, startKnockout } from './tournament';
 import { finalFor, simulateScore, type OtherGame } from './livefeed';
 import { clamp, mulberry32, rand, randInt, shuffle, type Rng } from './rng';
 
@@ -327,6 +328,31 @@ function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng:
 }
 
 /** The player picks a ball: the opponent of this round becomes known. */
+/** The group draw: one ball from each pot decides your three opponents. */
+export function applyGroupDraw(season: SeasonState, picks: number[], rng: Rng = Math.random): SeasonState {
+  const t = season.tourney;
+  if (!t || t.drawn) return season;
+  const nt = drawGroup(t, picks, rng);
+  // your three matches follow the order of the pots you drew from
+  const byPot = t.potOrder.map((p, i) => nt.teams[t.pots[p][Math.max(0, Math.min(t.pots[p].length - 1, picks[i] ?? 0))]]);
+  return {
+    ...season,
+    tourney: nt,
+    fixtures: season.fixtures.map((f) => {
+      const m = f.kind === 'tournament' ? Number(f.label.match(/Group Match (\d)/)?.[1]) : NaN;
+      if (!m || f.drawn !== false) return f;
+      const team = byPot[m - 1];
+      return {
+        ...f,
+        opponent: nt.level === 'A' ? team.name : `${team.name} ${nt.level}`,
+        opponentShort: team.short,
+        opponentStrength: team.strength,
+        drawn: true,
+      };
+    }),
+  };
+}
+
 export function applyDraw(season: SeasonState, fixtureId: string, index: number, rng: Rng = Math.random): SeasonState {
   const fx = season.fixtures.find((f) => f.id === fixtureId);
   if (!fx?.pool) return season;
@@ -466,7 +492,45 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
     }
   }
 
-  if (fixture.kind === 'tournament') {
+  if (fixture.kind === 'intl' && /Qualifier$/.test(fixture.label)) {
+    next.qualPts = (season.qualPts ?? 0) + (result.outcome === 'W' ? 3 : result.outcome === 'D' ? 1 : 0);
+  }
+
+  if (fixture.kind === 'tournament' && next.tourney?.drawn) {
+    let t = next.tourney;
+    const out = () => {
+      next.tournamentAlive = false;
+      skipRest('tournament');
+    };
+    if (!fixture.knockout) {
+      const md = Number(fixture.label.match(/Group Match (\d)/)?.[1] ?? 1);
+      t = groupMatchday(t, md, opponentKey(fixture.opponent), result, rng);
+      if (md === 3) {
+        t = startKnockout(t);
+        if (myGroupRank(t) < 2) {
+          const qf = knockoutFixture(t, 0, season.year, rng);
+          if (qf) next.fixtures = [...next.fixtures, qf];
+        } else {
+          t = playOut(t, rng);
+          out();
+        }
+      }
+    } else {
+      const r = roundIndex(fixture.label);
+      t = playRound(t, r, result, rng);
+      if (result.outcome === 'L') {
+        t = playOut(t, rng);
+        out();
+      } else if (r < 2) {
+        const nf = knockoutFixture(t, r + 1, season.year, rng);
+        if (nf) next.fixtures = [...next.fixtures, nf];
+      } else {
+        next.tournamentAlive = false;
+        next.trophies = [...next.trophies, `${season.tournamentName} ${season.year + 1}`];
+      }
+    }
+    next.tourney = t;
+  } else if (fixture.kind === 'tournament') {
     if (result.outcome === 'L') {
       next.tournamentAlive = false;
       skipRest('tournament');
@@ -482,9 +546,9 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
 
 /* ───────── National team call-ups ───────── */
 
-function nationOpponent(own: Nationality, boost: number, label: string, id: string, kind: Fixture['kind'], knockout: boolean, rng: Rng, level: NationalLevel = 'A'): Fixture {
-  // opponents come from the competitive half of the world
-  const pool = OPPONENT_NATIONS.filter((n) => n.code !== own.code && n.strength >= 66);
+function nationOpponent(own: Nationality, boost: number, label: string, id: string, kind: Fixture['kind'], knockout: boolean, rng: Rng, level: NationalLevel = 'A', from?: Nationality[]): Fixture {
+  // friendlies: the competitive half of the world; qualifiers: the nation's own confederation
+  const pool = from?.length ? from : OPPONENT_NATIONS.filter((n) => n.code !== own.code && n.strength >= 66);
   const opp = pool[Math.floor(rng() * pool.length)];
   return {
     id,
@@ -518,9 +582,15 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
     if (!canPick('window')) {
       next = { ...next, callUpQueued: true, callUpOmitted: true };
     } else {
-    const qualifier = nationOpponent(nat, -2, level === 'A' ? 'International Qualifier' : level === 'U23' ? 'U23 International' : 'U20 International', `${next.year}-I1`, 'intl', false, rng, level);
+    // The break brings two games: qualifiers when a tournament is coming next summer, friendlies otherwise
+    const comp = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
+    const label = comp ? `${comp} Qualifier` : 'International Friendly';
+    const confed = OPPONENT_NATIONS.filter((n) => n.confederation === nat.confederation && n.code !== nat.code);
+    const first = nationOpponent(nat, comp ? -3 : -1, label, `${next.year}-I1`, 'intl', false, rng, level, comp ? confed : undefined);
+    const second = nationOpponent(nat, comp ? -2 : 0, label, `${next.year}-I2`, 'intl', false, rng, level, comp ? confed.filter((n) => !first.opponent.startsWith(n.name)) : OPPONENT_NATIONS.filter((n) => n.code !== nat.code && n.strength >= 66 && !first.opponent.startsWith(n.name)));
+    second.home = !first.home;
     const fixtures = [...next.fixtures];
-    fixtures.splice(upcomingIdx + 1, 0, qualifier);
+    fixtures.splice(upcomingIdx + 1, 0, first, second);
     next = { ...next, fixtures, callUpQueued: true };
     }
   }
@@ -528,31 +598,24 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
   // Summer tournament once the domestic calendar is done
   const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
   const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl' || f.kind === 'euro'));
-  if (!next.tournamentQueued && tournament && !domesticLeft && !canPick('tournament')) {
+  // Reaching the summer tournament takes qualifying: stronger nations and good qualifier results help
+  const qualifies = (): boolean => {
+    const p = clamp(0.62 + (nat.strength - 74) / 40 + ((next.qualPts ?? 3) - 3) * 0.07, 0.12, 0.97);
+    return rng() < p;
+  };
+  if (!next.tournamentQueued && tournament && !domesticLeft && !qualifies()) {
+    next = { ...next, tournamentQueued: true, tournamentFailed: true, tournamentName: tournament };
+  } else if (!next.tournamentQueued && tournament && !domesticLeft && !canPick('tournament')) {
     next = { ...next, tournamentQueued: true, tournamentOmitted: true, tournamentName: tournament };
   } else if (!next.tournamentQueued && tournament && !domesticLeft) {
-    const stages: [string, number, boolean][] = [
-      ['Group Stage Decider', -3, false],
-      ['Quarter-Final', 0, true],
-      ['Semi-Final', 2, true],
-      ['Final', 4, true],
-    ];
-    const extra = stages.map(([label, boost, ko], i) => {
-      // four possible opponents per stage, of different strength
-      const spread = shuffle([-5, -1, 2, 6], rng);
-      const options = Array.from({ length: i === 2 ? 3 : i === 3 ? 1 : 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng, level));
-      const names = new Set<string>();
-      const pool: DrawCandidate[] = options
-        .filter((o) => !names.has(o.opponent) && names.add(o.opponent))
-        .map((o) => ({ opponent: o.opponent, opponentShort: o.opponentShort, opponentStrength: o.opponentStrength, opponentColor: o.opponentColor }));
-      return { ...options[0], ...pool[0], drawn: false, pool };
-    });
+    const { tourney, fixtures: groupFixtures } = createTournament(tournament, nat, level, next.year, rng);
     next = {
       ...next,
-      fixtures: [...next.fixtures, ...extra],
+      fixtures: [...next.fixtures, ...groupFixtures],
       tournamentQueued: true,
       tournamentAlive: true,
       tournamentName: tournament,
+      tourney,
     };
   }
   next.cursor = firstUpcoming(next) === -1 ? next.fixtures.length : firstUpcoming(next);

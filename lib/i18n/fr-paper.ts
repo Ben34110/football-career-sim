@@ -12,6 +12,39 @@ export const FR_PAPER: Record<string, string> = {
   '📋 {who} calls for calm: the team drops deeper and defends.': '📋 {who} réclame du calme : l’équipe recule et défend.',
   '📋 {who} steadies things: the team goes back to a balanced shape.': '📋 {who} stabilise les choses : l’équipe retrouve un bloc équilibré.',
 
+  // tournaments
+  'Champions: {team}': 'Champion : {team}',
+  'Group draw': 'Tirage des groupes',
+  'Group {l}': 'Groupe {l}',
+  'Next pot': 'Chapeau suivant',
+  'Pick one ball from each pot to build your group of four.': 'Choisis une boule dans chaque chapeau pour composer ta poule de quatre.',
+  'Pot {n}': 'Chapeau {n}',
+  'Reveal my group': 'Découvrir ma poule',
+  Team: 'Équipe',
+  'The group draw has not happened yet. It takes place before your first match.': 'Le tirage des groupes n’a pas encore eu lieu. Il se fait avant ton premier match.',
+  'To the group stage': 'Vers la phase de groupes',
+  'Top two of each group reach the quarter-finals': 'Les deux premiers de chaque poule vont en quarts de finale',
+  'Your group': 'Ta poule',
+  'Your group is set.': 'Ta poule est connue.',
+  'Top seeds': 'Têtes de série',
+  Contenders: 'Prétendants',
+  Outsiders: 'Outsiders',
+  'Group Match 1': 'Match de poule 1',
+  'Group Match 2': 'Match de poule 2',
+  'Group Match 3': 'Match de poule 3',
+
+  // international window
+  'International Friendly': 'Match amical international',
+  '{team} failed to qualify for the {name}.': '{team} ne s’est pas qualifié pour la {name}.',
+  'Did not qualify for the {name}': 'Non qualifié pour la {name}',
+
+  // match scenario
+  '📉 {opp} are clearly the stronger side — a very tough match awaits.': '📉 {opp} est clairement plus fort — un match très difficile t’attend.',
+  '📉 {opp} are a notch above — {me} will have to be at their best.': '📉 {opp} est un cran au-dessus — {me} devra être au meilleur de sa forme.',
+  '📈 {me} are big favourites — but a smaller side can always bite.': '📈 {me} est grand favori — mais un petit peut toujours mordre.',
+  '📈 {me} are the favourites on paper.': '📈 {me} est favori sur le papier.',
+  '⚡ {opp} come out fired up — this is no walkover!': '⚡ {opp} revient survolté — ce n’est pas une promenade !',
+
   // cup draw
   'The other semi-final': 'L’autre demi-finale',
   'The winner will be your opponent in the final.': 'Le vainqueur sera ton adversaire en finale.',

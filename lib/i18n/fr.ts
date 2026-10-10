@@ -28,6 +28,8 @@ export const FR: Record<string, string> = {
  */
 export const FR_PATTERNS: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^Matchday (\d+)$/, (m) => `Journée ${m[1]}`],
+  // international windows: "Africa Cup of Nations Qualifier"
+  [/^(.+) Qualifier$/, (m) => `Qualif. ${FR[m[1]] ?? m[1]}`],
   // European competitions: fixture labels and trophies
   [/^(Champions League|Europa League) Group Match (\d)$/, (m) => `${FR[m[1]]} · Match de poule ${m[2]}`],
   [/^(Champions League|Europa League) (Round of 16|Quarter-Final|Semi-Final|Final)$/, (m) => `${FR[m[1]]} · ${FR[m[2]] ?? m[2]}`],

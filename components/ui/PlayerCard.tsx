@@ -8,7 +8,7 @@ import { ATTR_LABEL, calcOvr, fmtMoneyM, marketValue, ovrProgress } from '@/lib/
 import type { Look } from '@/lib/data/look';
 import { useT } from '@/lib/i18n';
 import type { AttrKey, Attributes, Position } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { abbrevClub, cn } from '@/lib/utils';
 import { Crest } from './Crest';
 import { HeadAvatar } from './HeadAvatar';
 
@@ -69,8 +69,8 @@ export function PlayerCard({ name, nationality, position, attrs, xp, age, clubId
     >
       <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-gold-300/20 blur-3xl" />
       <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-70 [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
-      <div className="relative flex items-start justify-between">
-        <div className="flex flex-col items-center">
+      <div className="relative grid grid-cols-[1fr_auto_1fr] items-start">
+        <div className="flex flex-col items-center justify-self-start">
           <motion.span
             key={ovr}
             initial={{ scale: 1.35, color: '#6ee7b7' }}
@@ -83,10 +83,10 @@ export function PlayerCard({ name, nationality, position, attrs, xp, age, clubId
           <span className="font-display text-lg font-bold tracking-[0.2em] text-gold-300">{position}</span>
           <span className="mt-1 text-xl leading-none" aria-label={t(nat.name)}>{nat.flag}</span>
         </div>
-        <HeadAvatar look={look} size={compact ? 84 : 104} className="-mt-1 drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" />
-        <div className="flex flex-col items-end text-right">
+        <HeadAvatar look={look} size={compact ? 84 : 104} kit={club?.color} className="mt-3 drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" />
+        <div className="flex min-w-0 flex-col items-end justify-self-end text-right">
           {club ? <Crest short={club.short} color={club.color} size={compact ? 38 : 46} /> : <span className="eyebrow">{t('Free agent')}</span>}
-          <span className="mt-1.5 max-w-[110px] truncate text-[11px] font-medium text-zinc-400">{club?.name ?? '—'}</span>
+          <span className="mt-1.5 max-w-[110px] truncate text-[11px] font-medium text-zinc-400">{club ? abbrevClub(t(club.name)) : '—'}</span>
           <span className="text-[11px] text-zinc-500">{t('Age')} {age}</span>
         </div>
       </div>

@@ -12,6 +12,7 @@ export interface PaperImage {
   rating: string;
   joy: boolean;
   look?: Look;
+  kit?: string;
   footer: string;
 }
 
@@ -110,7 +111,7 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
   [150, 330, 520, 700, 880].forEach((x, i) => glow(g, x + 20, photoTop + 40 + (i % 2) * 40, 90 + (i % 3) * 20, 'rgba(255,255,255,A)', 0.55));
   for (let i = 0; i < 20; i++) glow(g, 80 + i * 50, photoTop + photoH - 60 + ((i * 7) % 5) * 6, 46, 'rgba(0,0,0,A)', 0.5);
   const size = Math.min(photoH * 1.05, 560);
-  const img = await loadAvatar(p.look, Math.round(size));
+  const img = await loadAvatar(p.look, Math.round(size), p.kit);
   if (img) g.drawImage(img, (W - size) / 2, photoTop + photoH - size + size * 0.12, size, size);
   const vg = g.createRadialGradient(W / 2, photoTop + photoH / 2, photoH * 0.35, W / 2, photoTop + photoH / 2, W * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)');

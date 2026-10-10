@@ -9,14 +9,14 @@ type T = (text: string, vars?: Record<string, string | number>) => string;
 const W = 1080;
 const H = 1350;
 
-export async function loadAvatar(look: Player['look'], px = 420): Promise<HTMLImageElement | null> {
+export async function loadAvatar(look: Player['look'], px = 420, kit?: string): Promise<HTMLImageElement | null> {
   try {
     const [{ renderToStaticMarkup }, React, { HeadAvatar }] = await Promise.all([
       import('react-dom/server'),
       import('react'),
       import('@/components/ui/HeadAvatar'),
     ]);
-    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: px })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: px, kit })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const img = new Image();
     await new Promise<void>((res, rej) => {
@@ -77,7 +77,7 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   g.fillText(nat.flag, 108, 600);
 
   // head
-  const img = await loadAvatar(player.look);
+  const img = await loadAvatar(player.look, 420, club?.color);
   if (img) g.drawImage(img, W - 100 - 420, 170, 420, 420);
 
   // name

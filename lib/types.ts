@@ -122,6 +122,42 @@ export interface TableRow {
   isMe?: boolean;
 }
 
+export interface TournamentTeam {
+  name: string;
+  /** "🇸🇳 SEN" */
+  short: string;
+  strength: number;
+}
+
+export interface TournamentTie {
+  a: string;
+  b: string;
+  ga?: number;
+  gb?: number;
+  /** Penalty shootout score (a, b) when the tie was level */
+  pens?: [number, number];
+  winner?: string;
+}
+
+/** A summer tournament: 16 nations, four groups of four, then quarter-finals to the final. */
+export interface TournamentState {
+  level: 'A' | 'U23' | 'U20';
+  teams: Record<string, TournamentTeam>;
+  /** Your nation (key in `teams`) */
+  me: string;
+  /** The 15 other nations in three pots of five, strongest first */
+  pots: string[][];
+  /** Which pot each of your three group matches comes from */
+  potOrder: number[];
+  /** Filled once you have drawn your group */
+  drawn: boolean;
+  groups: TableRow[][];
+  myGroup: number;
+  /** Quarter-finals, semi-finals, final: ties appear as soon as they are known */
+  rounds: { label: string; ties: TournamentTie[] }[];
+  champion?: string;
+}
+
 export interface SeasonStats {
   apps: number;
   goals: number;
@@ -142,6 +178,10 @@ export interface SeasonState {
   callUpQueued: boolean;
   /** The national coach left you out of the mid-season window / the summer tournament */
   callUpOmitted?: boolean;
+  /** Points won in the qualifiers of this season's tournament (0–6) */
+  qualPts?: number;
+  /** Your nation failed to qualify for this summer's tournament */
+  tournamentFailed?: boolean;
   tournamentOmitted?: boolean;
   /** Summer tournament fixtures already appended */
   tournamentQueued: boolean;
@@ -154,6 +194,8 @@ export interface SeasonState {
   euroPts?: number;
   /** The European group: you and three foreign clubs */
   euroTable?: TableRow[];
+  /** The summer tournament, once it is queued (older saves keep per-round draws without it) */
+  tourney?: TournamentState | null;
   /** Training sessions used at the current cursor (capped per fixture) */
   training: { cursor: number; count: number };
   stats: SeasonStats;
@@ -409,6 +451,10 @@ export interface MatchState {
   missedKick: boolean;
   /** Team mentality for the whole match (changeable at any time) */
   mentality?: Mentality;
+  /** A weaker opponent has a sudden big spell at this minute (a surprise you can't plan for) */
+  surpriseAt?: number;
+  /** Their spell lasts until this minute */
+  surgeUntil?: number;
   /** The in-match team boost has been used */
   rallyUsed?: boolean;
   /** Added to every decision for the rest of the match (rally, second wind) */

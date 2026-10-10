@@ -26,10 +26,10 @@ export function TopBar() {
       <div className="flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           {locked ? (
-            <HeadAvatar look={player.look} size={36} framed />
+            <HeadAvatar look={player.look} size={36} framed kit={club?.color} />
           ) : (
             <Link href="/profile" aria-label={t('Profile')} className="active:scale-95">
-              <HeadAvatar look={player.look} size={36} framed />
+              <HeadAvatar look={player.look} size={36} framed kit={club?.color} />
             </Link>
           )}
           <div className="min-w-0 leading-tight">

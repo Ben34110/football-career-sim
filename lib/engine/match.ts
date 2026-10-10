@@ -181,6 +181,14 @@ export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
     mentality: 'balanced',
   };
   m = push(m, 0, 'kickoff', 'neutral', tr('Kick-off! {me} vs {opp}.', { me: ctx.myTeam, opp: ctx.oppName }));
+  // The scenario follows the gap between the two sides
+  const gap = ctx.myStr - ctx.oppStr;
+  if (gap <= -8) m = push(m, 0, 'kickoff', 'neutral', tr('📉 {opp} are clearly the stronger side — a very tough match awaits.', { opp: ctx.oppName }));
+  else if (gap <= -4) m = push(m, 0, 'kickoff', 'neutral', tr('📉 {opp} are a notch above — {me} will have to be at their best.', { opp: ctx.oppName, me: ctx.myTeam }));
+  else if (gap >= 8) m = push(m, 0, 'kickoff', 'neutral', tr('📈 {me} are big favourites — but a smaller side can always bite.', { me: ctx.myTeam }));
+  else if (gap >= 4) m = push(m, 0, 'kickoff', 'neutral', tr('📈 {me} are the favourites on paper.', { me: ctx.myTeam }));
+  // weaker sides sometimes have a day: a sudden spell nobody sees coming
+  if (gap >= 4 && rng() < clamp(0.1 + (gap - 4) / 70, 0.1, 0.3)) m = { ...m, surpriseAt: randInt(12, 66, rng) };
   if (!isStarter) {
     m = push(m, 0, 'sub', 'me', tr('{who} starts on the bench. The gaffer is not convinced yet.', { who: surname(ctx.playerName) }), true);
     // Silently play out the first 55 minutes without the player
@@ -240,12 +248,18 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     m = push(m, 45, 'halftime', 'neutral', tr('Half-time: {home} {a}–{b} {away}.', { ...sides(ctx), ...sc(ctx, m.myScore, m.oppScore) }));
   }
 
+  // the underdog's surprise: for a while they play above themselves
+  if (m.surpriseAt !== undefined && m.surgeUntil === undefined && prev < m.surpriseAt && m.minute >= m.surpriseAt) {
+    m = { ...m, surgeUntil: m.minute + 21, momentum: clamp(m.momentum - 30, -100, 100) };
+    m = push(m, m.minute, 'chance', 'opp', tr('⚡ {opp} come out fired up — this is no walkover!', { opp: ctx.oppName }), true);
+  }
+  const surging = m.surgeUntil !== undefined && m.minute <= m.surgeUntil;
   const d = ctx.myStr - ctx.oppStr;
   const men = MENTALITY[m.mentality ?? 'balanced'];
-  const myRate = clamp(0.13 * ctx.myRateMul * men.my * Math.exp(d / 45 + m.momentum / 300), 0.04, 0.5);
-  const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * Math.exp(-d / 45 - m.momentum / 300), 0.04, 0.5);
-  const myConv = clamp(0.18 * Math.exp(d / 70), 0.08, 0.38);
-  const oppConv = clamp(0.22 * Math.exp(-d / 70), 0.08, 0.38);
+  const myRate = clamp(0.13 * ctx.myRateMul * men.my * Math.exp(d / 38 + m.momentum / 300), 0.04, 0.5);
+  const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.04, 0.5);
+  const myConv = clamp(0.18 * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.08, 0.38);
+  const oppConv = clamp(0.22 * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.08, 0.4);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
 
   // My team attacks
@@ -307,7 +321,7 @@ export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): 
   if (opt.base >= 1) return 1;
   const attr = ctx.attrs[opt.attr];
   // Better opposition makes every decision harder
-  const opposition = (ctx.oppStr - ctx.myStr) / 140;
+  const opposition = (ctx.oppStr - ctx.myStr) / 100;
   return clamp(
     ctx.clutchBonus + (m.clutchBoost ?? 0) + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
     0.05,

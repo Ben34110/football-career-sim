@@ -23,6 +23,7 @@ export function PressZone({
   context,
   playerName,
   look,
+  kit,
   date,
   roundup,
   edition,
@@ -32,6 +33,7 @@ export function PressZone({
   context: PressContext;
   playerName: string;
   look?: Look;
+  kit?: string;
   date: Date;
   roundup: RoundupLine[];
   edition: number;
@@ -75,6 +77,7 @@ export function PressZone({
     <div className="space-y-3">
       <Newspaper
         look={look}
+        kit={kit}
         date={date}
         roundup={roundup}
         ctx={{

@@ -38,6 +38,7 @@ import {
   applyGroupDraw,
   applyFixtureResult,
   baseDivision,
+  europeFor,
   generateSeason,
   leagueZone,
   leaguePosition,
@@ -638,15 +639,17 @@ export const useGameStore = create<GameStore>()(
         }
 
         const moved = applyMove(player, offer);
-        const keepSeason = offer.source === 'renewal' ? season : generateSeason(year, club, Math.random);
+        // a new club comes with its own record: it may have qualified for Europe last season
+        const arrivalEurope = offer.source === 'renewal' ? null : europeFor(club, Math.random);
+        const keepSeason = offer.source === 'renewal' ? season : generateSeason(year, club, Math.random, { europe: arrivalEurope });
         set({
           player: moved,
           season: keepSeason,
-          ...(offer.source === 'renewal' ? {} : { division: baseDivision(club), europe: null }),
+          ...(offer.source === 'renewal' ? {} : { division: baseDivision(club), europe: arrivalEurope }),
           phase: 'playing',
           offers: [],
           pendingMove: null,
-          news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold')),
+          news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold'), ...(arrivalEurope ? [mkNews(tr('🌍 {club} qualified for the {comp} last season: European nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good')] : [])),
         });
         useUiStore.getState().showSigning({
           kind: offer.source === 'renewal' ? 'renewal' : 'signed',
@@ -715,12 +718,16 @@ export const useGameStore = create<GameStore>()(
           });
           return;
         }
+        // a new club comes with its own record: it may have qualified for Europe last season
+        const newClub = !!pendingMove && pendingMove.source !== 'renewal';
+        const arrivalEurope = newClub ? europeFor(club, Math.random) : null;
+        if (arrivalEurope) nextNews = addNews(nextNews, mkNews(tr('🌍 {club} qualified for the {comp} last season: European nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good'));
         set({
           year: nextYear,
           player: p,
           // a new club starts in its own division; otherwise the promotion / relegation / European place earned carries over
-          season: generateSeason(nextYear, club, Math.random, pendingMove && pendingMove.source !== 'renewal' ? {} : { division: get().division, europe: get().europe }),
-          ...(pendingMove && pendingMove.source !== 'renewal' ? { division: baseDivision(club), europe: null } : {}),
+          season: generateSeason(nextYear, club, Math.random, newClub ? { europe: arrivalEurope } : { division: get().division, europe: get().europe }),
+          ...(newClub ? { division: baseDivision(club), europe: arrivalEurope } : {}),
           phase: 'playing',
           pendingMove: null,
           lastSummary: null,

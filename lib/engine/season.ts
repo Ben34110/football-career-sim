@@ -32,6 +32,18 @@ const LEAGUE_MATCHES = 10;
 /** The division a club naturally plays in. */
 export const baseDivision = (club: Club): Division => (club.tier <= 3 ? 1 : club.tier === 4 ? 2 : 3);
 
+/**
+ * A club you join arrives with a history: last season it may already have qualified for Europe.
+ * Elite clubs usually play the Champions League, solid top-flight clubs the Europa League, lower ones rarely.
+ */
+export function europeFor(club: Club, rng: Rng): EuroComp | null {
+  if (club.tier > 3) return null;
+  const roll = rng();
+  if (club.tier === 1) return roll < 0.8 ? 'Champions League' : roll < 0.95 ? 'Europa League' : null;
+  if (club.tier === 2) return roll < 0.25 ? 'Champions League' : roll < 0.65 ? 'Europa League' : null;
+  return roll < 0.15 ? 'Europa League' : null;
+}
+
 export const zonesFor = (d: Division): SeasonZones =>
   d === 1 ? { champions: 3, europa: 1, promo: 0, relegation: 2 } : d === 2 ? { champions: 0, europa: 0, promo: 2, relegation: 2 } : { champions: 0, europa: 0, promo: 2, relegation: 0 };
 

@@ -17,6 +17,9 @@ import {
   BEARD_LABEL,
   BEARD_STYLES,
   DEFAULT_LOOK,
+  EYE_COLORS,
+  FACE_LABEL,
+  FACE_SHAPES,
   HAIR_COLORS,
   HAIR_LABEL,
   HAIR_STYLES,
@@ -190,6 +193,26 @@ export function CreateWizard() {
                   <div className="mt-2 flex flex-wrap gap-2.5">
                     {SKINS.map((c, i) => (
                       <Swatch key={c} color={c} active={look.skin === i} label={`${t('Skin tone')} ${i + 1}`} onClick={() => setLook((l) => ({ ...l, skin: i }))} />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="eyebrow">{t('Face shape')}</span>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {FACE_SHAPES.map((f) => (
+                      <Thumb key={f} active={(look.face ?? 'oval') === f} label={t(FACE_LABEL[f])} onClick={() => setLook((l) => ({ ...l, face: f }))}>
+                        <HeadAvatar look={{ ...look, face: f }} size={54} />
+                      </Thumb>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="eyebrow">{t('Eye colour')}</span>
+                  <div className="mt-2 flex flex-wrap gap-2.5">
+                    {EYE_COLORS.map((c, i) => (
+                      <Swatch key={c.id} color={c.hex} active={(look.eyes ?? 1) === i} label={t(c.id)} onClick={() => setLook((l) => ({ ...l, eyes: i }))} />
                     ))}
                   </div>
                 </div>

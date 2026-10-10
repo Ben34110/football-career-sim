@@ -457,3 +457,12 @@ export const REACTIONS: Record<PressStyle, string[]> = {
   humble: ['Always so modest.', 'Refreshing honesty.'],
   'no-comment': ['Hmm. Nothing to say?', 'The silence speaks.'],
 };
+
+/** The paper speaks for you now: what the headlines do to your standing, from how you played. */
+export function paperEffect(c: Pick<PressContext, 'rating' | 'goals' | 'missedKick' | 'subbedOff'>): PressAnswer {
+  const great = c.rating >= 7.5 || c.goals >= 2;
+  const good = c.rating >= 6.5 || c.goals >= 1;
+  const poor = c.rating < 5.8 || c.subbedOff || c.missedKick;
+  const rep: Partial<Reputation> = great ? { fanPopularity: 3, mediaHeat: 3 } : good ? { fanPopularity: 1, mediaHeat: 1 } : poor ? { fanPopularity: -1, mediaHeat: 2, coachTrust: -1 } : {};
+  return { id: 'paper', style: 'tactical', label: 'The papers', quote: '', morale: great ? 3 : good ? 1 : poor ? -2 : 0, rep };
+}

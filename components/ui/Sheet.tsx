@@ -1,9 +1,9 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-/** iOS-style bottom sheet */
+/** iOS-style bottom sheet: swipe the handle down, or tap outside, to close (when dismissible). */
 export function Sheet({
   open,
   children,
@@ -17,6 +17,7 @@ export function Sheet({
   dismissible?: boolean;
   onClose?: () => void;
 }) {
+  const controls = useDragControls();
   return (
     <AnimatePresence>
       {open && (
@@ -35,8 +36,23 @@ export function Sheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            drag={dismissible ? 'y' : false}
+            dragControls={controls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.7 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 110 || info.velocity.y > 650) onClose?.();
+            }}
           >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+            {/* the handle is a generous grab area: drag it down to dismiss */}
+            <div
+              onPointerDown={(e) => dismissible && controls.start(e)}
+              className={cn('-mx-4 -mt-3 mb-1 flex h-10 items-center justify-center', dismissible && 'cursor-grab touch-none')}
+              aria-hidden
+            >
+              <div className="h-1 w-10 rounded-full bg-white/25" />
+            </div>
             <div className="pb-4">{children}</div>
           </motion.div>
         </motion.div>

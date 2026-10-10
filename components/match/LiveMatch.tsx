@@ -33,11 +33,7 @@ export interface LiveBoard {
 }
 
 const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced: 'Normal', defend: 'Defend' };
-const MENTALITY_HINT: Record<Mentality, string> = {
-  attack: 'More chances for both sides',
-  balanced: 'A balanced shape',
-  defend: 'Harder to score against, fewer chances',
-};
+const MENTALITY_ICON: Record<Mentality, string> = { attack: '⚔️', balanced: '⚖️', defend: '🛡️' };
 
 const COMPETITION_LABEL: Record<FixtureKind, string> = {
   league: 'League',
@@ -71,6 +67,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
   const [mini, setMini] = useState<{ kind: MiniKind; optionId: string } | null>(null);
   const [rallyOpen, setRallyOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
+  const [menOpen, setMenOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [fast, setFast] = useState(false);
   const [kick, setKick] = useState<KickKind | null>(null);
@@ -195,71 +192,68 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
         </div>
       </Card>
 
-      {/* Team mentality: stays on for the whole match, change it whenever the game calls for it */}
-      {!finished && (
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-2">
-          <div className="mb-1.5 flex items-center justify-between px-1">
-            <span className="eyebrow">{t('Team mentality')}</span>
-            <span className="text-[10px] text-zinc-500">{t(MENTALITY_HINT[m.mentality ?? 'balanced'])}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {(['attack', 'balanced', 'defend'] as Mentality[]).map((mode) => {
-              const active = (m.mentality ?? 'balanced') === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => {
-                    haptic(12);
-                    setM((prev) => setMentality(prev, ctx, mode));
-                  }}
-                  aria-pressed={active}
-                  className={cn(
-                    'flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
-                    active
-                      ? mode === 'attack'
-                        ? 'bg-gradient-to-b from-crimson-400 to-crimson-600 text-white shadow-crimson'
-                        : mode === 'defend'
-                          ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-zinc-950'
-                          : 'bg-gradient-to-b from-neon-400 to-neon-600 text-zinc-950 shadow-neon'
-                      : 'bg-white/[0.04] text-zinc-400',
-                  )}
-                >
-                  {mode === 'attack' ? '⚔️' : mode === 'defend' ? '🛡️' : '⚖️'} {t(MENTALITY_LABEL[mode])}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-          <Radio className="h-3.5 w-3.5 text-crimson-500" /> {t('Live ticker')}
-          {!m.isStarter && <span className="ml-1 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">{t('SUB')}</span>}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-zinc-500">
+          <Radio className="h-3.5 w-3.5 shrink-0 text-crimson-500" />
+          {!m.isStarter && <span className="rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">{t('SUB')}</span>}
+          {!finished && (
+            <div className="relative">
+              <button
+                onClick={() => setMenOpen((o) => !o)}
+                aria-expanded={menOpen}
+                aria-label={t('Team mentality')}
+                className="flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-[11px] font-bold text-zinc-300 active:scale-95"
+              >
+                {MENTALITY_ICON[m.mentality ?? 'balanced']} {t(MENTALITY_LABEL[m.mentality ?? 'balanced'])}
+              </button>
+              {menOpen && (
+                <>
+                  <button aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setMenOpen(false)} />
+                  <div className="absolute left-0 top-full z-30 mt-2 flex gap-1 rounded-2xl border border-white/10 bg-zinc-900/95 p-1.5 shadow-xl backdrop-blur-xl">
+                    {(['attack', 'balanced', 'defend'] as Mentality[]).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => {
+                          haptic(12);
+                          setM((prev) => setMentality(prev, ctx, mode));
+                          setMenOpen(false);
+                        }}
+                        className={cn('flex h-9 items-center gap-1 rounded-xl px-2.5 text-[12px] font-bold', (m.mentality ?? 'balanced') === mode ? 'bg-white/15 text-zinc-50' : 'text-zinc-400')}
+                      >
+                        {MENTALITY_ICON[mode]} {t(MENTALITY_LABEL[mode])}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
         {!finished && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => {
                 haptic(10);
                 setBoardOpen(true);
               }}
-              className="flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-bold text-zinc-200 active:scale-90"
+              aria-label={t(board.table ? 'Live table' : 'Other matches')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-base active:scale-90"
             >
-              📊 {t(board.table ? 'Live table' : 'Other matches')}
+              📊
             </button>
             {rally && (
               <motion.button
-                animate={{ scale: [1, 1.06, 1] }}
+                animate={{ scale: [1, 1.1, 1] }}
                 transition={{ repeat: Infinity, duration: 1.4 }}
                 onClick={() => {
                   haptic(15);
                   setRallyOpen(true);
                 }}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-gold-400/60 bg-gold-400/15 px-3 text-xs font-bold text-gold-200"
+                aria-label={t('Rally')}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-400/60 bg-gold-400/15 text-base"
               >
-                📣 {t('Rally')}
+                📣
               </motion.button>
             )}
             <button
@@ -273,7 +267,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
               onClick={() => setFast((f) => !f)}
               aria-pressed={fast}
               aria-label={t('Toggle fast forward')}
-              className={cn('flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-bold active:scale-90', fast ? 'border-neon-400/50 bg-neon-400/15 text-neon-300' : 'border-white/10 bg-white/5 text-zinc-300')}
+              className={cn('flex h-9 items-center gap-1 rounded-full border px-2.5 text-xs font-bold active:scale-90', fast ? 'border-neon-400/50 bg-neon-400/15 text-neon-300' : 'border-white/10 bg-white/5 text-zinc-300')}
             >
               <FastForward className="h-3.5 w-3.5" /> {fast ? '2×' : '1×'}
             </button>

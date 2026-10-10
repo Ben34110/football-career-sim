@@ -247,7 +247,7 @@ export function MatchScreen() {
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
-      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} recentQuestions={player.talks?.questions ?? []} recentStyles={player.talks?.press ?? []} look={player.look} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
+      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} look={player.look} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
       {stage === 'summary' && result && snap && expect && (
         <MatchSummary
           fixture={fixture}

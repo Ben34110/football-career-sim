@@ -2,7 +2,7 @@
 
 import { Flag } from '@/components/ui/Flag';
 import { motion } from 'framer-motion';
-import { ChevronRight, Play, Plus, Trophy } from 'lucide-react';
+import { ChevronRight, Play, Plus, Trophy, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -13,19 +13,28 @@ import { ovrOf, seasonLabel } from '@/lib/engine/player';
 import { LangToggle } from '@/components/ui/LangToggle';
 import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
+import { useArchiveStore } from '@/lib/archive';
+import { CareerArchive } from './CareerArchive';
 
 export function TitleScreen() {
   const t = useT();
   const router = useRouter();
   const { hasCareer, player, year } = useGameStore();
   const [confirm, setConfirm] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const archived = useArchiveStore((s) => s.careers.length);
   const club = getClub(player?.clubId ?? null);
 
   return (
     <div className="pt-safe pb-safe relative flex min-h-dvh flex-col justify-between overflow-hidden px-6">
-      <div className="relative z-10 flex justify-end pt-4">
+      <div className="relative z-10 flex items-center justify-end gap-2 pt-4">
+        <button onClick={() => setArchiveOpen(true)} aria-label={t('My careers')} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-200 active:scale-90">
+          <UserRound className="h-4 w-4" />
+          {archived > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-400 px-1 text-[10px] font-extrabold text-zinc-950">{archived}</span>}
+        </button>
         <LangToggle />
       </div>
+      <CareerArchive open={archiveOpen} onClose={() => setArchiveOpen(false)} />
       <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_50%_30%,black,transparent_70%)]" />
 
       <div className="relative flex flex-1 flex-col items-center justify-center text-center">

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub, setClubYear } from './data/clubs';
+import { archiveCurrent } from './archive';
 import { stripEmoji } from './emoji';
 import { getNationality, nationalityByName } from './data/nationalities';
 import type { PressAnswer } from './data/press';
@@ -188,6 +189,8 @@ export const useGameStore = create<GameStore>()(
       ...initial,
 
       createCareer: (input) => {
+        // the career you were playing goes to the archive before the new one starts
+        archiveCurrent(get());
         const player = createPlayer(input, Date.now());
         const club = getClub(input.clubId)!;
         const season = generateSeason(START_YEAR, club, Math.random);
@@ -212,7 +215,10 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
-      resetCareer: () => set({ ...initial }),
+      resetCareer: () => {
+        archiveCurrent(get());
+        set({ ...initial });
+      },
 
       retireNow: () => {
         const { player, news } = get();

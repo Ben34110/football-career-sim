@@ -290,40 +290,54 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
   g.fillStyle = '#f2c14e';
   g.font = '800 30px Inter, system-ui, sans-serif';
   g.fillText(`${t('Honours').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
-  const rows = groups.length <= 6 ? groups : groups.slice(0, 5);
-  for (let i = 0; i < rows.length; i++) {
-    const gr = rows[i];
+  // every title fits: the more there are, the smaller the lines, and past seven they go in two or three columns
+  const top = 950;
+  const room = 305;
+  const cols = groups.length > 14 ? 3 : groups.length > 7 ? 2 : 1;
+  const perCol = Math.ceil(groups.length / cols);
+  const step = Math.min(54, room / Math.max(1, perCol));
+  const colW = (W - 160) / cols;
+  for (let i = 0; i < groups.length; i++) {
+    const gr = groups[i];
+    const col = Math.floor(i / perCol);
+    const row = i % perCol;
     const label = gr.count === 1 ? t(gr.labels[0]) : t(gr.title);
     const flag = gr.flag ? await loadFlag(gr.flag) : null;
-    const y = 968 + i * 50;
-    g.font = '700 40px Inter, system-ui, sans-serif';
-    const tw = g.measureText(label).width;
-    const extra = (flag ? 62 : 0) + (gr.count > 1 ? 86 : 0);
-    let x = W / 2 - (tw + extra) / 2;
+    // shrink the line until it fits its column
+    let px = Math.min(40, step * 0.76);
+    let tw = 0;
+    let fh = 0;
+    let extra = 0;
+    for (;;) {
+      g.font = `700 ${px}px Inter, system-ui, sans-serif`;
+      tw = g.measureText(label).width;
+      fh = px * 0.92;
+      extra = (flag ? fh * 1.32 + 14 : 0) + (gr.count > 1 ? px * 1.9 : 0) + 12;
+      if (tw + extra <= colW - 12 || px <= 16) break;
+      px -= 1;
+    }
+    const y = top + row * step + step * 0.72;
+    let x = 80 + colW * (col + 0.5) - (tw + extra - 12) / 2;
     g.textAlign = 'left';
     g.fillStyle = gr.title.startsWith('Ballon') ? '#86efac' : '#fafafa';
     g.fillText(label, x, y);
-    x += tw + 18;
+    x += tw + 12;
     if (flag) {
+      const fw = fh * 1.32;
       g.save();
       g.beginPath();
-      g.roundRect(x, y - 34, 50, 38, 6);
+      g.roundRect(x, y - fh * 0.86, fw, fh, 5);
       g.clip();
-      g.drawImage(flag, x, y - 34, 50, 38);
+      g.drawImage(flag, x, y - fh * 0.86, fw, fh);
       g.restore();
-      x += 62;
+      x += fw + 14;
     }
     if (gr.count > 1) {
       g.fillStyle = '#f2c14e';
-      g.font = '800 40px Inter, system-ui, sans-serif';
+      g.font = `800 ${px}px Inter, system-ui, sans-serif`;
       g.fillText(`×${gr.count}`, x, y);
     }
     g.textAlign = 'center';
-  }
-  if (groups.length > rows.length) {
-    g.fillStyle = '#a1a1aa';
-    g.font = '500 30px Inter, system-ui, sans-serif';
-    g.fillText(`+${groups.length - rows.length}`, W / 2, 968 + rows.length * 50);
   }
   if (groups.length === 0) {
     g.fillStyle = '#a1a1aa';

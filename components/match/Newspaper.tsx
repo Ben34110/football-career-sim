@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { Loader2, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { HeadAvatar } from "@/components/ui/HeadAvatar";
 import { Crowd } from "./Crowd";
+import { MomentScene } from "./MomentScene";
 import type { Look } from "@/lib/data/look";
 import { buildFrontPage, type PaperCtx } from "@/lib/data/newspaper";
 import { fmtGameDate } from "@/lib/dates";
@@ -61,6 +61,8 @@ export function Newspaper({
         joy,
         look,
         kit,
+        emotion: page.emotion,
+        pose: page.pose,
         footer: t("Built in Pitch Legacy"),
       },
       t("{name} made the front page! Can you beat my career?", {
@@ -109,8 +111,8 @@ export function Newspaper({
             >
               {/* supporters in the stands, out of focus */}
               <Crowd kit={kit} joy={joy} />
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 [filter:grayscale(0.2)_contrast(1.08)_sepia(0.18)_drop-shadow(0_8px_10px_rgba(0,0,0,0.5))]">
-                <HeadAvatar look={look} size={168} kit={kit} />
+              <div className="absolute inset-x-0 bottom-0 flex justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]">
+                <MomentScene look={look} kit={kit} pose={page.pose} expression={page.emotion} height={178} />
               </div>
               {/* soft vignette */}
               <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_36px_rgba(0,0,0,0.55)]" />

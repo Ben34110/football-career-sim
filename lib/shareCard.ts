@@ -1,3 +1,4 @@
+import type { Expression } from '@/components/ui/HeadAvatar';
 import { getClub } from './data/clubs';
 import { getNationality } from './data/nationalities';
 import { DEFAULT_LOOK } from './data/look';
@@ -9,14 +10,14 @@ type T = (text: string, vars?: Record<string, string | number>) => string;
 const W = 1080;
 const H = 1350;
 
-export async function loadAvatar(look: Player['look'], px = 420, kit?: string): Promise<HTMLImageElement | null> {
+export async function loadAvatar(look: Player['look'], px = 420, kit?: string, expression?: Expression): Promise<HTMLImageElement | null> {
   try {
     const [{ renderToStaticMarkup }, React, { HeadAvatar }] = await Promise.all([
       import('react-dom/server'),
       import('react'),
       import('@/components/ui/HeadAvatar'),
     ]);
-    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: px, kit })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: px, kit, expression })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const img = new Image();
     await new Promise<void>((res, rej) => {

@@ -23,6 +23,8 @@ export interface PaperCtx {
   edition: number;
 }
 
+export type Pose = 'trophy' | 'ball' | 'arms' | 'fist' | 'point' | 'shrug' | 'headhands' | 'facepalm' | 'crossed' | 'idle';
+
 export interface FrontPage {
   outlet: string;
   tagline: string;
@@ -30,6 +32,10 @@ export interface FrontPage {
   sub: string;
   caption: string;
   mood: 'joy' | 'sad' | 'neutral';
+  /** The player's face on the front page */
+  emotion: 'neutral' | 'happy' | 'cheer' | 'sad' | 'angry' | 'shock';
+  /** Body language of the photo */
+  pose: Pose;
   /** Body paragraphs: English templates, filled with `vars` */
   paragraphs: string[];
   verdict: string;
@@ -51,7 +57,8 @@ export const ratingVerdict = (r: number) => (r >= 8.5 ? 'Outstanding' : r >= 7.5
 export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): FrontPage {
   const [outlet, tagline] = pick(OUTLETS, rng);
   const diff = c.my - c.their;
-  const final = c.label.endsWith('Final');
+  // only the real final: "Quarter-Final" and "Semi-Final" also end in "Final"
+  const final = /(^| )Final$/.test(c.label);
   const win = c.outcome === 'W';
   let headline: string;
   let mood: FrontPage['mood'] = win ? 'joy' : c.outcome === 'L' ? 'sad' : 'neutral';
@@ -64,6 +71,8 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   else if (c.goals === 1 && win && diff === 1) headline = pick(['{name} THE MATCH-WINNER', 'SUPER {name} SPARKS {club} VICTORY', 'ONE GOAL, THREE POINTS: THANKS {name}', 'WHO IS THE BOSS? {name}!', '{name}: ONE SHOT, ONE GOAL, ZERO REGRETS'], rng);
   else if (c.assists >= 1 && win) headline = pick(['{name} PULLS THE STRINGS', 'THE ARCHITECT: {name} CREATES THE WINNER', '{name} WITH THE PASS OF THE DAY'], rng);
   else if (c.benched && (c.goals > 0 || c.assists > 0)) headline = pick(['SUPER-SUB {name} CHANGES THE GAME', 'FROM THE BENCH TO THE HEADLINES: {name}', 'SUPER-SUB {name}: THE BENCH STRIKES BACK'], rng);
+  else if (win && /Semi-Final$/.test(c.label)) headline = pick(['{club} ARE IN THE FINAL!', 'FINAL BOUND: {club} SEE OFF {opp}', 'ONE MORE TO GO: {club} REACH THE FINAL'], rng);
+  else if (win && /Quarter-Final$/.test(c.label)) headline = pick(['{club} ADVANCE TO THE SEMI-FINALS', 'LAST FOUR: {club} SEE OFF {opp}', '{club} SURVIVE THE QUARTER-FINAL'], rng);
   else if (win && diff >= 3) headline = pick(['{club} TEAR {opp} APART', 'ROUT! {club} RUN RIOT AGAINST {opp}', '{opp} GET THE POWER-WASH TREATMENT', '{club} PUT THE BEST CHINA ON THE TABLE'], rng);
   else if (win) headline = pick(['{club} GRIND OUT THE WIN', 'THREE POINTS FOR {club}', '{club} DO THE JOB AGAINST {opp}', 'NOTHING TO SEE HERE: {club} WIN', 'ANOTHER DAY, ANOTHER THREE POINTS'], rng);
   else if (c.outcome === 'D') headline = pick(['HONOURS EVEN: {club} AND {opp} SHARE THE POINTS', 'STALEMATE: {my}–{their}', 'NO WINNER AS {club} HELD BY {opp}', 'TAKE THE POINT AND GO HOME: {my}–{their}', 'NEITHER HOT NOR COLD: {my}–{their}'], rng);
@@ -107,6 +116,27 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
         : pick(['{name} salutes the supporters.', '{name} promises to buy the next round.'], rng);
   if (c.goals >= 1) mood = 'joy';
 
+  // the face tells the story too
+  let emotion: FrontPage['emotion'];
+  if (c.shootout) emotion = win ? 'cheer' : 'sad';
+  else if (win) emotion = c.goals >= 1 || final || diff >= 3 ? 'cheer' : 'happy';
+  else if (c.outcome === 'D') emotion = c.goals >= 1 ? 'happy' : 'neutral';
+  else if (c.missedKick) emotion = 'shock';
+  else if (c.subbedOff || c.rating < 5.8) emotion = 'angry';
+  else emotion = rng() < 0.7 ? 'sad' : 'angry';
+
+  // …and so does the body: a moment of the match, frozen
+  let pose: Pose;
+  if (win && final) pose = 'trophy';
+  else if (c.goals >= 3) pose = 'ball';
+  else if (c.goals >= 1 || (c.shootout && win)) pose = 'arms';
+  else if (win && (c.assists >= 1 || c.benched)) pose = 'point';
+  else if (win) pose = 'fist';
+  else if (c.outcome === 'D') pose = 'shrug';
+  else if (c.missedKick) pose = 'headhands';
+  else if (emotion === 'angry') pose = 'crossed';
+  else pose = 'facepalm';
+
   const compName = c.kind === 'league' ? 'league' : c.kind === 'cup' ? 'cup' : c.kind === 'euro' ? 'European' : 'international';
   return {
     outlet,
@@ -115,6 +145,8 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
     sub,
     caption,
     mood,
+    emotion,
+    pose,
     paragraphs,
     verdict: ratingVerdict(c.rating),
     vars: {

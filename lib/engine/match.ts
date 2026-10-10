@@ -37,6 +37,9 @@ export interface MatchCtx {
   effOvr: number;
   myStr: number;
   oppStr: number;
+  /** Surnames of the teammates / opponents, from the country of each side */
+  myNames?: readonly string[];
+  oppNames?: readonly string[];
   home: boolean;
   knockout: boolean;
   kind: FixtureKind;
@@ -73,6 +76,8 @@ export interface BuildCtxInput {
   meHome: boolean;
   /** Levels of the nutrition upgrade: that many lives of fatigue are ignored */
   fatigueRelief?: number;
+  myNames?: readonly string[];
+  oppNames?: readonly string[];
 }
 
 /**
@@ -109,6 +114,8 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
     effOvr,
     myStr,
     oppStr: i.oppStrength,
+    myNames: i.myNames,
+    oppNames: i.oppNames,
     home: i.home,
     knockout: i.knockout,
     kind: i.kind,
@@ -125,6 +132,12 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
 /** Scores read home–away, so an away player's goals go second. */
 const sc = (ctx: MatchCtx, mine: number, theirs: number) => (ctx.meHome ? { a: mine, b: theirs } : { a: theirs, b: mine });
 const sides = (ctx: MatchCtx) => (ctx.meHome ? { home: ctx.myTeam, away: ctx.oppName } : { home: ctx.oppName, away: ctx.myTeam });
+
+/** A surname from the given country pool (generic mix when there is none) */
+const nameFrom = (pool: readonly string[] | undefined, rng: Rng) => {
+  const list = pool?.length ? pool : SURNAMES;
+  return list[randInt(0, list.length - 1, rng)];
+};
 
 const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] || name;
 
@@ -267,7 +280,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     m.shots.me += 1;
     if (rng() < myConv) {
       const share = POSITION_SHARE[ctx.position] * men.share * clamp(1 + (ctx.effOvr - 70) / 120, 0.6, 1.5);
-      const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
+      const mate = nameFrom(ctx.myNames, rng);
       if (playerOn && rng() < share) {
         m = { ...m, myScore: m.myScore + 1, goals: m.goals + 1, rating: m.rating + 1, momentum: clamp(m.momentum + 22, -100, 100) };
         m = push(m, at(), 'goal', 'me', tr('⚽ GOAL! {who} finishes it off for {me}! {a}–{b}', { who, me: ctx.myTeam, ...sc(ctx, m.myScore, m.oppScore) }), true);
@@ -290,7 +303,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   if (rng() < oppRate) {
     m.shots.opp += 1;
     if (rng() < oppConv) {
-      const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
+      const mate = nameFrom(ctx.oppNames, rng);
       m = { ...m, oppScore: m.oppScore + 1, momentum: clamp(m.momentum - 22, -100, 100) };
       m = push(m, at(), 'goal', 'opp', tr('💔 {opp} score! {mate} finds the net. {a}–{b}', { opp: ctx.oppName, mate, ...sc(ctx, m.myScore, m.oppScore) }));
     } else {
@@ -301,7 +314,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   } else if (rng() < 0.06) {
     const isCard = rng() < 0.4;
     const text = isCard
-      ? fill(AMBIENT.card[randInt(0, AMBIENT.card.length - 1, rng)], { who: SURNAMES[randInt(0, SURNAMES.length - 1, rng)] })
+      ? fill(AMBIENT.card[randInt(0, AMBIENT.card.length - 1, rng)], { who: nameFrom(rng() < 0.5 ? ctx.myNames : ctx.oppNames, rng) })
       : tr(AMBIENT.foul[randInt(0, AMBIENT.foul.length - 1, rng)]);
     m = push(m, at(), isCard ? 'card' : 'foul', 'neutral', text);
   }

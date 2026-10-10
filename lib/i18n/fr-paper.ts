@@ -138,6 +138,14 @@ export const FR_PAPER: Record<string, string> = {
   'That is three wins on the bounce — the confidence around the club is sky-high.': 'Trois victoires de suite — la confiance est au plus haut autour du club.',
   'Three defeats in a row: the pressure is now building around the club.': 'Trois défaites d’affilée : la pression monte autour du club.',
 
+  // rounds
+  '{club} ARE IN THE FINAL!': '{club} EST EN FINALE !',
+  'FINAL BOUND: {club} SEE OFF {opp}': 'DIRECTION LA FINALE : {club} ÉLIMINE {opp}',
+  'ONE MORE TO GO: {club} REACH THE FINAL': 'ENCORE UN PAS : {club} ATTEINT LA FINALE',
+  '{club} ADVANCE TO THE SEMI-FINALS': '{club} SE QUALIFIE POUR LES DEMI-FINALES',
+  'LAST FOUR: {club} SEE OFF {opp}': 'DANS LE QUATUOR FINAL : {club} ÉLIMINE {opp}',
+  '{club} SURVIVE THE QUARTER-FINAL': '{club} SURVIT À SON QUART DE FINALE',
+
   // captions and jokes
   'NERVES? WHAT NERVES? {club} WIN ON PENS': 'LES NERFS ? CONNAIS PAS : {club} GAGNE AUX TIRS AU BUT',
   'THE PENALTY LOTTERY BITES {club}': 'LA LOTERIE DES TIRS AU BUT PIQUE {club}',

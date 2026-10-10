@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getClub } from '@/lib/data/clubs';
+import { CLUBS, getClub } from '@/lib/data/clubs';
+import { surnamesFor } from '@/lib/data/surnames';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
@@ -143,6 +144,8 @@ export function MatchScreen() {
         boltsBefore,
         rep: p.rep,
         myTeam: badges.me.name,
+        myNames: surnamesFor(national ? p.nationality : getClub(p.clubId)?.country),
+        oppNames: surnamesFor(national ? (fixture.opponentShort.split(' ').pop() ?? fixture.opponent) : (CLUBS.find((c) => c.name === fixture.opponent)?.country ?? getClub(p.clubId)?.country)),
         teamStrength: badges.strength,
         oppName: fixture.opponent,
         oppStrength: fixture.opponentStrength,

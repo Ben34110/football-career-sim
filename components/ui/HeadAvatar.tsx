@@ -8,7 +8,7 @@ const hexToRgb = (hex: string) => {
 };
 const toHex = (r: number, g: number, b: number) => `#${((1 << 24) | (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b)).toString(16).slice(1)}`;
 /** Darken (negative) or lighten a #rrggbb colour. */
-function shade(hex: string, amt: number) {
+export function shade(hex: string, amt: number) {
   const [r, g, b] = hexToRgb(hex);
   const f = (v: number) => Math.max(0, Math.min(255, amt < 0 ? v * (1 + amt) : v + (255 - v) * amt));
   return toHex(f(r), f(g), f(b));
@@ -36,6 +36,8 @@ interface Props {
   framed?: boolean;
   /** Shirt colour (the club's colour); emerald by default */
   kit?: string;
+  /** Facial expression (neutral by default) */
+  expression?: Expression;
 }
 
 /** Hair that sits behind the head. */
@@ -196,7 +198,19 @@ function HairFront({ style, fill, dark, light }: { style: Look['hair']; fill: st
   }
 }
 
-export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false, kit = '#0f9d6c' }: Props) {
+export type Expression = 'neutral' | 'happy' | 'cheer' | 'sad' | 'angry' | 'shock';
+
+/** How each expression bends the brows: rotation about the inner end (outer end up when positive) and a lift. */
+const BROW: Record<Expression, { rot: number; dy: number }> = {
+  neutral: { rot: 0, dy: 0 },
+  happy: { rot: -2, dy: -0.8 },
+  cheer: { rot: -3, dy: -1.8 },
+  sad: { rot: -13, dy: 0.6 },
+  angry: { rot: 15, dy: 1.2 },
+  shock: { rot: 0, dy: -2.8 },
+};
+
+export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed = false, kit = '#0f9d6c', expression = 'neutral' }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const id = (n: string) => `${n}${uid}`;
   const url = (n: string) => `url(#${id(n)})`;
@@ -241,8 +255,18 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
     const lower = `M${p(-5, 1)}C${p(-2.6, 2.9)} ${p(2.2, 3)} ${p(5, 0.4)}`;
     const crease = `M${p(-5, -1.4)}C${p(-2.8, -4.4)} ${p(2.4, -4.6)} ${p(5.4, -2.4)}`;
     const clip = id(mirror ? 'eyeR' : 'eyeL');
+    if (expression === 'cheer') {
+      // laughing eyes: closed happy arcs
+      return (
+        <g key={cx}>
+          <path d={`M${p(-5.8, 1.6)}Q${p(0, -3.6)} ${p(5.8, 1.6)}`} fill="none" stroke={lash} strokeWidth="1.5" strokeLinecap="round" />
+          {female && <path d={flick} fill="none" stroke={lash} strokeWidth=".9" strokeLinecap="round" />}
+        </g>
+      );
+    }
+    const wide = expression === 'shock' ? 1.14 : 1;
     return (
-      <g key={cx}>
+      <g key={cx} transform={wide !== 1 ? `translate(${cx} 47) scale(${wide}) translate(${-cx} -47)` : undefined}>
         <ellipse cx={cx} cy={47.4} rx={7.4} ry={4.3} fill={skinDeep} opacity=".18" filter={url('b1')} />
         <clipPath id={clip}>
           <path d={almond} />
@@ -259,6 +283,10 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
         <path d={top} fill="none" stroke={lash} strokeWidth={female ? 1.4 : 1} strokeLinecap="round" />
         {female && <path d={flick} fill="none" stroke={lash} strokeWidth=".9" strokeLinecap="round" />}
         <path d={lower} fill="none" stroke={skinDeep} strokeWidth=".45" opacity=".5" strokeLinecap="round" />
+        {/* a smile lifts the lower lid; anger lowers the upper lid toward the nose */}
+        {expression === 'happy' && <path d={`M${p(-5.6, 3.2)}Q${p(0, 0.6)} ${p(5.6, 3.2)}`} fill="none" stroke={skinDeep} strokeWidth=".8" opacity=".55" strokeLinecap="round" />}
+        {expression === 'angry' && <path d={`M${p(-6.8, -4)}L${p(6.8, -4)}L${p(6.8, 0.6)}Z`} fill={skin} />}
+        {expression === 'angry' && <path d={`M${p(-6.4, -3.1)}L${p(6.4, 0.2)}`} stroke={skinDeep} strokeWidth=".7" strokeLinecap="round" />}
       </g>
     );
   };
@@ -388,9 +416,11 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
         </g>
 
         {/* brows */}
-        {[false, true].map((m) => (
-          <path key={String(m)} d={browPath(m)} fill={brow} opacity=".92" />
-        ))}
+        {[false, true].map((m) => {
+          const b = BROW[expression];
+          const ix = m ? 54 : 46;
+          return <path key={String(m)} d={browPath(m)} fill={brow} opacity=".92" transform={`translate(0 ${b.dy}) rotate(${m ? -b.rot : b.rot} ${ix} 41)`} />;
+        })}
 
         {eye(39.5, false)}
         {eye(60.5, true)}
@@ -427,12 +457,55 @@ export function HeadAvatar({ look = DEFAULT_LOOK, size = 96, className, framed =
           </g>
         )}
 
-        {/* mouth: shaded lips, a quiet smile */}
-        <path d="M42.500 71.200C45 69.200 48 69.400 50 70.300C52 69.400 55 69.200 57.500 71.200C55 72.200 52.500 72.400 50 72.100C47.500 72.400 45 72.200 42.500 71.200Z" fill={lip} />
-        <path d="M43.500 71.800C46 75 54 75 56.500 71.800C54 73 46 73 43.500 71.800Z" fill={lipLo} />
-        <path d="M42 71.300C46 72.800 54 72.800 58 71.300" fill="none" stroke="#2a1210" strokeWidth=".6" opacity=".55" strokeLinecap="round" />
-        <ellipse cx="50" cy="77" rx="3.600" ry="1.300" fill="#fff" opacity=".1" />
-        {female && <ellipse cx="48" cy="73.700" rx="2.600" ry=".7" fill="#fff" opacity=".28" />}
+        {/* mouth */}
+        {expression === 'neutral' && (
+          <g>
+            <path d="M42.500 71.200C45 69.200 48 69.400 50 70.300C52 69.400 55 69.200 57.500 71.200C55 72.200 52.500 72.400 50 72.100C47.500 72.400 45 72.200 42.500 71.200Z" fill={lip} />
+            <path d="M43.500 71.800C46 75 54 75 56.500 71.800C54 73 46 73 43.500 71.800Z" fill={lipLo} />
+            <path d="M42 71.300C46 72.800 54 72.800 58 71.300" fill="none" stroke="#2a1210" strokeWidth=".6" opacity=".55" strokeLinecap="round" />
+            <ellipse cx="50" cy="77" rx="3.600" ry="1.300" fill="#fff" opacity=".1" />
+            {female && <ellipse cx="48" cy="73.700" rx="2.600" ry=".7" fill="#fff" opacity=".28" />}
+          </g>
+        )}
+        {expression === 'happy' && (
+          <g>
+            <path d="M41.500 70.600C44 74.200 47 75.600 50 75.600C53 75.600 56 74.200 58.500 70.600C55.500 70 52.500 69.800 50 70.400C47.500 69.800 44.500 70 41.500 70.600Z" fill="#4a1414" />
+            <path d="M42.600 70.800C45.500 70.200 47.800 70.400 50 70.800C52.200 70.400 54.500 70.200 57.400 70.800C56.200 72.600 53.400 73.400 50 73.400C46.600 73.400 43.800 72.600 42.600 70.800Z" fill="#fafaf8" />
+            <path d="M41.200 70.700C44.500 69.400 47.800 69.600 50 70.300C52.200 69.600 55.500 69.400 58.800 70.700" fill="none" stroke={lip} strokeWidth="1.400" strokeLinecap="round" />
+            <path d="M42.200 71.800C44 76 47 77.400 50 77.400C53 77.400 56 76 57.800 71.800C56 74.800 53 75.800 50 75.800C47 75.800 44 74.800 42.200 71.800Z" fill={lip} />
+            <path d="M40.400 68.600C39.200 70.200 39.400 72.400 40.800 73.400M59.600 68.600C60.800 70.200 60.600 72.400 59.200 73.400" fill="none" stroke={skinDeep} strokeWidth=".5" opacity=".5" strokeLinecap="round" />
+          </g>
+        )}
+        {expression === 'cheer' && (
+          <g>
+            <path d="M40.500 69.600C44.500 68.600 55.500 68.600 59.500 69.600C59 77.500 55 80.500 50 80.500C45 80.500 41 77.500 40.500 69.600Z" fill="#4a1010" />
+            <ellipse cx="50" cy="78" rx="4.200" ry="2.200" fill="#d9605a" />
+            <path d="M41.800 69.900C45 69.100 55 69.100 58.200 69.900C57.800 72.600 54.500 73.600 50 73.600C45.500 73.600 42.200 72.600 41.800 69.900Z" fill="#fafaf8" />
+            <path d="M40.500 69.600C44.500 68.600 55.500 68.600 59.500 69.600C59 77.500 55 80.500 50 80.500C45 80.500 41 77.500 40.500 69.600Z" fill="none" stroke={lip} strokeWidth="1.400" strokeLinejoin="round" />
+            <path d="M39.400 67.600C38 69.400 38.200 72.400 39.800 73.600M60.600 67.600C62 69.400 61.800 72.400 60.200 73.600" fill="none" stroke={skinDeep} strokeWidth=".6" opacity=".5" strokeLinecap="round" />
+          </g>
+        )}
+        {expression === 'sad' && (
+          <g>
+            <path d="M43.200 74.400C45.500 70.600 54.500 70.600 56.800 74.400" fill="none" stroke={lip} strokeWidth="2" strokeLinecap="round" />
+            <path d="M46 75.800C48 76.800 52 76.800 54 75.800" fill="none" stroke={skinDeep} strokeWidth=".8" opacity=".6" strokeLinecap="round" />
+            <path d="M35.400 54.400C37 57 37.400 58.400 35.400 60C33.400 58.400 33.800 57 35.400 54.400Z" fill="#9fdcff" stroke="#fff" strokeWidth=".3" opacity=".9" />
+          </g>
+        )}
+        {expression === 'angry' && (
+          <g>
+            <path d="M42.400 72.600C45 69.400 55 69.400 57.600 72.600C55 76.400 45 76.400 42.400 72.600Z" fill="#f4f4ee" stroke={lip} strokeWidth="1.500" strokeLinejoin="round" />
+            <path d="M43 72.600H57" stroke="#5a2a2a" strokeWidth=".6" />
+            <path d="M46.500 70.200V75M50 69.800V75.400M53.500 70.200V75" stroke="#5a2a2a" strokeWidth=".4" opacity=".7" />
+          </g>
+        )}
+        {expression === 'shock' && (
+          <g>
+            <ellipse cx="50" cy="74.200" rx="3.400" ry="4.600" fill="#4a1010" stroke={lip} strokeWidth="1.600" />
+            <ellipse cx="50" cy="76.400" rx="1.900" ry="1.100" fill="#c9504d" />
+            <path d="M69 33C71.500 37 72.500 39.500 69 42C65.500 39.500 66.500 37 69 33Z" fill="#8ad4ff" stroke="#fff" strokeWidth=".3" opacity=".9" />
+          </g>
+        )}
 
         {beardStyle === 'full' && <path d="M39 68.500C43 66.200 57 66.200 61 68.500C58 70 54 69.800 50 69.700C46 69.800 42 70 39 68.500Z" fill={url('hair')} />}
 

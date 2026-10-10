@@ -1,6 +1,27 @@
 import { crowdFor } from './data/crowd';
+import type { Expression } from '@/components/ui/HeadAvatar';
 import type { Look } from './data/look';
-import { loadAvatar, shareImage, type ShareResult } from './shareCard';
+import type { Pose } from './data/newspaper';
+import { shareImage, type ShareResult } from './shareCard';
+
+/** Renders the staged player (body language included) as an image. */
+async function loadScene(p: PaperImage, height: number): Promise<HTMLImageElement | null> {
+  try {
+    const [{ renderToStaticMarkup }, React, { MomentScene }] = await Promise.all([import('react-dom/server'), import('react'), import('@/components/match/MomentScene')]);
+    const svg = renderToStaticMarkup(React.createElement(MomentScene, { look: p.look, kit: p.kit, pose: p.pose ?? 'idle', expression: p.emotion ?? 'neutral', height })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = new Image();
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error('scene'));
+      img.src = url;
+    });
+    URL.revokeObjectURL(url);
+    return img;
+  } catch {
+    return null;
+  }
+}
 
 export interface PaperImage {
   outlet: string;
@@ -14,6 +35,8 @@ export interface PaperImage {
   joy: boolean;
   look?: Look;
   kit?: string;
+  emotion?: Expression;
+  pose?: Pose;
   footer: string;
 }
 
@@ -129,9 +152,12 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
   });
   g.fillStyle = 'rgba(0,0,0,0.28)';
   g.fillRect(60, photoTop, W - 120, photoH);
-  const size = Math.min(photoH * 1.05, 560);
-  const img = await loadAvatar(p.look, Math.round(size), p.kit);
-  if (img) g.drawImage(img, (W - size) / 2, photoTop + photoH - size + size * 0.04, size, size);
+  const sceneH = Math.round(photoH);
+  const scene = await loadScene(p, sceneH);
+  if (scene) {
+    const w = (sceneH * 200) / 170;
+    g.drawImage(scene, (W - w) / 2, photoTop + photoH - sceneH, w, sceneH);
+  }
   const vg = g.createRadialGradient(W / 2, photoTop + photoH / 2, photoH * 0.35, W / 2, photoTop + photoH / 2, W * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,0.5)');

@@ -100,7 +100,6 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
   const playing = flow.stage === 'play';
   const { t: clock } = useClock(playing);
 
-  const [lane, setLane] = useState<Lane>(0);
   const target = useRef<Lane>(0);
   const pos = useRef(0);
   const vel = useRef(0);
@@ -125,11 +124,13 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
     }
   }
 
-  const pick = (l: Lane) => {
-    if (locked || flow.stage === 'idle' || done.current) return;
-    if (target.current !== l) haptic(6);
-    target.current = l;
-    setLane(l);
+  // one tap = one lane: from the right edge it takes two taps on LEFT to reach the left edge
+  const step = (d: -1 | 1) => {
+    if (locked || flow.stage !== 'play' || done.current) return;
+    const next = Math.max(-1, Math.min(1, target.current + d)) as Lane;
+    if (next === target.current) return;
+    haptic(6);
+    target.current = next;
   };
 
   // the moment a wave reaches you, it either lets you through or it does not
@@ -158,12 +159,13 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
   const sinceHit = hitAt.current.length && playing ? clock - hitAt.current[hitAt.current.length - 1] : 99;
   const hitPulse = Math.exp(-sinceHit * 4);
   const wobble = Math.sin(sinceHit * 38) * 11 * hitPulse;
-  const step = (playing ? clock : 0) * 13 + (hitPulse > 0.2 ? 0 : 0);
+  const stride = (playing ? clock : 0) * 13;
   const youX = CX + pos.current * laneW(1);
   const tilt = -vel.current * 2.4 + wobble;
-  const ballHop = Math.abs(Math.sin(step * 0.5)) * 7;
-  const ballX = youX + Math.sin(step * 0.5) * 11 + hitPulse * 12;
-  const ballY = YP - 26 - ballHop - hitPulse * 18;
+  // the ball stays at his feet, a touch ahead: it hops a little with each stride
+  const ballHop = Math.abs(Math.sin(stride * 0.5)) * 4;
+  const ballX = youX + Math.sin(stride * 0.5) * 10 + hitPulse * 12;
+  const ballY = YP - 1 - ballHop - hitPulse * 12;
   const keeperLean = Math.max(-1, Math.min(1, pos.current * 0.9));
 
   // defenders, far ones first; the ones already past you are drawn over you
@@ -218,7 +220,7 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
           <Pitch scroll={scroll.current} zg={zg} speed={playing ? 1 - 0.55 * hitPulse : 0} keeperLean={keeperLean} keeperKit="#f59e0b" />
           {behind.map(drawDefender)}
           {/* you, from behind, with the ball at your feet */}
-          <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={step} tilt={tilt} stretch={0} dir={1} run={playing ? 2.4 : 0.6} />
+          <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={stride} tilt={tilt} stretch={0} dir={1} run={playing ? 2.4 : 0.6} />
           <g transform={`translate(${ballX} ${ballY})`}>
             <ellipse cx="0" cy="8" rx="6" ry="1.8" fill="#000" opacity=".3" />
             <circle r="6.2" fill="#fafafa" stroke="#18181b" strokeWidth=".7" />
@@ -228,9 +230,9 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
         </svg>
 
         {playing && (
-          <div className="absolute inset-0 grid grid-cols-3">
-            {([-1, 0, 1] as Lane[]).map((l) => (
-              <button key={l} aria-label={l < 0 ? t('LEFT') : l > 0 ? t('RIGHT') : t('CENTRE')} onPointerDown={(e) => { e.preventDefault(); pick(l); }} className="touch-none" />
+          <div className="absolute inset-0 grid grid-cols-2">
+            {([-1, 1] as const).map((d) => (
+              <button key={d} aria-label={d < 0 ? t('LEFT') : t('RIGHT')} onPointerDown={(e) => { e.preventDefault(); step(d); }} className="touch-none" />
             ))}
           </div>
         )}
@@ -251,19 +253,19 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
       {flow.stage === 'idle' ? (
         <ActionButton onPress={flow.start} label={t('START')} icon={<Route className="h-5 w-5" />} />
       ) : (
-        <div className="grid grid-cols-3 gap-3">
-          {([-1, 0, 1] as Lane[]).map((l) => (
+        <div className="grid grid-cols-2 gap-3">
+          {([-1, 1] as const).map((d) => (
             <button
-              key={l}
+              key={d}
               onPointerDown={(e) => {
                 e.preventDefault();
-                pick(l);
+                step(d);
               }}
               disabled={flow.stage !== 'play' || locked}
-              className={cn('flex h-16 touch-none select-none flex-col items-center justify-center rounded-2xl font-display text-xs font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-40', lane === l ? 'bg-gradient-to-b from-neon-400 to-neon-600 text-zinc-950' : 'bg-white/10 text-white')}
+              className="flex h-20 touch-none select-none flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-neon-400 to-neon-600 font-display text-xs font-extrabold uppercase tracking-wide text-zinc-950 shadow-neon transition active:scale-95 disabled:opacity-40"
             >
-              {l < 0 ? <ChevronLeft className="h-7 w-7" /> : l > 0 ? <ChevronRight className="h-7 w-7" /> : <Route className="h-6 w-6" />}
-              {l < 0 ? t('LEFT') : l > 0 ? t('RIGHT') : t('CENTRE')}
+              {d < 0 ? <ChevronLeft className="h-9 w-9" /> : <ChevronRight className="h-9 w-9" />}
+              {d < 0 ? t('LEFT') : t('RIGHT')}
             </button>
           ))}
         </div>

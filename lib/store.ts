@@ -376,26 +376,36 @@ export const useGameStore = create<GameStore>()(
             nextNews = addNews(nextNews, mkNews(tr('The {team} coach left you out of the squad.', { team: teamName }), 'bad'));
             ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, matches: [], reason });
           } else {
-            nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: teamName }), 'gold'));
             const games = nextSeason.fixtures.map((f, i) => ({ f, i })).filter(({ f }) => f.kind === 'intl' && f.status === 'upcoming');
-            if (games.length) ui.pushCallUp({ outcome: 'called', level: lvlNow, nationCode: player.nationality, matches: games.map(({ f, i }) => ({ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, i).toISOString() })) });
+            // Olympic qualifiers are played by the under-23 side, with up to three older players
+            const olympicQ = games.some(({ f }) => /^Olympic Games Qualifier/.test(f.label));
+            const squad = olympicQ ? 'U23' : lvlNow;
+            const squadName = `${tr(getNationality(player.nationality).name)}${squad !== 'A' ? ' ' + squad : ''}`;
+            nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: squadName }), 'gold'));
+            if (games.length) ui.pushCallUp({ outcome: 'called', level: squad, nationCode: player.nationality, competition: olympicQ ? 'Olympic Games Qualifier' : undefined, overage: olympicQ && player.age > 23, matches: games.map(({ f, i }) => ({ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, i).toISOString() })) });
           }
         }
         if (nextSeason.tournamentQueued && !season.tournamentQueued && lvlNow) {
+          // the Olympics are an under-23 tournament, whatever your usual level; older players come as one of the three overage picks
+          const olympic = nextSeason.tournamentName === 'Olympic Games';
+          const tLevel = olympic ? 'U23' : lvlNow;
+          const overage = olympic && player.age > 23;
+          const tTeam = `${tr(getNationality(player.nationality).name)}${tLevel !== 'A' ? ' ' + tLevel : ''}`;
           if (nextSeason.tournamentFailed) {
-            nextNews = addNews(nextNews, mkNews(tr('{team} failed to qualify for the {name}.', { team: teamName, name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
+            nextNews = addNews(nextNews, mkNews(tr('{team} failed to qualify for the {name}.', { team: tTeam, name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
           } else if (nextSeason.tournamentOmitted) {
             const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
             nextNews = addNews(nextNews, mkNews(tr('You miss the {name}: the coach left you out.', { name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
-            ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason });
+            ui.pushCallUp({ outcome: 'omitted', level: tLevel, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason, overage });
           } else {
-            nextNews = addNews(nextNews, mkNews(tr('🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));
+            nextNews = addNews(nextNews, mkNews(tr(overage ? '🌍 You’re heading to the {name} as one of the three overage players!' : '🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));
             const stages = nextSeason.fixtures.map((x, i) => ({ x, i })).filter(({ x }) => x.kind === 'tournament' && x.status === 'upcoming');
             ui.pushCallUp({
               outcome: 'called',
-              level: lvlNow,
+              level: tLevel,
               nationCode: player.nationality,
               competition: nextSeason.tournamentName ?? undefined,
+              overage,
               matches: stages.map(({ x, i }) => ({ label: x.label, opponent: x.drawn === false ? '' : x.opponent, date: fixtureDate(nextSeason, i).toISOString() })),
             });
           }

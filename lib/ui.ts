@@ -30,6 +30,8 @@ export interface CallUpEvent {
   /** Matches you will play (ISO date when known) */
   matches: { label: string; opponent: string; date?: string }[];
   reason?: OmissionReason;
+  /** An Olympic squad pick (or omission) for a player older than 23: one of the three overage places */
+  overage?: boolean;
 }
 
 interface UiStore {

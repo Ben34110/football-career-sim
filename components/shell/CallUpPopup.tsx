@@ -2,7 +2,7 @@
 
 import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Shield, ShieldOff } from 'lucide-react';
+import { CalendarDays, Info, Shield, ShieldOff } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { fmtShortDate } from '@/lib/dates';
@@ -80,6 +80,19 @@ function Card({ event, onClose }: { event: CallUpEvent; onClose: () => void }) {
             </h2>
             {event.competition && <p className="mt-1 text-sm font-semibold text-zinc-300">🏆 {t(event.competition)}</p>}
           </div>
+
+          {event.overage && (
+            <div className="flex gap-2.5 rounded-xl border border-sky-400/25 bg-sky-400/10 p-3 text-[12.5px] leading-snug text-sky-100">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+              <div>
+                <div className="font-bold">{t('The Olympic rule')}</div>
+                <p className="mt-0.5 text-sky-100/85">
+                  {t('The Olympic football tournament is for players under 23, but every nation may bring up to three older players.')}{' '}
+                  {called ? t('You are one of the three overage players picked: a sign of how highly the coach rates you.') : t('The coach used his three overage places on other players.')}
+                </p>
+              </div>
+            </div>
+          )}
 
           {called ? (
             <>

@@ -26,6 +26,7 @@ import { cn, crestFace, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
 import { SeasonEnd } from './SeasonEnd';
 import { GameIcon } from '@/components/ui/GameIcon';
+import { getNationality } from '@/lib/data/nationalities';
 import { SquadStatusCard } from '@/components/ui/SquadStatusCard';
 
 const TONE: Record<string, string> = { good: 'bg-neon-400', bad: 'bg-crimson-500', gold: 'bg-gold-400', neutral: 'bg-zinc-500' };
@@ -172,11 +173,11 @@ export function HomeScreen() {
             ) : null;
           })()}
           {(() => {
-            const goal = nextNationalGoal(ovr, player.age);
+            const goal = nextNationalGoal(ovr, player.age, getNationality(player.nationality).strength);
             return goal ? (
               <p className="mt-2.5 flex items-center gap-1.5 px-1 text-[11px] text-zinc-500">
                 <Trophy className="h-3 w-3 text-gold-400" />{' '}
-                {t('Reach OVR {n} for a {level} call-up ({m} to go).', { n: goal.ovr, m: goal.ovr - ovr, level: goal.level === 'A' ? t('national team') : goal.level })}
+                {t('To be a regular pick for the {level}: about OVR {n} ({m} to go).', { n: goal.ovr, m: goal.ovr - ovr, level: goal.level === 'A' ? t('national team') : goal.level })}
               </p>
             ) : null;
           })()}

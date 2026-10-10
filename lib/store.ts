@@ -23,6 +23,7 @@ import {
   ATTR_KEYS,
   ATTR_LABEL,
   calcOvr,
+  callUpNeed,
   nationalLevel,
   pointsMoved,
   REBALANCE_MAX,
@@ -354,9 +355,12 @@ export const useGameStore = create<GameStore>()(
         else if (result.subbedOff) nextNews = addNews(nextNews, mkNews(tr('The coach hauled you off early after a poor display.'), 'bad'));
         for (const t of newTrophies) nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — silverware!', { t: tr(t) }), 'gold'));
         const rank = { U20: 1, U23: 2, A: 3 } as const;
-        const lvlBefore = nationalLevel(ovrOf(player), player.age);
-        const lvlNow = nationalLevel(newOvr, player.age);
-        if (lvlNow && (!lvlBefore || rank[lvlNow] > rank[lvlBefore])) {
+        const natStr = getNationality(player.nationality).strength;
+        const lvlBefore = nationalLevel(ovrOf(player), player.age, natStr);
+        const lvlNow = nationalLevel(newOvr, player.age, natStr);
+        // the national coach starts watching you when you reach what a regular pick of that side is
+        const wasThere = ovrOf(player) >= callUpNeed(lvlBefore, natStr);
+        if (newOvr >= callUpNeed(lvlNow, natStr) && !wasThere) {
           nextNews = addNews(
             nextNews,
             mkNews(lvlNow === 'A' ? tr('📣 OVR {n}! The national team is watching you.', { n: newOvr }) : tr('📣 OVR {n}! The {level} national team is watching you.', { n: newOvr, level: lvlNow }), 'gold'),
@@ -367,20 +371,25 @@ export const useGameStore = create<GameStore>()(
         }
 
         // The national coach decides: being good enough is not enough, he also watches your form
-        const omitted: { input?: SelectionInput } = {};
+        const omitted: { input?: SelectionInput; hopeless?: boolean } = {};
         const decide = (stage: 'window' | 'tournament') => {
-          if (!lvlNow) return false;
           const input: SelectionInput = {
             level: lvlNow,
             stage,
             ovr: newOvr,
+            natStrength: natStr,
             form: updated.form,
             contributions: nextSeason.stats.goals + nextSeason.stats.assists,
             apps: nextSeason.stats.apps,
             omittedBefore: !!nextSeason.callUpOmitted,
           };
-          const ok = Math.random() < selectionChance(input);
-          if (!ok) omitted.input = input;
+          const chance = selectionChance(input);
+          const ok = Math.random() < chance;
+          if (!ok) {
+            omitted.input = input;
+            // nowhere near the squad: not worth a headline
+            if (chance < 0.12) omitted.hopeless = true;
+          }
           return ok;
         };
         const teamName = `${tr(getNationality(player.nationality).name)}${lvlNow && lvlNow !== 'A' ? ' ' + lvlNow : ''}`;
@@ -389,8 +398,10 @@ export const useGameStore = create<GameStore>()(
         if (nextSeason.callUpQueued && !season.callUpQueued && lvlNow) {
           if (nextSeason.callUpOmitted && !season.callUpOmitted) {
             const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
-            nextNews = addNews(nextNews, mkNews(tr('The {team} coach left you out of the squad.', { team: teamName }), 'bad'));
-            ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, matches: [], reason });
+            if (!omitted.hopeless) {
+              nextNews = addNews(nextNews, mkNews(tr('The {team} coach left you out of the squad.', { team: teamName }), 'bad'));
+              ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, matches: [], reason });
+            }
           } else {
             const games = nextSeason.fixtures.map((f, i) => ({ f, i })).filter(({ f }) => f.kind === 'intl' && f.status === 'upcoming');
             // Olympic qualifiers are played by the under-23 side, with up to three older players
@@ -411,8 +422,8 @@ export const useGameStore = create<GameStore>()(
             nextNews = addNews(nextNews, mkNews(tr('{team} failed to qualify for the {name}.', { team: tTeam, name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
           } else if (nextSeason.tournamentOmitted) {
             const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
-            nextNews = addNews(nextNews, mkNews(tr('You miss the {name}: the coach left you out.', { name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
-            ui.pushCallUp({ outcome: 'omitted', level: tLevel, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason, overage });
+            if (!omitted.hopeless) nextNews = addNews(nextNews, mkNews(tr('You miss the {name}: the coach left you out.', { name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
+            if (!omitted.hopeless) ui.pushCallUp({ outcome: 'omitted', level: tLevel, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason, overage });
           } else {
             nextNews = addNews(nextNews, mkNews(tr(overage ? '🌍 You’re heading to the {name} as one of the three overage players!' : '🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));
             const stages = nextSeason.fixtures.map((x, i) => ({ x, i })).filter(({ x }) => x.kind === 'tournament' && x.status === 'upcoming');
@@ -955,7 +966,7 @@ function finishSeason(set: Setter, get: Getter) {
   const clubBoost = { ...(get().clubBoost ?? {}) };
   if (clubNowId) {
     const total = season.table.length;
-    let delta = zone === 'promoted' ? 6 : zone === 'relegated' ? -6 : pos === 1 ? 2 : pos <= Math.ceil(total / 3) ? 1 : pos > Math.floor((total * 2) / 3) ? -1 : 0;
+    let delta = zone === 'promoted' ? 2 : zone === 'relegated' ? -2 : pos === 1 ? 2 : pos <= Math.ceil(total / 3) ? 1 : pos > Math.floor((total * 2) / 3) ? -1 : 0;
     // the biggest clubs are already at the top of the scale
     if (delta > 0 && (getClub(clubNowId)?.strength ?? 0) >= 90) delta = 0;
     const next = Math.max(-14, Math.min(18, (clubBoost[clubNowId] ?? 0) + delta));

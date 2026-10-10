@@ -9,7 +9,8 @@ import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality, nationalTournament } from '@/lib/data/nationalities';
-import { CALL_UP_OVR, nationalLevel, nextNationalGoal, ovrOf, seasonLabel, U20_CALL_UP_OVR, U23_CALL_UP_OVR } from '@/lib/engine/player';
+import { nationalLevel, nextNationalGoal, ovrOf, seasonLabel } from '@/lib/engine/player';
+import { selectionChance } from '@/lib/engine/selection';
 import { deriveEuroTable, seasonZones, sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
@@ -33,8 +34,12 @@ export function CalendarScreen() {
 
   const ovr = ovrOf(player);
   const nat = getNationality(player.nationality);
-  const level = nationalLevel(ovr, player.age);
-  const goal = nextNationalGoal(ovr, player.age);
+  const level = nationalLevel(ovr, player.age, nat.strength);
+  const goal = nextNationalGoal(ovr, player.age, nat.strength);
+  // the coach picks the best: your chance this window, from your level, your form and your numbers
+  const chance = selectionChance({ level, stage: 'window', ovr, natStrength: nat.strength, form: player.form, contributions: (season?.stats.goals ?? 0) + (season?.stats.assists ?? 0), apps: season?.stats.apps ?? 0, omittedBefore: !!season?.callUpOmitted });
+  const caps = (player.national?.caps ?? 0) + (player.national?.youthCaps ?? 0);
+  const called = !!season && ((season.callUpQueued && !season.callUpOmitted) || (season.tournamentQueued && !season.tournamentOmitted && !season.tournamentFailed)) || caps > 0;
   const teamName = `${t(nat.name)}${level && level !== 'A' ? ' ' + level : ''}`;
   const nextTournament = nationalTournament(level ?? 'A', year + 1, nat, player.age, ovr);
   const upcoming = [1, 2, 3, 4, 5]
@@ -54,18 +59,18 @@ export function CalendarScreen() {
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06]"><Flag emoji={nat.flag} size={22} className="rounded-[3px]" /></div>
           <div className="flex-1">
-            <div className="text-sm font-bold">{level ? t('{team} national team', { team: teamName }) : t('National team call-ups')}</div>
-            {level ? (
+            <div className="text-sm font-bold">{called ? t('{team} national team', { team: teamName }) : t('National team call-ups')}</div>
+            {called ? (
               <div className="text-xs text-zinc-400">
                 {season?.tournamentFailed ? t('Did not qualify for the {name}', { name: t(season.tournamentName ?? '') }) : season?.tournamentQueued ? t('Playing: {name}', { name: t(season.tournamentName ?? '') }) : nextTournament ? t('Eligible for the {name} this summer', { name: t(nextTournament) }) : t('No major tournament this summer')}
               </div>
             ) : (
-              <div className="text-xs text-zinc-400">{t('U20 from OVR {a} · U23 from {b} · senior from {c}', { a: U20_CALL_UP_OVR, b: U23_CALL_UP_OVR, c: CALL_UP_OVR })}</div>
+              <div className="text-xs text-zinc-400">{t('{level}: the coach picks the best. Your chance to be called: {n}%.', { level: level === 'A' ? t('Senior team') : level, n: Math.round(chance * 100) })}</div>
             )}
           </div>
-          {level ? <Chip tone="gold">{t('Called up')}</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
+          {called ? <Chip tone="gold">{t('Called up')}</Chip> : <Lock className="h-4 w-4 text-zinc-600" />}
         </div>
-        {level && (
+        {called && (
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-black/30 py-2">
               <div className="font-num text-xl font-extrabold">{(player.national?.caps ?? 0) + (player.national?.youthCaps ?? 0)}</div>
@@ -80,7 +85,7 @@ export function CalendarScreen() {
         {goal && (
           <div className="mt-3">
             <div className="mb-1 flex justify-between text-[11px] text-zinc-400">
-              <span>{t('Next: {level} call-up', { level: goal.level === 'A' ? t('senior') : goal.level })}</span>
+              <span>{t('Regular pick for the {level}', { level: goal.level === 'A' ? t('senior team') : goal.level })}</span>
               <span className="font-num font-semibold text-zinc-200">
                 {ovr} / {goal.ovr}
               </span>

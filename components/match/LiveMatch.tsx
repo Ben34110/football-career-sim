@@ -46,7 +46,7 @@ const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced:
 const MENTALITY_ICON: Record<Mentality, string> = { attack: '⚔', balanced: '⚖', defend: '🛡' };
 
 /** The little icon in front of each line of the live feed. */
-export function EventMark({ type, text }: { type: MatchEvent['type']; text: string }) {
+export function EventMark({ type, text, side }: { type: MatchEvent['type']; text: string; side?: MatchEvent['side'] }) {
   if (type === 'card') {
     const red = /red card|sent off|sending|rouge|expuls/i.test(text);
     return (
@@ -69,7 +69,7 @@ export function EventMark({ type, text }: { type: MatchEvent['type']; text: stri
     kickoff: PlayIcon,
     card: FlagIcon,
   };
-  const tone: Partial<Record<MatchEvent['type'], string>> = { goal: 'text-neon-300', save: 'text-sky-300', miss: 'text-crimson-400', foul: 'text-amber-300', clutch: 'text-gold-300', chance: 'text-zinc-400', fulltime: 'text-zinc-300' };
+  const tone: Partial<Record<MatchEvent['type'], string>> = { goal: side === 'opp' ? 'text-crimson-300' : 'text-neon-200', save: 'text-sky-300', miss: 'text-crimson-400', foul: 'text-amber-300', clutch: 'text-gold-300', chance: 'text-zinc-400', fulltime: 'text-zinc-300' };
   const I = Icon[type];
   return <I className={cn('mt-0.5 h-4 w-4 shrink-0', tone[type] ?? 'text-zinc-500')} />;
 }
@@ -172,13 +172,14 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
       <Card strong gold className="relative overflow-hidden p-4">
         <AnimatePresence>
           {last.kind && (
-            <motion.div
-              key={last.key}
-              initial={{ opacity: 0.6 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 1.1 }}
-              className={cn('pointer-events-none absolute inset-0', last.kind === 'goal' ? 'bg-neon-400/30' : 'bg-crimson-500/30')}
-            />
+            <motion.div key={last.key} className="pointer-events-none absolute inset-0 z-10" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 2.2, ease: 'easeOut' }}>
+              {/* a strong wash of colour, a ring, and the word */}
+              <div className={cn('absolute inset-0', last.kind === 'goal' ? 'bg-neon-400/70' : 'bg-crimson-500/70')} />
+              <div className={cn('absolute inset-0 rounded-[inherit] ring-4 ring-inset', last.kind === 'goal' ? 'ring-neon-200' : 'ring-crimson-300')} />
+              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: [0.5, 1.15, 1], opacity: 1 }} transition={{ duration: 0.45 }} className="absolute inset-0 flex items-center justify-center">
+                <span className="font-display text-6xl font-extrabold uppercase tracking-tight text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.7)]">{last.kind === 'goal' ? t('GOAL!') : t('GOAL FOR THEM')}</span>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
         <div className="relative mb-3 flex items-center justify-center">
@@ -191,11 +192,11 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
           <TeamSide badge={meHome ? me : opp} you={meHome} reds={meHome ? m.redsMe : m.redsOpp} />
           <div className="text-center">
             <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
-              <motion.span key={`h${homeScore}`} initial={{ scale: 1.5, color: meHome ? '#6ee7b7' : '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+              <motion.span key={`h${homeScore}`} initial={{ scale: 1.9, color: meHome ? '#34d399' : '#ef4444' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
                 {homeScore}
               </motion.span>
               <span className="mx-1.5 text-zinc-600">–</span>
-              <motion.span key={`a${awayScore}`} initial={{ scale: 1.5, color: meHome ? '#fb4b5e' : '#6ee7b7' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
+              <motion.span key={`a${awayScore}`} initial={{ scale: 1.9, color: meHome ? '#ef4444' : '#34d399' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
                 {awayScore}
               </motion.span>
             </div>
@@ -328,11 +329,13 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                 'flex gap-3 rounded-xl border-l-[3px] bg-white/[0.04] py-2 pl-3 pr-3 text-[13px] leading-snug',
                 EVENT_STYLE[e.side],
                 e.star && 'bg-gold-400/[0.07]',
-                e.type === 'goal' && 'bg-white/[0.08] font-semibold',
+                e.type === 'goal' && 'font-bold text-white',
+                e.type === 'goal' && e.side === 'me' && 'border-l-[6px] bg-gradient-to-r from-neon-500/45 via-neon-500/15 to-transparent',
+                e.type === 'goal' && e.side === 'opp' && 'border-l-[6px] bg-gradient-to-r from-crimson-500/45 via-crimson-500/15 to-transparent',
               )}
             >
               <span className="font-num w-7 shrink-0 text-sm font-bold text-zinc-500">{e.minute}&apos;</span>
-              <EventMark type={e.type} text={e.text} />
+              <EventMark type={e.type} text={e.text} side={e.side} />
               <span className="text-zinc-200">{stripEmoji(e.text)}</span>
             </motion.div>
           ))}

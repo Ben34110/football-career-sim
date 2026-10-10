@@ -60,8 +60,8 @@ export function leagueZone(pos: number, d: Division, total: number): LeagueZone 
 
 export const seasonZones = (s: SeasonState): SeasonZones => s.zones ?? zonesFor(s.division ?? 1);
 
-/** Opposition is a notch stronger one division up, weaker one down. */
-const divisionOffset = (club: Club, d: Division) => (baseDivision(club) - d) * 6;
+/** Opposition is a clear step stronger one division up (nine points), weaker one down: a promoted side starts as the underdog. */
+const divisionOffset = (club: Club, d: Division) => (baseDivision(club) - d) * 9;
 
 export interface SeasonOptions {
   division?: Division;
@@ -618,8 +618,7 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
  */
 /** `canPick` is the national coach's decision for each selection window. */
 export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality, rng: Rng, age = 18, canPick: (stage: 'window' | 'tournament') => boolean = () => true): SeasonState {
-  const level = nationalLevel(ovr, age);
-  if (!level) return season;
+  const level = nationalLevel(ovr, age, nat.strength);
   let next = season;
   const upcomingIdx = firstUpcoming(next);
   const played = next.fixtures.filter((f) => f.status === 'played').length;

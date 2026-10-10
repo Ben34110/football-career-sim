@@ -20,28 +20,29 @@ export const MAX_BOLTS = 5;
 /** Lives bought with real money can stack above the regenerating five */
 export const MAX_PAID_LIVES = 25;
 export const REGEN_MS = 2 * 60 * 1000;
-export const CALL_UP_OVR = 75;
-export const U23_CALL_UP_OVR = 72;
-export const U20_CALL_UP_OVR = 69;
-
 export type NationalLevel = 'A' | 'U23' | 'U20';
 /** How much weaker the national side is at each level (youth teams are not full strength). */
 export const LEVEL_STRENGTH: Record<NationalLevel, number> = { A: 0, U23: -4, U20: -8 };
 
-/** The national team you are good enough for: senior from 75, U23 from 72 (≤23 years), U20 from 69 (≤20 years). */
-export function nationalLevel(ovr: number, age: number): NationalLevel | null {
-  if (ovr >= CALL_UP_OVR) return 'A';
-  if (ovr >= U23_CALL_UP_OVR && age <= 23) return 'U23';
-  if (ovr >= U20_CALL_UP_OVR && age <= 20) return 'U20';
-  return null;
+/**
+ * The national side you can be picked for, by age alone: U20 up to 20, U23 up to 23, then the senior team.
+ * A player already as good as his nation's senior team plays there at any age.
+ */
+export function nationalLevel(ovr: number, age: number, natStrength = 80): NationalLevel {
+  if (ovr >= natStrength) return 'A';
+  if (age <= 20) return 'U20';
+  if (age <= 23) return 'U23';
+  return 'A';
 }
 
-/** The next call-up still to be earned, if any. */
-export function nextNationalGoal(ovr: number, age: number): { level: NationalLevel; ovr: number } | null {
-  if (ovr >= CALL_UP_OVR) return null;
-  if (age <= 20 && ovr < U20_CALL_UP_OVR) return { level: 'U20', ovr: U20_CALL_UP_OVR };
-  if (age <= 23 && ovr < U23_CALL_UP_OVR) return { level: 'U23', ovr: U23_CALL_UP_OVR };
-  return { level: 'A', ovr: CALL_UP_OVR };
+/** The OVR of a regular pick of that side: about what the nation's team is at that level, less a little for a place in the squad. */
+export const callUpNeed = (level: NationalLevel, natStrength: number) => Math.round(natStrength + LEVEL_STRENGTH[level] - 6);
+
+/** The level you still have to reach to be a regular pick of your side, if you are not there yet. */
+export function nextNationalGoal(ovr: number, age: number, natStrength = 80): { level: NationalLevel; ovr: number } | null {
+  const level = nationalLevel(ovr, age, natStrength);
+  const need = callUpNeed(level, natStrength);
+  return ovr < need ? { level, ovr: need } : null;
 }
 export const START_AGE = 18;
 export const ALLOCATION_POINTS = 12;

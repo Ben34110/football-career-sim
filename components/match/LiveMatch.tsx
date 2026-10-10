@@ -172,13 +172,10 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
       <Card strong gold className="relative overflow-hidden p-4">
         <AnimatePresence>
           {last.kind && (
-            <motion.div key={last.key} className="pointer-events-none absolute inset-0 z-10" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 2.2, ease: 'easeOut' }}>
-              {/* a strong wash of colour, a ring, and the word */}
-              <div className={cn('absolute inset-0', last.kind === 'goal' ? 'bg-neon-400/70' : 'bg-crimson-500/70')} />
-              <div className={cn('absolute inset-0 rounded-[inherit] ring-4 ring-inset', last.kind === 'goal' ? 'ring-neon-200' : 'ring-crimson-300')} />
-              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: [0.5, 1.15, 1], opacity: 1 }} transition={{ duration: 0.45 }} className="absolute inset-0 flex items-center justify-center">
-                <span className="font-display text-6xl font-extrabold uppercase tracking-tight text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.7)]">{last.kind === 'goal' ? t('GOAL!') : t('GOAL FOR THEM')}</span>
-              </motion.div>
+            <motion.div key={last.key} className="pointer-events-none absolute inset-0 z-10" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 1.6, ease: 'easeOut' }}>
+              {/* a clear but gentle wash of colour */}
+              <div className={cn('absolute inset-0', last.kind === 'goal' ? 'bg-neon-400/35' : 'bg-crimson-500/35')} />
+              <div className={cn('absolute inset-0 rounded-[inherit] ring-2 ring-inset', last.kind === 'goal' ? 'ring-neon-300/60' : 'ring-crimson-400/60')} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -192,11 +189,11 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
           <TeamSide badge={meHome ? me : opp} you={meHome} reds={meHome ? m.redsMe : m.redsOpp} />
           <div className="text-center">
             <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
-              <motion.span key={`h${homeScore}`} initial={{ scale: 1.9, color: meHome ? '#34d399' : '#ef4444' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
+              <motion.span key={`h${homeScore}`} initial={{ scale: 1.6, color: meHome ? '#6ee7b7' : '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
                 {homeScore}
               </motion.span>
               <span className="mx-1.5 text-zinc-600">–</span>
-              <motion.span key={`a${awayScore}`} initial={{ scale: 1.9, color: meHome ? '#ef4444' : '#34d399' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
+              <motion.span key={`a${awayScore}`} initial={{ scale: 1.6, color: meHome ? '#fb4b5e' : '#6ee7b7' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
                 {awayScore}
               </motion.span>
             </div>
@@ -330,8 +327,8 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                 EVENT_STYLE[e.side],
                 e.star && 'bg-gold-400/[0.07]',
                 e.type === 'goal' && 'font-bold text-white',
-                e.type === 'goal' && e.side === 'me' && 'border-l-[6px] bg-gradient-to-r from-neon-500/45 via-neon-500/15 to-transparent',
-                e.type === 'goal' && e.side === 'opp' && 'border-l-[6px] bg-gradient-to-r from-crimson-500/45 via-crimson-500/15 to-transparent',
+                e.type === 'goal' && e.side === 'me' && 'border-l-[4px] bg-gradient-to-r from-neon-500/25 via-neon-500/8 to-transparent',
+                e.type === 'goal' && e.side === 'opp' && 'border-l-[4px] bg-gradient-to-r from-crimson-500/25 via-crimson-500/8 to-transparent',
               )}
             >
               <span className="font-num w-7 shrink-0 text-sm font-bold text-zinc-500">{e.minute}&apos;</span>

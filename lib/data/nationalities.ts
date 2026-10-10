@@ -83,3 +83,22 @@ export function tournamentFor(endYear: number, nat: Nationality): string | null 
       return endYear % 4 === 3 ? TOURNAMENT_BY_CONFED[nat.confederation] : null;
   }
 }
+
+/** Played by every European nation in the years without a Euro or a World Cup, so there is a competition every summer. */
+export const NATIONS_LEAGUE = 'UEFA Nations League';
+
+/**
+ * The tournament a player of this level plays at the end of the season finishing in `endYear`, if any.
+ *  - youth sides: their own competitions;
+ *  - the senior side: the continental championship / World Cup, else the Nations League (Europe, odd years);
+ *  - the Olympic Games (every 4 years) are open to every player who is young, or a star old enough to be one of the three overage players,
+ *    whenever there is no senior tournament that summer.
+ */
+export function nationalTournament(level: 'A' | 'U23' | 'U20', endYear: number, nat: Nationality, age = 18, ovr = 0): string | null {
+  if (level !== 'A') return youthTournamentFor(level, endYear, nat);
+  const senior = tournamentFor(endYear, nat);
+  if (senior) return senior;
+  if (nat.confederation === 'UEFA' && endYear % 2 === 1) return NATIONS_LEAGUE;
+  if (endYear % 4 === 0 && (age <= 23 || ovr >= nat.strength - 3)) return 'Olympic Games';
+  return null;
+}

@@ -7,6 +7,7 @@ const BASE: [RegExp, string][] = [
   [/Asian Cup$/, 'Asian Cup'],
   [/Gold Cup$/, 'Gold Cup'],
   [/Olympic Games$/, 'Olympics'],
+  [/Nations League$/, 'UNL'],
 ];
 
 export function tournamentShort(name: string | null | undefined, t: (s: string) => string): string {

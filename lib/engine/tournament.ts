@@ -17,7 +17,7 @@ export function tournamentField(name: string, me: Nationality): { core: National
   let core: Nationality[];
   let invited: Nationality[] = [];
   if (/World Cup|Olympic/.test(name)) core = NATIONALITIES;
-  else if (/European/.test(name)) core = of('UEFA');
+  else if (/European|Nations League/.test(name)) core = of('UEFA');
   else if (/Africa/.test(name)) core = of('CAF');
   else if (/Asian/.test(name)) core = of('AFC');
   else if (/Copa/.test(name)) {

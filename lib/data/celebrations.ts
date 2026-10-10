@@ -49,6 +49,7 @@ const ACCENT: [RegExp, string][] = [
   [/Copa/, '#eab308'],
   [/Asian/, '#dc2626'],
   [/Gold Cup/, '#f59e0b'],
+  [/Nations League/, '#2563eb'],
 ];
 
 /**
@@ -65,7 +66,7 @@ export function celebrationFor(trophy: string, ctx: { club: string; kit: string;
   const nation = { team: ctx.nation, kit: ctx.nationKit ?? '#fbbf24', badge: ctx.nationCode ? { short: `${ctx.nationFlag ?? ''} ${ctx.nationCode}`.trim(), color: ctx.nationKit ?? '#fbbf24' } : undefined, squad: ctx.nationCode };
   if (/World Cup/.test(trophy)) return { scenario: 'worldcup', trophy, ...nation, solo: false, trophyKind: 'globe', accent: '#16a34a' };
   if (/Olympic/.test(trophy)) return { scenario: 'olympic', trophy, ...nation, solo: false, trophyKind: 'medal', accent: '#2563eb' };
-  if (/Championship|Cup of Nations|Copa|Asian Cup|Gold Cup/.test(trophy)) {
+  if (/Championship|Cup of Nations|Copa|Asian Cup|Gold Cup|Nations League/.test(trophy)) {
     const accent = ACCENT.find(([re]) => re.test(trophy))?.[1] ?? '#16a34a';
     return { scenario: 'continental', trophy, ...nation, solo: false, trophyKind: 'continental', accent };
   }

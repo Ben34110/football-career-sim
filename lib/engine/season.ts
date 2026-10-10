@@ -1,5 +1,5 @@
 import { CLUBS, COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
-import { OPPONENT_NATIONS, tournamentFor, youthTournamentFor } from '../data/nationalities';
+import { NATIONS_LEAGUE, nationalTournament, OPPONENT_NATIONS } from '../data/nationalities';
 import type {
   Club,
   Division,
@@ -624,12 +624,14 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
     if (!canPick('window')) {
       next = { ...next, callUpQueued: true, callUpOmitted: true };
     } else {
-    // The break brings two games: qualifiers when a tournament is coming next summer, friendlies otherwise
-    const comp = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
-    const label = comp ? `${comp} Qualifier` : 'International Friendly';
+    // The break brings two games: qualifiers (or Nations League matches) when a tournament is coming next summer, friendlies otherwise
+    const comp = nationalTournament(level, next.year + 1, nat, age, ovr);
+    // the Olympics are played by an under-23 side (with three older players), whatever level you usually play at
+    const compLevel: NationalLevel = comp === 'Olympic Games' ? 'U23' : level;
+    const label = comp === NATIONS_LEAGUE ? 'UEFA Nations League Group Phase' : comp ? `${comp} Qualifier` : 'International Friendly';
     const confed = OPPONENT_NATIONS.filter((n) => n.confederation === nat.confederation && n.code !== nat.code);
-    const first = nationOpponent(nat, comp ? -3 : -1, label, `${next.year}-I1`, 'intl', false, rng, level, comp ? confed : undefined);
-    const second = nationOpponent(nat, comp ? -2 : 0, label, `${next.year}-I2`, 'intl', false, rng, level, comp ? confed.filter((n) => !first.opponent.startsWith(n.name)) : OPPONENT_NATIONS.filter((n) => n.code !== nat.code && n.strength >= 66 && !first.opponent.startsWith(n.name)));
+    const first = nationOpponent(nat, comp ? -3 : -1, label, `${next.year}-I1`, 'intl', false, rng, compLevel, comp ? confed : undefined);
+    const second = nationOpponent(nat, comp ? -2 : 0, label, `${next.year}-I2`, 'intl', false, rng, compLevel, comp ? confed.filter((n) => !first.opponent.startsWith(n.name)) : OPPONENT_NATIONS.filter((n) => n.code !== nat.code && n.strength >= 66 && !first.opponent.startsWith(n.name)));
     second.home = !first.home;
     const fixtures = [...next.fixtures];
     fixtures.splice(upcomingIdx + 1, 0, first, second);
@@ -638,11 +640,13 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
   }
 
   // Summer tournament once the domestic calendar is done
-  const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
+  const tournament = nationalTournament(level, next.year + 1, nat, age, ovr);
+  const tLevel: NationalLevel = tournament === 'Olympic Games' ? 'U23' : level;
   const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl' || f.kind === 'euro'));
   // Reaching the summer tournament takes qualifying: stronger nations and good qualifier results help
   const qualifies = (): boolean => {
-    const p = clamp(0.62 + (nat.strength - 74) / 40 + ((next.qualPts ?? 3) - 3) * 0.07, 0.12, 0.97);
+    // the Olympic places are scarcer than the places at a continental final
+    const p = clamp((tournament === 'Olympic Games' ? 0.42 : 0.62) + (nat.strength - 74) / 40 + ((next.qualPts ?? 3) - 3) * 0.07, 0.1, 0.97);
     return rng() < p;
   };
   if (!next.tournamentQueued && tournament && !domesticLeft && !qualifies()) {
@@ -650,7 +654,7 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
   } else if (!next.tournamentQueued && tournament && !domesticLeft && !canPick('tournament')) {
     next = { ...next, tournamentQueued: true, tournamentOmitted: true, tournamentName: tournament };
   } else if (!next.tournamentQueued && tournament && !domesticLeft) {
-    const { tourney, fixtures: groupFixtures } = createTournament(tournament, nat, level, next.year, rng);
+    const { tourney, fixtures: groupFixtures } = createTournament(tournament, nat, tLevel, next.year, rng);
     next = {
       ...next,
       fixtures: [...next.fixtures, ...groupFixtures],

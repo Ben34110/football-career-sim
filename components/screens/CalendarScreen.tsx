@@ -8,7 +8,7 @@ import { TournamentView } from './TournamentView';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
-import { getNationality, tournamentFor, youthTournamentFor } from '@/lib/data/nationalities';
+import { getNationality, nationalTournament } from '@/lib/data/nationalities';
 import { CALL_UP_OVR, nationalLevel, nextNationalGoal, ovrOf, seasonLabel, U20_CALL_UP_OVR, U23_CALL_UP_OVR } from '@/lib/engine/player';
 import { deriveEuroTable, seasonZones, sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
@@ -35,9 +35,9 @@ export function CalendarScreen() {
   const level = nationalLevel(ovr, player.age);
   const goal = nextNationalGoal(ovr, player.age);
   const teamName = `${t(nat.name)}${level && level !== 'A' ? ' ' + level : ''}`;
-  const nextTournament = level === 'A' || !level ? tournamentFor(year + 1, nat) : youthTournamentFor(level, year + 1, nat);
+  const nextTournament = nationalTournament(level ?? 'A', year + 1, nat, player.age, ovr);
   const upcoming = [1, 2, 3, 4, 5]
-    .map((d) => ({ y: year + d, name: level && level !== 'A' ? youthTournamentFor(level, year + d, nat) : tournamentFor(year + d, nat) }))
+    .map((d) => ({ y: year + d, name: nationalTournament(level ?? 'A', year + d, nat, player.age + d, ovr) }))
     .filter((x): x is { y: number; name: string } => !!x.name)
     .slice(0, 3);
 

@@ -30,6 +30,7 @@ const trophyPoints = (t: string) => {
   if (t.startsWith('U20')) return 2;
   if (t.startsWith('U23')) return 3;
   if (t.startsWith('Olympic')) return 6;
+  if (t.startsWith('UEFA Nations League')) return 8;
   return 13; // continental nations tournament
 };
 

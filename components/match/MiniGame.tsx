@@ -98,8 +98,8 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
   block: {
     title: 'Block the Shot',
-    how: ['Read the shooter, then pick the lane to cover.', 'You can change your mind until the ball is struck.'],
-    tip: 'Watch his hips, not his eyes.',
+    how: ['He faces you and winds up: his eyes, shoulders and standing foot show where he will shoot.', 'Slide to that lane before the ball reaches you. Three shots.'],
+    tip: 'Some strikers dummy — if you are quick enough you can still react once the ball is struck.',
     icon: Shield,
   },
   volley: {
@@ -141,7 +141,7 @@ const HINT: Record<MiniKind, string> = {
   slide: 'Press START, then slide when the ball is in the green zone.',
   slalom: 'Tap left or right to dodge the defenders.',
   race: 'Alternate LEFT and RIGHT as fast as you can.',
-  block: 'Read the shooter and cover the right lane.',
+  block: 'Slide to the lane he is aiming at.',
   volley: 'Tap when the ball reaches the gold line.',
   oneonone: 'Wait for the keeper to commit, then pick your side.',
   rebound: 'Tap the real ball before it is cleared.',

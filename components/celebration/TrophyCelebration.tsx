@@ -15,7 +15,7 @@ import { Beams, CameraFlashes, ConfettiRain, Fireworks, Stars } from './Effects'
 import { TrophyArt } from './TrophyArt';
 
 /** The whole ceremony lasts this long; the Continue button appears at the end. */
-export const CEREMONY_SECONDS = 10;
+export const CEREMONY_SECONDS = 6;
 
 /** Trophy ceremony: a 10-second, hands-off cinematic, then a Continue button. */
 export function TrophyCelebration() {
@@ -60,12 +60,12 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
     setVh(window.innerHeight);
     const at = (s: number, f: () => void) => setTimeout(f, s * 1000);
     const ids = [
-      at(1.2, () => setPhase(1)),
-      at(3.4, () => {
+      at(0.8, () => setPhase(1)),
+      at(2.2, () => {
         setPhase(2);
         haptic([50, 40, 120]);
       }),
-      at(4.6, () => setPhase(3)),
+      at(3.0, () => setPhase(3)),
       at(CEREMONY_SECONDS, () => setPhase(4)),
     ];
     return () => ids.forEach(clearTimeout);

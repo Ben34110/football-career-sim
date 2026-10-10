@@ -28,6 +28,15 @@ export interface PressContext {
   lockerRoom: number;
   fanPopularity: number;
   apps: number;
+  /** Opponent and score (in the player's team order) for context-aware questions */
+  opp: string;
+  myScore: number;
+  oppScore: number;
+  label: string;
+  /** Last results, newest last */
+  recent: Outcome[];
+  /** How the press feels about you (-100…100) */
+  mood: number;
 }
 
 export interface PressQuestion {
@@ -38,6 +47,8 @@ export interface PressQuestion {
   when: (c: PressContext) => boolean;
   answers: PressAnswer[];
   weight: number;
+  /** Hostile questions come when the press dislikes you, friendly ones when it likes you */
+  tone?: 'hostile' | 'friendly';
 }
 
 const NO_COMMENT: PressAnswer = {
@@ -75,6 +86,120 @@ export const PRESS_QUESTIONS: PressQuestion[] = [
       { id: 'tactical', style: 'tactical', label: 'Stay respectful', quote: '“Referees have a hard job. We should have made our own luck.”', morale: 0, rep: { coachTrust: 3, mediaHeat: -2 } },
       { id: 'bold', style: 'bold', label: 'Slam the officials', quote: '“Some decisions were a joke. I won’t pretend otherwise.”', morale: 2, rep: { fanPopularity: 4, mediaHeat: 8, coachTrust: -3 } },
       { id: 'humble', style: 'humble', label: 'Blame ourselves', quote: '“We can’t blame anyone. We weren’t good enough.”', morale: -1, rep: { lockerRoom: 3, coachTrust: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'beat-opp',
+    reporter: 'Maëlys Roux',
+    outlet: 'Stade 2 Soir',
+    question: 'A {my}–{their} win over {opp}. How important was this one for the club?',
+    weight: 4,
+    when: (c) => c.outcome === 'W' && c.myScore >= 2,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Praise the preparation', quote: '“The staff prepared {opp} perfectly. We executed the plan.”', morale: 2, rep: { coachTrust: 3, mediaHeat: -1 } },
+      { id: 'bold', style: 'bold', label: 'Send a message', quote: '“Everyone should look at the table. We’re coming for them all.”', morale: 4, rep: { fanPopularity: 4, mediaHeat: 5, lockerRoom: -1 } },
+      { id: 'humble', style: 'humble', label: 'Stay grounded', quote: '“Three points, nothing more. We go again on Saturday.”', morale: 2, rep: { lockerRoom: 3, coachTrust: 1 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'lost-opp',
+    reporter: 'Gaël Ferrand',
+    outlet: 'Canal Football',
+    question: '{opp} beat you {their}–{my}. Is the dressing room in crisis?',
+    weight: 5,
+    when: (c) => c.outcome === 'L',
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Calm the storm', quote: '“No crisis. We analyse {opp}, we learn, we move on.”', morale: 0, rep: { coachTrust: 3, mediaHeat: -3 } },
+      { id: 'bold', style: 'bold', label: 'Fire up the group', quote: '“Crisis? Come to training on Monday. We’ll answer in the next match.”', morale: 2, rep: { fanPopularity: 3, mediaHeat: 5, lockerRoom: 1 } },
+      { id: 'humble', style: 'humble', label: 'Own it', quote: '“We were not good enough. I include myself in that.”', morale: -2, rep: { lockerRoom: 3, fanPopularity: 2, coachTrust: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'streak-w',
+    reporter: 'Théo Marchal',
+    outlet: 'RMC Sport',
+    question: 'Three wins in a row now. Can we start calling you contenders?',
+    weight: 5,
+    when: (c) => c.recent.length >= 3 && c.recent.slice(-3).every((r) => r === 'W'),
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'One game at a time', quote: '“We take it match by match. Nothing is won yet.”', morale: 2, rep: { coachTrust: 3, mediaHeat: -2 } },
+      { id: 'bold', style: 'bold', label: 'Embrace the label', quote: '“Call us whatever you like. We’re building something big.”', morale: 5, rep: { fanPopularity: 5, mediaHeat: 6, lockerRoom: 1, coachTrust: -1 } },
+      { id: 'humble', style: 'humble', label: 'Thank the fans', quote: '“The support has been incredible. This run is theirs too.”', morale: 3, rep: { fanPopularity: 4, lockerRoom: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'streak-l',
+    reporter: 'Victor Lemaire',
+    outlet: 'Eurosport',
+    question: 'After another poor result, is the manager’s job at risk?',
+    weight: 6,
+    when: (c) => c.recent.length >= 3 && c.recent.slice(-3).filter((r) => r === 'L').length >= 2,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Back the boss', quote: '“The manager has our full support. The problem is on the pitch.”', morale: 0, rep: { coachTrust: 5, lockerRoom: 2, mediaHeat: -2 } },
+      { id: 'bold', style: 'bold', label: 'Demand changes', quote: '“Something needs to change — in the dressing room, in the approach. Everyone knows it.”', morale: -2, rep: { mediaHeat: 8, coachTrust: -6, fanPopularity: 2, lockerRoom: -3 } },
+      { id: 'humble', style: 'humble', label: 'Blame the players', quote: '“It’s us, the players. We’re not delivering for him.”', morale: -1, rep: { lockerRoom: 3, coachTrust: 3, fanPopularity: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'goal-vs',
+    reporter: 'Salomé Vidal',
+    outlet: 'Canal Stadium',
+    question: 'Tell us about your goal against {opp} — and that celebration!',
+    weight: 5,
+    when: (c) => c.goals >= 1,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Credit the move', quote: '“It came from the training ground. The team created it, I just finished.”', morale: 2, rep: { coachTrust: 3, lockerRoom: 2 } },
+      { id: 'bold', style: 'bold', label: 'Play to the crowd', quote: '“I told my mates I’d score today. The celebration? Pure joy!”', morale: 4, rep: { fanPopularity: 5, mediaHeat: 4 } },
+      { id: 'humble', style: 'humble', label: 'Dedicate it', quote: '“This one is for my family. They believed in me from day one.”', morale: 4, rep: { fanPopularity: 4, lockerRoom: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'quiet-game',
+    reporter: 'Karim Benzarti',
+    outlet: 'Foot Mercato',
+    question: 'A quiet one today, no goals, no assists. Is the pressure of expectations getting to you?',
+    weight: 5,
+    when: (c) => c.goals === 0 && c.assists === 0 && c.rating < 6.5,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Be honest', quote: '“Some days it doesn’t fall for you. I keep working.”', morale: 0, rep: { coachTrust: 2, mediaHeat: -1 } },
+      { id: 'bold', style: 'bold', label: 'Brush it off', quote: '“Pressure? I thrive on it. Ask me again after the next game.”', morale: 2, rep: { fanPopularity: 2, mediaHeat: 4 } },
+      { id: 'humble', style: 'humble', label: 'Take responsibility', quote: '“I need to be better. The team deserves more from me.”', morale: -1, rep: { lockerRoom: 3, coachTrust: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'ambush',
+    reporter: 'Didier Cornet',
+    outlet: 'La Voix du Foot',
+    tone: 'hostile',
+    question: 'Sources say you are unhappy in the dressing room and the fans are losing patience. Anything to add?',
+    weight: 7,
+    when: (c) => c.mood <= -15,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Deny calmly', quote: '“I don’t know your sources. I’m happy here and focused on the work.”', morale: 0, rep: { coachTrust: 2, mediaHeat: -2 } },
+      { id: 'bold', style: 'bold', label: 'Attack the press', quote: '“Maybe you should check your sources. Write what really happens on the pitch.”', morale: 2, rep: { fanPopularity: 3, mediaHeat: 7, lockerRoom: 1 } },
+      { id: 'humble', style: 'humble', label: 'Reach out', quote: '“If people feel that way, I need to earn their trust again.”', morale: 0, rep: { fanPopularity: 3, lockerRoom: 2 } },
+      NO_COMMENT,
+    ],
+  },
+  {
+    id: 'fan-favourite',
+    reporter: 'Louise Archambault',
+    outlet: 'Stade 2 Soir',
+    tone: 'friendly',
+    question: 'The supporters adore you. If you could say one thing to them tonight, what would it be?',
+    weight: 7,
+    when: (c) => c.mood >= 15,
+    answers: [
+      { id: 'tactical', style: 'tactical', label: 'Keep believing', quote: '“Keep believing with us. The best is still to come.”', morale: 3, rep: { fanPopularity: 3, coachTrust: 1 } },
+      { id: 'bold', style: 'bold', label: 'Promise something', quote: '“I promise you a trophy. I’ll give everything to bring it home.”', morale: 5, rep: { fanPopularity: 6, mediaHeat: 5, coachTrust: -1 } },
+      { id: 'humble', style: 'humble', label: 'Thank them', quote: '“Thank you. Without you, nothing is possible.”', morale: 4, rep: { fanPopularity: 5, lockerRoom: 2 } },
       NO_COMMENT,
     ],
   },
@@ -233,3 +358,97 @@ export const PRESS_QUESTIONS: PressQuestion[] = [
     ],
   },
 ];
+
+/** A second question: the journalist reacts to the style of your first answer. */
+export interface FollowUp {
+  id: string;
+  question: string;
+  answers: PressAnswer[];
+}
+
+const FU = (id: string, style: PressStyle, label: string, quote: string, morale: number, rep: Partial<Reputation>): PressAnswer => ({ id, style, label, quote, morale, rep });
+
+export const FOLLOW_UPS: Record<PressStyle, FollowUp[]> = {
+  tactical: [
+    {
+      id: 'fu-heart',
+      question: 'Very measured. But do the fans ever get to hear what you really feel?',
+      answers: [
+        FU('a', 'humble', 'Open up', '“Honestly? I live for these nights. The emotion is real.”', 2, { fanPopularity: 3, lockerRoom: 1 }),
+        FU('b', 'tactical', 'Stay professional', '“Emotion belongs on the pitch. Words come later.”', 1, { coachTrust: 2 }),
+        FU('c', 'bold', 'Tease them', '“Wait for the end of the season. Then you’ll hear everything.”', 2, { mediaHeat: 4, fanPopularity: 1 }),
+      ],
+    },
+    {
+      id: 'fu-system',
+      question: 'You always praise the system. Is there a player who has been carrying it?',
+      answers: [
+        FU('a', 'humble', 'Name a teammate', '“Our captain. He doesn’t get enough credit.”', 2, { lockerRoom: 4, coachTrust: 1 }),
+        FU('b', 'tactical', 'Say the group', '“It’s the group, always the group.”', 1, { lockerRoom: 2 }),
+        FU('c', 'bold', 'Take the compliment', '“Fine, a bit of me too. I’m not going to lie.”', 2, { mediaHeat: 4, fanPopularity: 2, lockerRoom: -2 }),
+      ],
+    },
+  ],
+  deflect: [
+    {
+      id: 'fu-dodge',
+      question: 'You keep dodging the question. Is there something we should know?',
+      answers: [
+        FU('a', 'humble', 'Be straight', '“No secrets. I just prefer to keep things private.”', 0, { coachTrust: 1, mediaHeat: -1 }),
+        FU('b', 'bold', 'Push back', '“If there was news, I would tell you. Next question.”', 1, { mediaHeat: 3 }),
+        FU('c', 'tactical', 'Smile and move on', '“All good. Thank you.”', 0, { mediaHeat: -1 }),
+      ],
+    },
+  ],
+  bold: [
+    {
+      id: 'fu-pressure',
+      question: 'That’s a big statement. Aren’t you putting enormous pressure on yourself?',
+      answers: [
+        FU('a', 'bold', 'Double down', '“Pressure is a privilege. I want it every week.”', 3, { fanPopularity: 3, mediaHeat: 5, lockerRoom: -1 }),
+        FU('b', 'tactical', 'Clarify', '“Let me be clear: I meant the whole team, not just me.”', 1, { lockerRoom: 3, coachTrust: 2 }),
+        FU('c', 'humble', 'Laugh it off', '“Maybe I got carried away! I’ll let the football talk.”', 1, { fanPopularity: 2, mediaHeat: -2 }),
+      ],
+    },
+    {
+      id: 'fu-teammates',
+      question: 'Some teammates may not like that tone. What would you say to them?',
+      answers: [
+        FU('a', 'humble', 'Reach out', '“I’ll talk to them. We’re in this together.”', 1, { lockerRoom: 4 }),
+        FU('b', 'bold', 'Stand your ground', '“If it bothers them, they can answer on the pitch too.”', 2, { mediaHeat: 4, lockerRoom: -4, fanPopularity: 2 }),
+        FU('c', 'tactical', 'Defuse it', '“It was said with passion. Everyone in the group understands.”', 1, { lockerRoom: 2, coachTrust: 1 }),
+      ],
+    },
+  ],
+  humble: [
+    {
+      id: 'fu-credit',
+      question: 'You always deflect praise. Do you ever give yourself credit?',
+      answers: [
+        FU('a', 'humble', 'Stay modest', '“Credit belongs to the people who work behind the scenes.”', 1, { lockerRoom: 3, fanPopularity: 2 }),
+        FU('b', 'bold', 'Accept it', '“Alright — I’m proud of the work I’ve put in. It’s been tough.”', 2, { fanPopularity: 3, mediaHeat: 3 }),
+        FU('c', 'tactical', 'Turn it back', '“Credit is a reason to work harder, not to celebrate.”', 1, { coachTrust: 3 }),
+      ],
+    },
+  ],
+  'no-comment': [
+    {
+      id: 'fu-silence',
+      question: 'Silence says a lot. Are you hiding something?',
+      answers: [
+        FU('a', 'tactical', 'Explain yourself', '“No. I simply prefer to speak when I have something worth saying.”', 0, { coachTrust: 1, mediaHeat: -2 }),
+        FU('b', 'bold', 'Stay cryptic', '“You’ll find out soon enough.”', 1, { mediaHeat: 6, fanPopularity: 1, coachTrust: -1 }),
+        FU('c', 'humble', 'Apologise', '“Sorry — I’m just tired. It was a long match.”', 0, { fanPopularity: 2, mediaHeat: -1 }),
+      ],
+    },
+  ],
+};
+
+/** The journalist's reaction to your answer, before the next question. */
+export const REACTIONS: Record<PressStyle, string[]> = {
+  tactical: ['Very measured, as always.', 'A careful answer.'],
+  deflect: ['You’re keeping your cards close.', 'Diplomatic.'],
+  bold: ['Now that is a headline!', 'Bold words.'],
+  humble: ['Always so modest.', 'Refreshing honesty.'],
+  'no-comment': ['Hmm. Nothing to say?', 'The silence speaks.'],
+};

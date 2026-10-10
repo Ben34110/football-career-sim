@@ -44,6 +44,11 @@ export interface MatchCtx {
   benched: boolean;
   /** Display only: the player's side is the home team (national games are neutral for the engine) */
   meHome: boolean;
+  // tactical brief
+  myRateMul: number;
+  oppRateMul: number;
+  clutchBonus: number;
+  startMomentum: number;
 }
 
 export interface BuildCtxInput {
@@ -86,7 +91,8 @@ export function startsOnBench(coachTrust: number, form: number[], kind: FixtureK
 
 export function buildCtx(i: BuildCtxInput): MatchCtx {
   const fatigue = Math.max(0, 5 - i.boltsBefore - (i.fatigueRelief ?? 0));
-  const effOvr = i.ovr + i.mods.perfBonus + (i.morale - 50) / 12 - fatigue;
+  const brief = i.mods.brief ?? {};
+  const effOvr = i.ovr + i.mods.perfBonus + (brief.perf ?? 0) + (i.morale - 50) / 12 - fatigue - (brief.fatigue ?? 0);
   const home = i.home ? 1.5 + (i.rep.fanPopularity - 50) / 40 : 0;
   const myStr = i.teamStrength + (effOvr - i.teamStrength) * 0.12 + (i.rep.lockerRoom - 50) / 25 + home;
   return {
@@ -108,6 +114,10 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
     mods: i.mods,
     benched: i.benched,
     meHome: i.meHome,
+    myRateMul: brief.myRateMul ?? 1,
+    oppRateMul: brief.oppRateMul ?? 1,
+    clutchBonus: brief.clutchBonus ?? 0,
+    startMomentum: brief.momentum ?? 0,
   };
 }
 
@@ -152,7 +162,7 @@ export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
     minute: 0,
     myScore: 0,
     oppScore: 0,
-    momentum: 0,
+    momentum: ctx.startMomentum,
     events: [],
     clutches: scheduleClutches(startMinute, isStarter, rng),
     nextClutch: 0,
@@ -229,8 +239,8 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   }
 
   const d = ctx.myStr - ctx.oppStr;
-  const myRate = clamp(0.13 * Math.exp(d / 45 + m.momentum / 300), 0.04, 0.45);
-  const oppRate = clamp(0.19 * Math.exp(-d / 45 - m.momentum / 300), 0.04, 0.45);
+  const myRate = clamp(0.13 * ctx.myRateMul * Math.exp(d / 45 + m.momentum / 300), 0.04, 0.45);
+  const oppRate = clamp(0.19 * ctx.oppRateMul * Math.exp(-d / 45 - m.momentum / 300), 0.04, 0.45);
   const myConv = clamp(0.18 * Math.exp(d / 70), 0.08, 0.38);
   const oppConv = clamp(0.22 * Math.exp(-d / 70), 0.08, 0.38);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
@@ -296,7 +306,7 @@ export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): 
   // Better opposition makes every decision harder
   const opposition = (ctx.oppStr - ctx.myStr) / 140;
   return clamp(
-    opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
+    ctx.clutchBonus + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
     0.05,
     0.86,
   );

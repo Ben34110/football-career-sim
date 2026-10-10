@@ -8,7 +8,9 @@ import { Card } from '@/components/ui/Card';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
+import type { Instruction } from '@/lib/data/briefing';
 import { EXPECTATION_TARGET, expectationEffect, pickSpeech, type StanceEffect } from '@/lib/data/speeches';
+import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
 import { LEVEL_STRENGTH, ovrOf, syncEnergy } from '@/lib/engine/player';
 import { currentFixture, leaguePosition } from '@/lib/engine/season';
@@ -24,7 +26,7 @@ import { CupDraw } from './CupDraw';
 import { LiveMatch, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
-import { PressZone } from './PressZone';
+import { PressZone, type AnswerInfo } from './PressZone';
 import { Shootout, type ShootoutResult } from './Shootout';
 
 type Stage = 'brief' | 'live' | 'shootout' | 'press' | 'summary';
@@ -84,7 +86,8 @@ export function MatchScreen() {
       recent: played.slice(-3).map((f) => f.result!.outcome),
       leaguePos: leaguePosition(season),
       played: played.length,
-    });
+      home: fixture.home,
+    }, Math.random, player.talks?.speeches ?? []);
     // a new talk only when the fixture changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixture?.id, fixture?.drawn, !!player, !!season, !!badges]);
@@ -110,7 +113,7 @@ export function MatchScreen() {
 
   /* ───── Handlers ───── */
 
-  const kickoff = (stance: StanceEffect) => {
+  const kickoff = (rawStance: StanceEffect, instruction: Instruction) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
     const boltsBefore = syncEnergy(p0.energy, Date.now()).bolts;
@@ -118,8 +121,11 @@ export function MatchScreen() {
       toast(t('Not enough energy to play.'), 'bad');
       return;
     }
+    // the same talk week after week loses its effect
+    const stance = scaleStance(rawStance, repetition(p0.talks?.stances ?? [], rawStance.id).factor);
     setSnap({ rep: p0.rep, attrs: p0.attrs, money: p0.money, ovr: ovrOf(p0) });
     store.applyStance(stance);
+    store.recordTalk({ stance: rawStance.id, speech: speech?.id, instruction: instruction.id });
     const p = useGameStore.getState().player!;
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     setFx(fixture);
@@ -139,7 +145,7 @@ export function MatchScreen() {
         home: national ? false : fixture.home,
         knockout: fixture.knockout,
         kind: fixture.kind,
-        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] },
+        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (instruction.effect.target ?? 0), brief: instruction.effect },
         benched: startsOnBench(p0.rep.coachTrust, p0.form, fixture.kind),
         meHome: fixture.home,
         fatigueRelief: p.upgrades?.nutrition ?? 0,
@@ -175,6 +181,15 @@ export function MatchScreen() {
       lockerRoom: p.rep.lockerRoom,
       fanPopularity: p.rep.fanPopularity,
       apps: p.totals.apps,
+      opp: fixture.opponent,
+      myScore: res.myScore,
+      oppScore: res.oppScore,
+      label: fixture.label,
+      recent: (useGameStore.getState().season?.fixtures ?? [])
+        .filter((f) => f.status === 'played' && f.result)
+        .slice(-3)
+        .map((f) => f.result!.outcome),
+      mood: p.talks?.mood ?? 0,
       benched: !!res.benched,
       subbedOff: !!res.subbedOff,
     });
@@ -187,7 +202,7 @@ export function MatchScreen() {
     else finalise(m, null);
   };
 
-  const onPress = (a: PressAnswer) => useGameStore.getState().applyPress(a);
+  const onPress = (a: PressAnswer, info: AnswerInfo) => useGameStore.getState().applyPress(a, { ...info, win: result?.outcome === 'W' || (result?.rating ?? 0) >= 7.2 });
 
 
   return (
@@ -206,6 +221,7 @@ export function MatchScreen() {
           msToNext={msToNext}
           fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
+          talks={player.talks}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)
               ? player.rep.coachTrust < 25
@@ -222,7 +238,7 @@ export function MatchScreen() {
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
-      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} onAnswer={onPress} onContinue={() => setStage('summary')} />}
+      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} recentQuestions={player.talks?.questions ?? []} recentStyles={player.talks?.press ?? []} onAnswer={onPress} onContinue={() => setStage('summary')} />}
       {stage === 'summary' && result && snap && expect && (
         <MatchSummary
           fixture={fixture}

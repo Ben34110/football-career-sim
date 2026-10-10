@@ -122,6 +122,31 @@ export const SPEECHES: Record<string, Speech> = {
     st('back-boss', '“We’re ready, coach. We’ve prepared for this.”'),
     st('crack-joke', '“Relax, lads — it’s just a game in front of a billion people.”'),
     st('challenge-boss', '“I’d play them differently, coach. Trust me with a free role.”')),
+  fortress: speech('fortress', 'Make It A Fortress',
+    '“Our stadium, our rules. Let the crowd carry you — and make them regret coming here.”',
+    st('for-lads', '“Every ball, every duel — they won’t get past us tonight!”'),
+    st('crack-joke', '“If they’re scared, I’ll make sure they’re terrified. Come on!”'),
+    st('demand-ball', '“Give me the ball in front of our fans and I’ll do the rest.”', { rep: { fanPopularity: 4, lockerRoom: -3, coachTrust: -1, mediaHeat: 2 }, perfBonus: 5 })),
+  awayday: speech('awayday', 'Silence The Crowd',
+    '“It will be loud, it will be hostile. Keep the ball, keep your heads and shut them up.”',
+    st('back-boss', '“We stay calm, boss. Silence is our best weapon.”'),
+    st('stay-quiet', 'You nod, tape your socks, and don’t say a word. Their noise is just background.'),
+    st('challenge-boss', '“We should play on the front foot, boss. Don’t sit back on the road.”')),
+  sharp: speech('sharp', 'Stay Sharp',
+    '“Matches like this are lost in the first ten minutes. Be switched on, be first to every ball.”',
+    st('back-boss', '“Understood. We’ll be sharp from the first whistle.”'),
+    st('mentor', '“Stay close to me, kid. I’ll tell you where to be.”'),
+    st('for-lads', '“Start fast, lads! First goal wins it.”')),
+  process: speech('process', 'Trust The Process',
+    '“Results come from habits. Do the small things right for ninety minutes and the scoreboard will follow.”',
+    st('back-boss', '“The small details win games, boss. We’ll nail them.”'),
+    st('stay-quiet', 'You study the tactics board one last time and say nothing — you already know your job.'),
+    st('challenge-boss', '“Sometimes the process needs a spark, boss. Let me improvise.”')),
+  enjoy: speech('enjoy', 'Enjoy It',
+    '“Remember why you started playing. Forget the noise, forget the table — go and enjoy this.”',
+    st('crack-joke', '“Enjoy it? I’ll enjoy it even more if I score!”'),
+    st('mentor', '“Look around, kid. This is what we play for. Soak it in.”'),
+    st('for-lads', '“Let’s make our fans proud and have fun doing it!”')),
   routine: speech('routine', 'Business As Usual',
     '“No big speech today. Do the simple things well, support each other and the result will take care of itself.”',
     st('back-boss', '“Simple and solid, boss. We’ll deliver.”'),
@@ -142,13 +167,14 @@ export interface SpeechContext {
   recent: ('W' | 'D' | 'L')[];
   leaguePos: number;
   played: number;
+  home?: boolean;
 }
 
 let lastSpeech: string | null = null;
 
 /** Picks a talk that fits the situation — and never the same one twice in a row. */
-export function pickSpeech(c: SpeechContext, rng: () => number = Math.random): Speech {
-  const w: Record<string, number> = { routine: 0.6 };
+export function pickSpeech(c: SpeechContext, rng: () => number = Math.random, recent: string[] = []): Speech {
+  const w: Record<string, number> = { routine: 0.5, sharp: 1.2, process: 1, enjoy: 1 };
   const add = (id: string, weight: number) => (w[id] = (w[id] ?? 0) + weight);
 
   if (c.kind === 'intl' || c.kind === 'tournament') {
@@ -177,8 +203,13 @@ export function pickSpeech(c: SpeechContext, rng: () => number = Math.random): S
   if (c.kind === 'league' && c.played >= 5 && c.leaguePos >= 8) add('survival', 3);
   if (c.age <= 20 && c.trust >= 50) add('kid', 2.5);
   if (c.age >= 30) add('veteran', 2.5);
+  if (c.kind === 'league' || c.kind === 'cup' || c.kind === 'euro') add(c.home ? 'fortress' : 'awayday', 1.6);
 
-  const entries = Object.entries(w).filter(([id]) => id !== lastSpeech && id in SPEECHES);
+  // never the talk you just heard, and the last few are far less likely to come back (remembered across sessions)
+  const cooling = new Set([...recent.slice(-3), ...(lastSpeech ? [lastSpeech] : [])]);
+  let entries = Object.entries(w).filter(([id]) => !cooling.has(id) && id in SPEECHES);
+  if (entries.length === 0) entries = Object.entries(w).filter(([id]) => id !== lastSpeech && id in SPEECHES);
+  if (entries.length === 0) entries = Object.entries(w).filter(([id]) => id in SPEECHES);
   const total = entries.reduce((a, [, v]) => a + v, 0);
   let r = rng() * total;
   let chosen = entries[0][0];

@@ -186,6 +186,22 @@ export const FR_UI: Record<string, string> = {
   '⬆️ Promotion! The club rises to Division {n}.': '⬆️ Promotion ! Le club monte en Division {n}.',
   '⭐ Qualified for the {comp} next season!': '⭐ Qualifié pour la {comp} la saison prochaine !',
 
+  // national-team selection popup
+  'Called up!': 'Convoqué !',
+  'Not selected': 'Non sélectionné',
+  'National team': 'Équipe nationale',
+  'Matches to play': 'Matchs à disputer',
+  'Your match': 'Ton match',
+  Understood: 'Compris',
+  '“Your performances have earned this. Represent your country with pride.”': '« Tes performances l’ont mérité. Représente ton pays avec fierté. »',
+  '“We need players in form, and you have been impressive lately.”': '« On a besoin de joueurs en forme, et tu as été impressionnant ces derniers temps. »',
+  '“The badge is a responsibility. I know you will carry it well.”': '« Le maillot est une responsabilité. Je sais que tu la porteras bien. »',
+  'Your recent form is not good enough: the national coach wants players in rhythm.': 'Ta forme récente n’est pas suffisante : le sélectionneur veut des joueurs en rythme.',
+  'You have the level, but others are ahead of you for now. Keep improving.': 'Tu as le niveau, mais d’autres sont devant toi pour l’instant. Continue de progresser.',
+  'A tough call: the coach went with other players this time. Your chance will come.': 'Un choix difficile : le sélectionneur a retenu d’autres joueurs cette fois. Ta chance viendra.',
+  'The {team} coach left you out of the squad.': 'Le sélectionneur de {team} ne t’a pas retenu.',
+  'You miss the {name}: the coach left you out.': 'Tu manques la {name} : le sélectionneur ne t’a pas retenu.',
+
   // youth national teams
   'U20 from OVR {a} · U23 from {b} · senior from {c}': 'U20 dès {a} d’OVR · U23 dès {b} · A dès {c}',
   'Next: {level} call-up': 'Prochaine sélection : {level}',

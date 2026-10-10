@@ -1,6 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
+import type { OmissionReason } from './engine/selection';
+import type { NationalLevel } from './engine/player';
 import type { Position } from './types';
 
 export interface SigningEvent {
@@ -17,7 +19,23 @@ export interface SigningEvent {
   fee: number;
 }
 
+export interface CallUpEvent {
+  id: number;
+  outcome: 'called' | 'omitted';
+  level: NationalLevel;
+  nationCode: string;
+  /** Tournament name when it is the summer competition */
+  competition?: string;
+  /** Matches you will play (ISO date when known) */
+  matches: { label: string; opponent: string; date?: string }[];
+  reason?: OmissionReason;
+}
+
 interface UiStore {
+  /** National-team selections waiting to be shown (after the match flow) */
+  callUps: CallUpEvent[];
+  pushCallUp: (e: Omit<CallUpEvent, 'id'>) => void;
+  shiftCallUp: () => void;
   immersive: boolean;
   setImmersive: (v: boolean) => void;
   signing: SigningEvent | null;
@@ -29,6 +47,9 @@ let signingSeq = 0;
 
 /** `immersive` hides the tab bar during live match phases so a stray tap can't abandon the game. */
 export const useUiStore = create<UiStore>((set) => ({
+  callUps: [],
+  pushCallUp: (e) => set((s) => ({ callUps: [...s.callUps, { ...e, id: ++signingSeq }] })),
+  shiftCallUp: () => set((s) => ({ callUps: s.callUps.slice(1) })),
   immersive: false,
   setImmersive: (immersive) => set({ immersive }),
   signing: null,

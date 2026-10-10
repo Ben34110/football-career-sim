@@ -388,7 +388,8 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
  * Insert international fixtures when the player's OVR qualifies them.
  * Safe to call after every match.
  */
-export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality, rng: Rng, age = 18): SeasonState {
+/** `canPick` is the national coach's decision for each selection window. */
+export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality, rng: Rng, age = 18, canPick: (stage: 'window' | 'tournament') => boolean = () => true): SeasonState {
   const level = nationalLevel(ovr, age);
   if (!level) return season;
   let next = season;
@@ -397,16 +398,22 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
 
   // International window mid-season
   if (!next.callUpQueued && upcomingIdx !== -1 && played >= 4 && next.fixtures.some((f) => f.kind === 'league' && f.status === 'upcoming')) {
+    if (!canPick('window')) {
+      next = { ...next, callUpQueued: true, callUpOmitted: true };
+    } else {
     const qualifier = nationOpponent(nat, -2, level === 'A' ? 'International Qualifier' : level === 'U23' ? 'U23 International' : 'U20 International', `${next.year}-I1`, 'intl', false, rng, level);
     const fixtures = [...next.fixtures];
     fixtures.splice(upcomingIdx + 1, 0, qualifier);
     next = { ...next, fixtures, callUpQueued: true };
+    }
   }
 
   // Summer tournament once the domestic calendar is done
   const tournament = level === 'A' ? tournamentFor(next.year + 1, nat) : youthTournamentFor(level, next.year + 1, nat);
   const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl' || f.kind === 'euro'));
-  if (!next.tournamentQueued && tournament && !domesticLeft) {
+  if (!next.tournamentQueued && tournament && !domesticLeft && !canPick('tournament')) {
+    next = { ...next, tournamentQueued: true, tournamentOmitted: true, tournamentName: tournament };
+  } else if (!next.tournamentQueued && tournament && !domesticLeft) {
     const stages: [string, number, boolean][] = [
       ['Group Stage Decider', -3, false],
       ['Quarter-Final', 0, true],

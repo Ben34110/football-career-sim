@@ -140,6 +140,9 @@ export interface SeasonState {
   tournamentName: string | null;
   /** International qualifier already scheduled this season */
   callUpQueued: boolean;
+  /** The national coach left you out of the mid-season window / the summer tournament */
+  callUpOmitted?: boolean;
+  tournamentOmitted?: boolean;
   /** Summer tournament fixtures already appended */
   tournamentQueued: boolean;
   /** Division played this season (absent on older saves = top flight) */
@@ -207,6 +210,8 @@ export interface Player {
   look?: Look;
   /** International record */
   national?: { caps: number; goals: number; youthCaps?: number };
+  /** Recent dressing-room and press choices */
+  talks?: TalkMemory;
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
   /** Permanent upgrades bought with money */
@@ -269,6 +274,33 @@ export type GamePhase = 'playing' | 'season-end' | 'free-agent' | 'retired';
 
 /* ───────────── Match engine types ───────────── */
 
+/** What the tactical brief changes in a match. */
+export interface Brief {
+  /** Added to the player's effective OVR */
+  perf?: number;
+  /** Starting momentum (positive = my side on top) */
+  momentum?: number;
+  /** Extra fatigue (in lives) */
+  fatigue?: number;
+  myRateMul?: number;
+  oppRateMul?: number;
+  /** Added to every decision's chance */
+  clutchBonus?: number;
+  /** Raises the rating you are judged against */
+  target?: number;
+}
+
+/** What the player has said lately: used to keep the conversations fresh. */
+export interface TalkMemory {
+  stances: string[];
+  press: string[];
+  speeches: string[];
+  questions: string[];
+  instructions: string[];
+  /** -100 (hostile press) … 100 (friendly press) */
+  mood: number;
+}
+
 export type StanceId = 'back-boss' | 'for-lads' | 'demand-ball' | 'crack-joke' | 'stay-quiet' | 'challenge-boss' | 'mentor';
 export type Expectation = 'Modest' | 'Standard' | 'Star Role';
 
@@ -278,6 +310,8 @@ export interface MatchModifiers {
   expectation: Expectation;
   /** Rating the player must reach to satisfy the expectation */
   ratingTarget: number;
+  /** Tactical brief chosen after the talk */
+  brief?: Brief;
 }
 
 export type MatchEventType =

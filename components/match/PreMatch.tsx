@@ -1,19 +1,21 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Check, Heart, Home as HomeIcon, MapPin, Mic2 } from 'lucide-react';
+import { AlertTriangle, Check, Heart, Home as HomeIcon, MapPin, Mic2, Swords } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
+import { INSTRUCTIONS, pickInstructions, type Instruction } from '@/lib/data/briefing';
 import { EXPECTATION_TARGET, type Speech, type StanceEffect } from '@/lib/data/speeches';
+import { managerReaction, repetition } from '@/lib/data/talks';
 import { REP_LABEL } from '@/lib/engine/player';
 import { fmtShortDate } from '@/lib/dates';
 import { useLang, useT } from '@/lib/i18n';
 import { fmtCountdown, cn } from '@/lib/utils';
-import type { Fixture, RepKey } from '@/lib/types';
+import type { Fixture, RepKey, TalkMemory } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
 
 const KIND_LABEL: Record<Fixture['kind'], string> = {
@@ -35,6 +37,7 @@ export function PreMatch({
   fatigueRelief = 0,
   benchWhy,
   date,
+  talks,
   onKickoff,
 }: {
   fixture: Fixture;
@@ -47,11 +50,19 @@ export function PreMatch({
   fatigueRelief?: number;
   benchWhy: 'trust' | 'form' | null;
   date: Date;
-  onKickoff: (s: StanceEffect) => void;
+  /** What the player said lately (repetition, reactions) */
+  talks?: TalkMemory;
+  onKickoff: (s: StanceEffect, instruction: Instruction) => void;
 }) {
   const t = useT();
   const { lang } = useLang();
   const [picked, setPicked] = useState<StanceEffect | null>(null);
+  const [instruction, setInstruction] = useState<Instruction | null>(null);
+  // repeating yourself weakens the effect, and the manager notices
+  const rpt = picked ? repetition(talks?.stances ?? [], picked.id) : { count: 0, factor: 1 };
+  const reaction = useMemo(() => (picked ? managerReaction(picked, rpt.count) : ''), [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the offered briefs depend on how you spoke (decided once per stance)
+  const offered = useMemo(() => (picked ? pickInstructions(picked.id, Math.random, talks?.instructions ?? []) : []), [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const diff = myStrength - fixture.opponentStrength;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
   const exhausted = bolts < 1;
@@ -147,7 +158,10 @@ export function PreMatch({
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.08 * i }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setPicked(st)}
+                onClick={() => {
+                  setPicked(st);
+                  setInstruction(null);
+                }}
                 aria-pressed={active}
                 className={cn(
                   'gloss-edge w-full rounded-2xl border p-3.5 text-left transition-all',
@@ -187,8 +201,58 @@ export function PreMatch({
         </div>
       </div>
 
+      {/* The manager answers, then a short tactical brief */}
+      <AnimatePresence>
+        {picked && (
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <Card className="p-4">
+              <div className="mb-2 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-zinc-600 to-zinc-800 font-display text-base font-bold">M</div>
+                <div className="text-sm font-bold">{t('The Manager')}</div>
+                {rpt.count >= 2 && <Chip tone="bad">{t('Predictable: −{n}% effect', { n: Math.round((1 - rpt.factor) * 100) })}</Chip>}
+              </div>
+              <p className="text-[14px] italic leading-relaxed text-zinc-200">{t(reaction, { opp: opp.name })}</p>
+            </Card>
+
+            <div>
+              <div className="mb-2 flex items-center gap-2 px-0.5">
+                <Swords className="h-4 w-4 text-neon-400" />
+                <h2 className="eyebrow">{t('Tactical brief')}</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-2.5">
+                {offered.map((ins, i) => {
+                  const active = instruction?.id === ins.id;
+                  return (
+                    <motion.button
+                      key={ins.id}
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.07 * i }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setInstruction(ins)}
+                      aria-pressed={active}
+                      className={cn(
+                        'gloss-edge flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all',
+                        active ? 'border-neon-400/60 bg-neon-400/10 shadow-neon' : 'border-white/[0.08] bg-white/[0.04]',
+                      )}
+                    >
+                      <span className="text-2xl">{ins.emoji}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] font-bold">{t(ins.label)}</span>
+                        <span className="block text-xs text-zinc-400">{t(ins.hint)}</span>
+                      </span>
+                      {active && <Check className="h-4 w-4 text-neon-400" />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <FloatingAction>
-        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked)}>
+        <Button block size="lg" disabled={!picked || !instruction || exhausted} onClick={() => picked && instruction && onKickoff(picked, instruction)}>
           {exhausted ? (
             <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (

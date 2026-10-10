@@ -2,6 +2,7 @@ import { FR_MATCH } from './fr-match';
 import { FR_MOMENTS } from './fr-moments';
 import { FR_SCANDALS } from './fr-scandals';
 import { FR_SPEECHES } from './fr-speeches';
+import { FR_TALKS } from './fr-talks';
 import { FR_UI } from './fr-ui';
 import { WORLD } from '../data/world';
 
@@ -12,6 +13,7 @@ export const FR: Record<string, string> = {
   ...FR_MATCH,
   ...FR_SCANDALS,
   ...FR_MOMENTS,
+  ...FR_TALKS,
   // every country name, straight from the world table
   ...Object.fromEntries(WORLD.map((w) => [w.name, w.fr])),
 };

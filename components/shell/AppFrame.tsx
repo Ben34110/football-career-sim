@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/Toaster';
+import { CallUpPopup } from './CallUpPopup';
 import { SigningCeremony } from './SigningCeremony';
 import { useHydrated } from '@/lib/hooks';
 
@@ -23,6 +24,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </div>
+      <CallUpPopup />
       <SigningCeremony />
       <Toaster />
     </div>

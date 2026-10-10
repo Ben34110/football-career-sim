@@ -7,7 +7,10 @@ import { getNationality } from './data/nationalities';
 import type { StanceEffect } from './data/speeches';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
+import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
 import { useUiStore } from './ui';
+import { omissionReason, selectionChance, type SelectionInput } from './engine/selection';
+import { fixtureDate } from './dates';
 import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } from './data/shop';
 import {
   applyRep,
@@ -104,7 +107,9 @@ interface GameActions {
   applyStance: (s: StanceEffect) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult) => void;
-  applyPress: (a: PressAnswer) => void;
+  applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;
+  /** Remembers what was said in the dressing room so the next talks can react to it. */
+  recordTalk: (e: { stance?: string; speech?: string; instruction?: string }) => void;
   /** Apply the outcome of a scandal; returns true when the club terminated the contract. */
   resolveControversy: (e: Effect, title: string) => boolean;
   /** Feed the media with an extra headline (+Media Heat, small fan boost) */
@@ -295,13 +300,54 @@ export const useGameStore = create<GameStore>()(
           nextNews = addNews(nextNews, mkNews(tr('Knocked out of the cup by {opp}.', { opp: fixture.opponent }), 'bad'));
         }
 
-        nextSeason = queueCallUps(nextSeason, newOvr, getNationality(player.nationality), Math.random, player.age);
-        if (nextSeason.callUpQueued && !season.callUpQueued) {
-          const teamName = `${tr(getNationality(player.nationality).name)}${lvlNow && lvlNow !== 'A' ? ' ' + lvlNow : ''}`;
-          nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: teamName }), 'gold'));
+        // The national coach decides: being good enough is not enough, he also watches your form
+        const omitted: { input?: SelectionInput } = {};
+        const decide = (stage: 'window' | 'tournament') => {
+          if (!lvlNow) return false;
+          const input: SelectionInput = {
+            level: lvlNow,
+            stage,
+            ovr: newOvr,
+            form: updated.form,
+            contributions: nextSeason.stats.goals + nextSeason.stats.assists,
+            apps: nextSeason.stats.apps,
+            omittedBefore: !!nextSeason.callUpOmitted,
+          };
+          const ok = Math.random() < selectionChance(input);
+          if (!ok) omitted.input = input;
+          return ok;
+        };
+        const teamName = `${tr(getNationality(player.nationality).name)}${lvlNow && lvlNow !== 'A' ? ' ' + lvlNow : ''}`;
+        nextSeason = queueCallUps(nextSeason, newOvr, getNationality(player.nationality), Math.random, player.age, decide);
+        const ui = useUiStore.getState();
+        if (nextSeason.callUpQueued && !season.callUpQueued && lvlNow) {
+          if (nextSeason.callUpOmitted && !season.callUpOmitted) {
+            const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
+            nextNews = addNews(nextNews, mkNews(tr('The {team} coach left you out of the squad.', { team: teamName }), 'bad'));
+            ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, matches: [], reason });
+          } else {
+            nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: teamName }), 'gold'));
+            const idx = nextSeason.fixtures.findIndex((f) => f.kind === 'intl' && f.status === 'upcoming');
+            const f = nextSeason.fixtures[idx];
+            if (f) ui.pushCallUp({ outcome: 'called', level: lvlNow, nationCode: player.nationality, matches: [{ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, idx).toISOString() }] });
+          }
         }
-        if (nextSeason.tournamentQueued && !season.tournamentQueued) {
-          nextNews = addNews(nextNews, mkNews(tr('🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));
+        if (nextSeason.tournamentQueued && !season.tournamentQueued && lvlNow) {
+          if (nextSeason.tournamentOmitted) {
+            const reason = omitted.input ? omissionReason(omitted.input) : 'unlucky';
+            nextNews = addNews(nextNews, mkNews(tr('You miss the {name}: the coach left you out.', { name: tr(nextSeason.tournamentName ?? '') }), 'bad'));
+            ui.pushCallUp({ outcome: 'omitted', level: lvlNow, nationCode: player.nationality, competition: nextSeason.tournamentName ?? undefined, matches: [], reason });
+          } else {
+            nextNews = addNews(nextNews, mkNews(tr('🌍 You’re heading to the {name}!', { name: tr(nextSeason.tournamentName ?? '') }), 'gold'));
+            const stages = nextSeason.fixtures.map((x, i) => ({ x, i })).filter(({ x }) => x.kind === 'tournament' && x.status === 'upcoming');
+            ui.pushCallUp({
+              outcome: 'called',
+              level: lvlNow,
+              nationCode: player.nationality,
+              competition: nextSeason.tournamentName ?? undefined,
+              matches: stages.map(({ x, i }) => ({ label: x.label, opponent: x.drawn === false ? '' : x.opponent, date: fixtureDate(nextSeason, i).toISOString() })),
+            });
+          }
         }
 
         set({ player: updated, season: nextSeason, news: nextNews });
@@ -309,16 +355,48 @@ export const useGameStore = create<GameStore>()(
         if (seasonFinished(nextSeason)) finishSeason(set, get);
       },
 
-      applyPress: (a) => {
+      applyPress: (a, info) => {
         const { player } = get();
         if (!player) return;
+        const talks = player.talks ?? emptyTalks();
+        // saying the same kind of thing every week loses its punch
+        const rpt = info?.followUp ? { count: 0, factor: 1 } : repetition(talks.press, a.style);
         // High media heat amplifies every answer (good or bad).
         const amp = 1 + player.rep.mediaHeat / 150;
-        const scaled = Object.fromEntries(
-          Object.entries(a.rep).map(([k, v]) => [k, Math.round((v as number) * amp)]),
-        );
+        const rep = Object.fromEntries(Object.entries(a.rep).map(([k, v]) => [k, scaleNum(Math.round((v as number) * amp), rpt.factor)]));
+        // how the press feels about you drifts with what you say
+        const swing =
+          a.style === 'humble' ? 6 : a.style === 'tactical' ? 3 : a.style === 'deflect' ? 2 : a.style === 'bold' ? (info?.win ? 4 : -5) : -7;
+        const mood = clamp(Math.round(talks.mood * 0.92 + swing * (info?.followUp ? 0.5 : 1) - (rpt.count >= 2 ? 2 : 0)), -100, 100);
         set({
-          player: { ...player, morale: clamp(player.morale + a.morale, 0, 100), rep: applyRep(player.rep, scaled) },
+          player: {
+            ...player,
+            morale: clamp(player.morale + scaleNum(a.morale, rpt.factor), 0, 100),
+            rep: applyRep(player.rep, rep),
+            talks: {
+              ...talks,
+              mood,
+              press: info?.followUp ? talks.press : [...talks.press, a.style].slice(-10),
+              questions: info?.question ? [...talks.questions, info.question].slice(-8) : talks.questions,
+            },
+          },
+        });
+      },
+
+      recordTalk: (e) => {
+        const { player } = get();
+        if (!player) return;
+        const talks = player.talks ?? emptyTalks();
+        set({
+          player: {
+            ...player,
+            talks: {
+              ...talks,
+              stances: e.stance ? [...talks.stances, e.stance].slice(-10) : talks.stances,
+              speeches: e.speech ? [...talks.speeches, e.speech].slice(-8) : talks.speeches,
+              instructions: e.instruction ? [...talks.instructions, e.instruction].slice(-8) : talks.instructions,
+            },
+          },
         });
       },
 

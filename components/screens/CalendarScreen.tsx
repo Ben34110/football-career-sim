@@ -197,7 +197,17 @@ function Fixtures({ season }: { season: SeasonState }) {
 function Table() {
   const t = useT();
   const season = useGameStore((s) => s.season);
+  const [view, setView] = useState<'league' | 'europe'>('league');
   if (!season) return null;
+  const hasEurope = !!season.europe && !!season.euroTable;
+  if (hasEurope && view === 'europe') {
+    return (
+      <div className="space-y-2.5">
+        <ViewSwitch view={view} onChange={setView} europe={season.europe!} />
+        <EuropeTable season={season} />
+      </div>
+    );
+  }
   const rows = sortTable(season.table);
   const z = seasonZones(season);
   const div = season.division ?? 1;
@@ -212,10 +222,14 @@ function Table() {
   };
   return (
     <div className="space-y-2.5">
-      <div className="px-1 text-[11px] font-semibold text-zinc-500">
-        {t('Division {n}', { n: div })}
-        {season.europe ? ` · ${t(season.europe)}` : ''}
-      </div>
+      {hasEurope ? (
+        <ViewSwitch view={view} onChange={setView} europe={season.europe!} />
+      ) : (
+        <div className="px-1 text-[11px] font-semibold text-zinc-500">
+          {t('Division {n}', { n: div })}
+          {season.europe ? ` · ${t(season.europe)}` : ''}
+        </div>
+      )}
       <Card className="overflow-hidden p-0">
         <div className="grid grid-cols-[24px_1fr_28px_28px_28px_36px_34px] items-center gap-1 border-b border-white/[0.06] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
           <span>#</span>
@@ -255,6 +269,100 @@ function Table() {
         {z.promo > 0 && <Legend color="#34d399" label={t('Promotion')} />}
         {z.relegation > 0 && <Legend color="#ef4444" label={t('Relegation')} />}
       </div>
+    </div>
+  );
+}
+
+function ViewSwitch({ view, onChange, europe }: { view: 'league' | 'europe'; onChange: (v: 'league' | 'europe') => void; europe: string }) {
+  const t = useT();
+  return (
+    <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
+      {(['league', 'europe'] as const).map((v) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          aria-pressed={view === v}
+          className={cn('h-9 rounded-lg text-[13px] font-bold transition-colors', view === v ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-zinc-950' : 'text-zinc-400')}
+        >
+          {v === 'league' ? t('League') : t(europe)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The European group (top two go through) and the knockout path. */
+function EuropeTable({ season }: { season: SeasonState }) {
+  const t = useT();
+  const rows = sortTable(season.euroTable ?? []);
+  const rounds = season.fixtures.filter((f) => f.kind === 'euro' && f.knockout);
+  const groupDone = season.fixtures.filter((f) => f.kind === 'euro' && !f.knockout).every((f) => f.status !== 'upcoming');
+  const myRank = rows.findIndex((r) => r.isMe);
+  return (
+    <div className="space-y-3">
+      <Card className="overflow-hidden p-0">
+        <div className="eyebrow px-4 pt-3.5">{t('Group stage')}</div>
+        <div className="mt-2 grid grid-cols-[20px_1fr_26px_26px_26px_26px_34px] items-center gap-1 border-b border-white/[0.06] px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          <span>#</span>
+          <span>{t('Club')}</span>
+          <span className="text-center">{t('P')}</span>
+          <span className="text-center">{t('W')}</span>
+          <span className="text-center">{t('D')}</span>
+          <span className="text-center">{t('GD')}</span>
+          <span className="text-right">{t('Pts')}</span>
+        </div>
+        {rows.map((r, i) => (
+          <div
+            key={r.id}
+            style={i < 2 ? { boxShadow: 'inset 3px 0 0 #34d399' } : undefined}
+            className={cn('grid grid-cols-[20px_1fr_26px_26px_26px_26px_34px] items-center gap-1 px-3 py-2.5 text-[13px]', r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300')}
+          >
+            <span className="font-num text-zinc-500">{i + 1}</span>
+            <span className="truncate">{t(r.name)}</span>
+            <span className="font-num text-center">{r.played}</span>
+            <span className="font-num text-center">{r.won}</span>
+            <span className="font-num text-center">{r.drawn}</span>
+            <span className="font-num text-center">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</span>
+            <span className="font-num text-right text-base font-extrabold">{r.pts}</span>
+          </div>
+        ))}
+      </Card>
+      <div className="flex items-center gap-1.5 px-1 text-[11px] text-zinc-400">
+        <span className="h-2.5 w-1 rounded-full bg-neon-400" /> {t('Top two go through to the knockout rounds')}
+      </div>
+      {groupDone && (
+        <p className={cn('rounded-xl px-3 py-2 text-xs font-semibold', myRank < 2 ? 'bg-neon-400/10 text-neon-300' : 'bg-crimson-500/10 text-crimson-400')}>
+          {myRank < 2 ? t('You are through to the knockout rounds!') : t('Eliminated in the group stage.')}
+        </p>
+      )}
+
+      <Card className="p-4">
+        <div className="eyebrow mb-2.5">{t('Road to the final')}</div>
+        <ol className="space-y-2">
+          {rounds.map((f) => {
+            const round = f.label.replace(/^(Champions League|Europa League) /, '');
+            const r = f.result;
+            return (
+              <li key={f.id} className={cn('flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[13px]', f.status === 'skipped' ? 'opacity-40' : 'bg-white/[0.04]')}>
+                <span className="font-semibold">{t(round)}</span>
+                <span className="min-w-0 truncate text-right text-zinc-400">
+                  {f.status === 'played' && r ? (
+                    <>
+                      {t(f.opponent)} · <b className={cn('font-num', r.outcome === 'W' ? 'text-neon-300' : 'text-crimson-400')}>{r.myScore}–{r.oppScore}</b>
+                    </>
+                  ) : f.status === 'skipped' ? (
+                    t('Not reached')
+                  ) : f.drawn === false ? (
+                    t('Draw pending')
+                  ) : (
+                    t(f.opponent)
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
     </div>
   );
 }

@@ -8,8 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
-import type { Instruction } from '@/lib/data/briefing';
-import { EXPECTATION_TARGET, expectationEffect, pickSpeech, type StanceEffect } from '@/lib/data/speeches';
+import { pickRitual, type Ritual, type RitualOption } from '@/lib/data/rituals';
+import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
 import { LEVEL_STRENGTH, ovrOf, syncEnergy } from '@/lib/engine/player';
@@ -72,25 +72,22 @@ export function MatchScreen() {
     return { me, opp, strength };
   }, [player, fixture, t]);
 
-  /** One talk per fixture, chosen from the situation (form, results, table, opposition…) */
-  const speech = useMemo(() => {
+  /** One pre-match moment per fixture: a different format every time */
+  const ritual = useMemo<Ritual | null>(() => {
     if (!player || !season || !fixture || !badges) return null;
-    const played = season.fixtures.filter((f) => f.status === 'played' && f.result);
-    return pickSpeech({
-      kind: fixture.kind,
-      label: fixture.label,
-      diff: badges.strength - fixture.opponentStrength,
-      trust: player.rep.coachTrust,
-      age: player.age,
-      formAvg: player.form.length >= 3 ? player.form.slice(-3).reduce((a, b) => a + b, 0) / 3 : null,
-      recent: played.slice(-3).map((f) => f.result!.outcome),
-      leaguePos: leaguePosition(season),
-      played: played.length,
-      home: fixture.home,
-    }, Math.random, player.talks?.speeches ?? []);
-    // a new talk only when the fixture changes
+    return pickRitual(
+      {
+        diff: badges.strength - fixture.opponentStrength,
+        age: player.age,
+        trust: player.rep.coachTrust,
+        important: fixture.knockout || fixture.kind === 'tournament' || fixture.kind === 'euro' || /Matchday (5|10)$/.test(fixture.label),
+        home: fixture.home,
+      },
+      player.talks?.speeches ?? [],
+    );
+    // a new moment only when the fixture changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixture?.id, fixture?.drawn, !!player, !!season, !!badges]);
+  }, [fixture?.id, !!player, !!season, !!badges]);
 
   // the season can vanish mid-flow (contract terminated after a scandal): keep the report on screen
   if (!player || (!season && stage === 'brief' && gamePhase === 'playing')) return null;
@@ -113,7 +110,7 @@ export function MatchScreen() {
 
   /* ───── Handlers ───── */
 
-  const kickoff = (rawStance: StanceEffect, instruction: Instruction) => {
+  const kickoff = (rawStance: RitualOption, usedRitual: Ritual) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
     const boltsBefore = syncEnergy(p0.energy, Date.now()).bolts;
@@ -125,7 +122,7 @@ export function MatchScreen() {
     const stance = scaleStance(rawStance, repetition(p0.talks?.stances ?? [], rawStance.id).factor);
     setSnap({ rep: p0.rep, attrs: p0.attrs, money: p0.money, ovr: ovrOf(p0) });
     store.applyStance(stance);
-    store.recordTalk({ stance: rawStance.id, speech: speech?.id, instruction: instruction.id });
+    store.recordTalk({ stance: rawStance.id, speech: usedRitual.id });
     const p = useGameStore.getState().player!;
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     setFx(fixture);
@@ -145,7 +142,7 @@ export function MatchScreen() {
         home: national ? false : fixture.home,
         knockout: fixture.knockout,
         kind: fixture.kind,
-        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (instruction.effect.target ?? 0), brief: instruction.effect },
+        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (stance.brief?.target ?? 0), brief: stance.brief },
         benched: startsOnBench(p0.rep.coachTrust, p0.form, fixture.kind),
         meHome: fixture.home,
         fatigueRelief: p.upgrades?.nutrition ?? 0,
@@ -210,13 +207,13 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn === false && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
-      {stage === 'brief' && fixture.drawn !== false && speech && (
+      {stage === 'brief' && fixture.drawn !== false && ritual && (
         <PreMatch
           fixture={fixture}
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}
-          speech={speech}
+          ritual={ritual}
           bolts={bolts}
           msToNext={msToNext}
           fatigueRelief={player.upgrades?.nutrition ?? 0}

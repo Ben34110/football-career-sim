@@ -1,16 +1,16 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Check, Heart, Home as HomeIcon, MapPin, Mic2, Swords } from 'lucide-react';
+import { AlertTriangle, Check, Heart, Home as HomeIcon, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
-import { INSTRUCTIONS, pickInstructions, type Instruction } from '@/lib/data/briefing';
-import { EXPECTATION_TARGET, type Speech, type StanceEffect } from '@/lib/data/speeches';
-import { managerReaction, repetition } from '@/lib/data/talks';
+import type { Ritual, RitualOption } from '@/lib/data/rituals';
+import { EXPECTATION_TARGET } from '@/lib/data/speeches';
+import { repetition } from '@/lib/data/talks';
 import { REP_LABEL } from '@/lib/engine/player';
 import { fmtShortDate } from '@/lib/dates';
 import { useLang, useT } from '@/lib/i18n';
@@ -31,7 +31,7 @@ export function PreMatch({
   me,
   opp,
   myStrength,
-  speech,
+  ritual,
   bolts,
   msToNext,
   fatigueRelief = 0,
@@ -44,7 +44,7 @@ export function PreMatch({
   me: TeamBadge;
   opp: TeamBadge;
   myStrength: number;
-  speech: Speech;
+  ritual: Ritual;
   bolts: number;
   msToNext: number;
   fatigueRelief?: number;
@@ -52,17 +52,13 @@ export function PreMatch({
   date: Date;
   /** What the player said lately (repetition, reactions) */
   talks?: TalkMemory;
-  onKickoff: (s: StanceEffect, instruction: Instruction) => void;
+  onKickoff: (o: RitualOption, ritual: Ritual) => void;
 }) {
   const t = useT();
   const { lang } = useLang();
-  const [picked, setPicked] = useState<StanceEffect | null>(null);
-  const [instruction, setInstruction] = useState<Instruction | null>(null);
-  // repeating yourself weakens the effect, and the manager notices
+  const [picked, setPicked] = useState<RitualOption | null>(null);
+  // repeating the same choice week after week weakens it
   const rpt = picked ? repetition(talks?.stances ?? [], picked.id) : { count: 0, factor: 1 };
-  const reaction = useMemo(() => (picked ? managerReaction(picked, rpt.count) : ''), [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  // the offered briefs depend on how you spoke (decided once per stance)
-  const offered = useMemo(() => (picked ? pickInstructions(picked.id, Math.random, talks?.instructions ?? []) : []), [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const diff = myStrength - fixture.opponentStrength;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
   const exhausted = bolts < 1;
@@ -128,131 +124,65 @@ export function PreMatch({
         </Link>
       )}
 
-      {/* Locker room talk */}
+      {/* The pre-match moment: a different format every time, one tap */}
       <div>
         <div className="mb-2.5 flex items-center gap-2 px-0.5">
-          <Mic2 className="h-4 w-4 text-gold-300" />
-          <h2 className="eyebrow">{t('Locker room talk')}</h2>
+          <span className="text-lg">{ritual.emoji}</span>
+          <h2 className="eyebrow">{t(ritual.title)}</h2>
         </div>
-        <Card className="p-4">
-          <div className="mb-2.5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-zinc-600 to-zinc-800 font-display text-lg font-bold">
-              M
-            </div>
-            <div>
-              <div className="text-sm font-bold">{t('The Manager')}</div>
-              <div className="text-[11px] text-zinc-500">{t(speech.title)}</div>
-            </div>
-          </div>
-          <p className="text-[15px] italic leading-relaxed text-zinc-200">{t(speech.quote)}</p>
-        </Card>
-
-        <p className="mb-2 mt-4 px-0.5 text-xs font-semibold text-zinc-400">{t('How do you respond?')}</p>
-        <div className="space-y-2.5">
-          {speech.stances.map((st, i) => {
-            const active = picked?.id === st.id;
+        <p className="mb-3 px-0.5 text-[15px] font-semibold leading-snug text-zinc-100">{t(ritual.prompt, { opp: opp.name })}</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {ritual.options.map((op, i) => {
+            const active = picked?.id === op.id;
             return (
               <motion.button
-                key={st.id}
-                initial={{ y: 14, opacity: 0 }}
+                key={op.id}
+                initial={{ y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.08 * i }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  setPicked(st);
-                  setInstruction(null);
-                }}
+                transition={{ delay: 0.06 * i }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPicked(op)}
                 aria-pressed={active}
                 className={cn(
-                  'gloss-edge w-full rounded-2xl border p-3.5 text-left transition-all',
+                  'gloss-edge flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all',
                   active ? 'border-neon-400/60 bg-neon-400/10 shadow-neon' : 'border-white/[0.08] bg-white/[0.04]',
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[15px] font-bold">{t(st.label)}</span>
-                  <div className="flex items-center gap-1.5">
-                    <Chip tone={st.tone}>{t(st.tag)}</Chip>
-                    {active && <Check className="h-4 w-4 text-neon-400" />}
-                  </div>
-                </div>
-                <p className="mt-1.5 text-[13px] italic text-zinc-400">{t(st.quote)}</p>
-                <AnimatePresence initial={false}>
-                  {active && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="flex flex-wrap gap-1.5 pt-3">
-                        <Chip tone="info">{t('Morale')} {st.morale > 0 ? '+' : ''}{st.morale}</Chip>
-                        {(Object.entries(st.rep) as [RepKey, number][]).map(([k, v]) => (
-                          <Chip key={k} tone={v > 0 ? 'good' : 'bad'}>
-                            {t(REP_LABEL[k].replace(' Respect', ''))} {v > 0 ? '+' : ''}
-                            {v}
-                          </Chip>
-                        ))}
-                        <Chip tone="gold">+{st.perfBonus} {t('form')}</Chip>
-                      </div>
-                      <p className="mt-2 text-[11px] text-zinc-500">
-                        {t('Expectation')}: <b className="text-zinc-300">{t(st.expectation)}</b> — {t('you’re judged against a {r}+ rating.', { r: EXPECTATION_TARGET[st.expectation].toFixed(1) })}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <span className="text-3xl">{op.emoji}</span>
+                <span className="text-[14px] font-bold leading-tight">{t(op.label)}</span>
               </motion.button>
             );
           })}
         </div>
+
+        <AnimatePresence initial={false}>
+          {picked && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5">
+                <p className="text-[14px] italic text-zinc-200">{t(picked.line)}</p>
+                {rpt.count >= 2 && <p className="mt-1.5 text-xs font-semibold text-crimson-400">{t('You keep doing the same thing — less effect (−{n}%).', { n: Math.round((1 - rpt.factor) * 100) })}</p>}
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <Chip tone="info">{t('Morale')} +{Math.round(picked.morale * rpt.factor)}</Chip>
+                  {(Object.entries(picked.rep) as [RepKey, number][]).map(([k, v]) => (
+                    <Chip key={k} tone={v > 0 ? 'good' : 'bad'}>
+                      {t(REP_LABEL[k].replace(' Respect', ''))} {v > 0 ? '+' : ''}
+                      {v}
+                    </Chip>
+                  ))}
+                  <Chip tone="gold">+{picked.perfBonus} {t('form')}</Chip>
+                  {picked.brief && <Chip tone="info">{t('Tactical call')}</Chip>}
+                </div>
+                <p className="mt-2 text-[11px] text-zinc-500">
+                  {t('Expectation')}: <b className="text-zinc-300">{t(picked.expectation)}</b> — {t('you’re judged against a {r}+ rating.', { r: (EXPECTATION_TARGET[picked.expectation] + (picked.brief?.target ?? 0)).toFixed(1) })}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* The manager answers, then a short tactical brief */}
-      <AnimatePresence>
-        {picked && (
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-            <Card className="p-4">
-              <div className="mb-2 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-zinc-600 to-zinc-800 font-display text-base font-bold">M</div>
-                <div className="text-sm font-bold">{t('The Manager')}</div>
-                {rpt.count >= 2 && <Chip tone="bad">{t('Predictable: −{n}% effect', { n: Math.round((1 - rpt.factor) * 100) })}</Chip>}
-              </div>
-              <p className="text-[14px] italic leading-relaxed text-zinc-200">{t(reaction, { opp: opp.name })}</p>
-            </Card>
-
-            <div>
-              <div className="mb-2 flex items-center gap-2 px-0.5">
-                <Swords className="h-4 w-4 text-neon-400" />
-                <h2 className="eyebrow">{t('Tactical brief')}</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-2.5">
-                {offered.map((ins, i) => {
-                  const active = instruction?.id === ins.id;
-                  return (
-                    <motion.button
-                      key={ins.id}
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.07 * i }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setInstruction(ins)}
-                      aria-pressed={active}
-                      className={cn(
-                        'gloss-edge flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all',
-                        active ? 'border-neon-400/60 bg-neon-400/10 shadow-neon' : 'border-white/[0.08] bg-white/[0.04]',
-                      )}
-                    >
-                      <span className="text-2xl">{ins.emoji}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-bold">{t(ins.label)}</span>
-                        <span className="block text-xs text-zinc-400">{t(ins.hint)}</span>
-                      </span>
-                      {active && <Check className="h-4 w-4 text-neon-400" />}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <FloatingAction>
-        <Button block size="lg" disabled={!picked || !instruction || exhausted} onClick={() => picked && instruction && onKickoff(picked, instruction)}>
+        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ritual)}>
           {exhausted ? (
             <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (

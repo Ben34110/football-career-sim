@@ -4,7 +4,6 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub } from './data/clubs';
 import { getNationality } from './data/nationalities';
-import type { StanceEffect } from './data/speeches';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
 import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
@@ -104,7 +103,7 @@ interface GameActions {
   beginMatch: () => boolean;
   /** The player picks a ball in the cup / tournament draw */
   drawFixture: (fixtureId: string, index: number) => void;
-  applyStance: (s: StanceEffect) => void;
+  applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult) => void;
   applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;

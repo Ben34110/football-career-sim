@@ -152,6 +152,8 @@ export interface SeasonState {
   europe?: EuroComp | null;
   /** Points collected in the European group stage */
   euroPts?: number;
+  /** The European group: you and three foreign clubs */
+  euroTable?: TableRow[];
   /** Training sessions used at the current cursor (capped per fixture) */
   training: { cursor: number; count: number };
   stats: SeasonStats;

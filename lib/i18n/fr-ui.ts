@@ -186,6 +186,15 @@ export const FR_UI: Record<string, string> = {
   '⬆️ Promotion! The club rises to Division {n}.': '⬆️ Promotion ! Le club monte en Division {n}.',
   '⭐ Qualified for the {comp} next season!': '⭐ Qualifié pour la {comp} la saison prochaine !',
 
+  // European group & road
+  'Group stage': 'Phase de groupes',
+  'Top two go through to the knockout rounds': 'Les deux premiers passent en phase finale',
+  'You are through to the knockout rounds!': 'Tu es qualifié pour la phase finale !',
+  'Eliminated in the group stage.': 'Éliminé en phase de groupes.',
+  'Road to the final': 'Route vers la finale',
+  'Not reached': 'Non atteint',
+  'Draw pending': 'Tirage à venir',
+
   // national-team selection popup
   'Called up!': 'Convoqué !',
   'Not selected': 'Non sélectionné',

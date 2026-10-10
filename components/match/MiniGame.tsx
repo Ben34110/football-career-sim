@@ -80,8 +80,8 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
   slide: {
     title: 'Sliding Tackle',
-    how: ['The attacker pushes the ball ahead, then reels it back in.', 'Slide while the ball is far from his feet.'],
-    tip: 'Too late and you take the man: yellow card, or red if it is reckless.',
+    how: ['He dribbles at you. A zone is painted on the grass.', 'Slide while the ball is inside the green zone.'],
+    tip: 'Too early and he skips past. Too late and you take the man: yellow card, or red if it is reckless.',
     icon: Swords,
   },
   slalom: {
@@ -138,7 +138,7 @@ const HINT: Record<MiniKind, string> = {
   memory: 'Press PLAY, watch the passes, then repeat them.',
   aim: 'Tap when the crosshair is on the target.',
   charge: 'Hold, then release on the gold line.',
-  slide: 'Press START, then slide when the ball is far from his feet.',
+  slide: 'Press START, then slide when the ball is in the green zone.',
   slalom: 'Tap left or right to dodge the defenders.',
   race: 'Alternate LEFT and RIGHT as fast as you can.',
   block: 'Read the shooter and cover the right lane.',

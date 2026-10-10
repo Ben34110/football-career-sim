@@ -50,7 +50,7 @@ export type FixtureKind = 'league' | 'cup' | 'intl' | 'tournament' | 'euro';
 
 /** 1 = top flight, 2 = second tier, 3 = lower leagues */
 export type Division = 1 | 2 | 3;
-export type EuroComp = 'Champions League' | 'Europa League';
+export type EuroComp = 'Europe Elite Cup' | 'Europe Challenge Cup';
 export type LeagueZone = 'champions' | 'europa' | 'promoted' | 'relegated' | 'safe';
 
 /** How many places of the table lead somewhere (counted from the top, or the bottom for relegation). */
@@ -238,6 +238,8 @@ export interface Upgrades {
 }
 
 export interface Player {
+  /** Your role in the squad at the end of the last season, with the club it was at (to tell when it changes) */
+  squadStatus?: string;
   /** Identifies this career in the hall of fame */
   careerId?: string;
   name: string;

@@ -3,6 +3,7 @@
 import { Flag } from '@/components/ui/Flag';
 import { RotateCcw, Scale } from 'lucide-react';
 import { Honours } from '@/components/ui/Honours';
+import { SquadStatusCard } from '@/components/ui/SquadStatusCard';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
@@ -34,6 +35,7 @@ export function ProfileScreen() {
     <div className="space-y-5">
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
       <ShareCardButton player={player} />
+      <SquadStatusCard />
 
       <div className="flex flex-wrap gap-2">
         <Chip><Flag emoji={nat.flag} size={12} /> {t(nat.name)}</Chip>

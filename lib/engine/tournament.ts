@@ -16,14 +16,14 @@ export function tournamentField(name: string, me: Nationality): { core: National
   const of = (c: Nationality['confederation']) => NATIONALITIES.filter((n) => n.confederation === c);
   let core: Nationality[];
   let invited: Nationality[] = [];
-  if (/World Cup|Olympic/.test(name)) core = NATIONALITIES;
-  else if (/European|Nations League/.test(name)) core = of('UEFA');
+  if (/World Nations Cup|Summer Games/.test(name)) core = NATIONALITIES;
+  else if (/European|Nations Trophy/.test(name)) core = of('UEFA');
   else if (/Africa/.test(name)) core = of('CAF');
   else if (/Asian/.test(name)) core = of('AFC');
-  else if (/Copa/.test(name)) {
+  else if (/South American/.test(name)) {
     core = of('CONMEBOL');
     invited = byStrength(of('CONCACAF'));
-  } else if (/Gold/.test(name)) {
+  } else if (/North American/.test(name)) {
     core = of('CONCACAF');
     invited = byStrength(of('CONMEBOL'));
   } else core = of(me.confederation);

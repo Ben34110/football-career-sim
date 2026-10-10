@@ -3,8 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PRE, ROUNDS, ballAt, judgePounce, makeRebound, shotAt, tClear, type Lane, type ReboundVerdict } from '@/lib/engine/minigames/rebound';
-import { glide } from '@/lib/engine/minigames/dribble';
+import { DASH, PRE, ROUNDS, ballAt, judgeDash, makeRebound, shotAt, strikeAt, tClear, type Lane, type ReboundVerdict } from '@/lib/engine/minigames/rebound';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -105,32 +104,12 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   const playing = flow.stage === 'play';
   const { t: clock, ref } = useClock(playing);
 
-  const target = useRef<Lane>(0);
-  const pos = useRef(0);
-  const vel = useRef(0);
-  const lastClock = useRef(0);
+  const taps = useRef<({ lane: Lane; t: number } | undefined)[]>([]);
   const verdicts = useRef<(ReboundVerdict | undefined)[]>([]);
   const pounces = useRef<(number | undefined)[]>([]);
   const [shown, setShown] = useState<(ReboundVerdict | undefined)[]>([]);
+  const [picked, setPicked] = useState<Lane | null>(null);
   const done = useRef(false);
-
-  if (playing) {
-    const dt = Math.min(0.05, Math.max(0, clock - lastClock.current));
-    if (dt > 0) {
-      const next = glide(pos.current, target.current, dt, 12, 6.5);
-      vel.current = (next - pos.current) / dt;
-      pos.current = next;
-      lastClock.current = clock;
-    }
-  }
-
-  const step = (d: -1 | 1) => {
-    if (locked || !playing || done.current) return;
-    const next = Math.max(-1, Math.min(1, target.current + d)) as Lane;
-    if (next === target.current) return;
-    haptic(6);
-    target.current = next;
-  };
 
   const roundStart = (i: number) => plan.lead + i * plan.roundLen;
   // a round starts PRE seconds before its save, when the shot comes in
@@ -146,13 +125,17 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
     haptic(v === 'perfect' || v === 'good' ? [15, 20, 40] : 70);
   };
 
-  const pounce = () => {
+  // one tap: the lane where you think it will drop
+  const choose = (lane: Lane) => {
     if (locked || !playing || done.current) return;
     const i = roundOf(ref.current);
     const lt = ref.current - roundStart(i);
     if (lt < 0 || verdicts.current[i] !== undefined) return;
-    pounces.current[i] = lt;
-    record(i, judgePounce(plan.rounds[i], plan, pos.current, lt));
+    const v = judgeDash(plan.rounds[i], lane, lt);
+    taps.current[i] = { lane, t: lt };
+    if (v === 'perfect' || v === 'good') pounces.current[i] = strikeAt(plan.rounds[i], lt);
+    setPicked(lane);
+    record(i, v);
   };
 
   // a loose ball nobody pounced on gets cleared
@@ -216,11 +199,15 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   const clearKick = local > tc - 0.28 ? (local < tc ? -smooth((local - (tc - 0.28)) / 0.28) : 1 - smooth((local - tc) / 0.3) * 0.2) : 0;
   const cP = project(clearer.x, clearer.d, 0);
 
-  // you
-  const youX = CX + pos.current * laneW(1);
+  // you: he waits in the middle, then sprints to the lane you tapped
+  const tap = taps.current[round];
+  const dash = tap ? clamp01((local - tap.t) / DASH) : 0;
+  const youLane = tap ? tap.lane * (1 - Math.pow(1 - dash, 3)) : 0;
+  const youX = CX + youLane * laneW(1);
+  const sprinting = !!tap && dash > 0 && dash < 1;
   const lunge = tp !== undefined ? clamp01((local - tp) / 0.4) : 0;
   const jump = Math.sin(Math.PI * lunge) * 14;
-  const tilt = -vel.current * 2.2 + (tp !== undefined ? Math.sign(rd.lane - pos.current || 1) * 14 * Math.sin(Math.PI * lunge) : 0);
+  const tilt = (tap ? Math.sign(tap.lane) * (sprinting ? 9 * Math.sin(Math.PI * dash) : 0) : 0) + (tp !== undefined && tap ? Math.sign(tap.lane || 1) * 14 * Math.sin(Math.PI * lunge) : 0);
 
   const ripple = goalIn ? { x: goalTarget.x, y: goalTarget.y, p: clamp01((sinceStrike - 0.5) / 0.5) } : null;
   const verdictText = (() => {
@@ -305,22 +292,22 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           )}
 
           <g transform={`translate(0 ${-jump})`}>
-            <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={clock * 11} tilt={tilt} stretch={tp !== undefined ? 1 : 0} dir={rd.lane - pos.current >= 0 ? 1 : -1} run={Math.abs(vel.current) > 0.4 ? 2 : 0.6} />
+            <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={clock * 11} tilt={tilt} stretch={tp !== undefined ? 1 : 0} dir={tap && tap.lane !== 0 ? tap.lane : 1} run={sprinting ? 2.6 : 0.6} />
           </g>
           </g>
         </svg>
         {tension > 0.05 && <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(ellipse at center, transparent 55%, rgba(220,38,38,${0.38 * tension}) 100%)` }} />}
 
         {playing && (
-          <div className="absolute inset-0 grid grid-cols-2">
-            {([-1, 1] as const).map((d) => (
-              <button key={d} aria-label={d < 0 ? t('LEFT') : t('RIGHT')} onPointerDown={(e) => { e.preventDefault(); step(d); }} className="touch-none" />
+          <div className="absolute inset-0 grid grid-cols-3">
+            {([-1, 0, 1] as Lane[]).map((l) => (
+              <button key={l} aria-label={l < 0 ? t('LEFT') : l > 0 ? t('RIGHT') : t('CENTRE')} onPointerDown={(e) => { e.preventDefault(); choose(l); }} className="touch-none" />
             ))}
           </div>
         )}
         {flow.stage === 'count' && <CountOverlay count={flow.count} />}
-        {flow.stage === 'idle' && <div className="pointer-events-none absolute inset-x-0 top-2 px-4 text-center text-[11px] font-semibold text-white/80">{t('Read the bounce, get to the ball first.')}</div>}
-        {playing && local >= -PRE && local < rd.t2 && v === undefined && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-bold text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{t('Where will it fall?')}</div>}
+        {flow.stage === 'idle' && <div className="pointer-events-none absolute inset-x-0 top-2 px-4 text-center text-[11px] font-semibold text-white/80">{t('Tap the lane where the ball will drop.')}</div>}
+        {playing && local >= -PRE && v === undefined && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-bold text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{t('Where will it fall?')}</div>}
 
         <AnimatePresence>
           {showVerdict && verdictText && (
@@ -338,16 +325,21 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           <Zap className="h-5 w-5" /> {t('START')}
         </button>
       ) : (
-        <div className="grid grid-cols-[1fr_1.7fr_1fr] gap-3">
-          <button onPointerDown={(e) => { e.preventDefault(); step(-1); }} disabled={!playing || locked} className="flex h-20 touch-none select-none flex-col items-center justify-center rounded-2xl bg-white/10 text-white shadow-lg transition active:scale-95 disabled:opacity-40">
-            <ChevronLeft className="h-9 w-9" />
-          </button>
-          <button onPointerDown={(e) => { e.preventDefault(); pounce(); }} disabled={!playing || locked} className="flex h-20 touch-none select-none items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-gold-300 to-gold-500 font-display text-2xl font-extrabold uppercase text-zinc-950 shadow-gold transition active:scale-95 disabled:opacity-40">
-            <Zap className="h-6 w-6" /> {t('POUNCE!')}
-          </button>
-          <button onPointerDown={(e) => { e.preventDefault(); step(1); }} disabled={!playing || locked} className="flex h-20 touch-none select-none flex-col items-center justify-center rounded-2xl bg-white/10 text-white shadow-lg transition active:scale-95 disabled:opacity-40">
-            <ChevronRight className="h-9 w-9" />
-          </button>
+        <div className="grid grid-cols-3 gap-3">
+          {([-1, 0, 1] as Lane[]).map((l) => (
+            <button
+              key={l}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                choose(l);
+              }}
+              disabled={!playing || locked || shown[round] !== undefined}
+              className={cn('flex h-20 touch-none select-none flex-col items-center justify-center rounded-2xl font-display text-xs font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-40', picked === l && shown[round] !== undefined ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-zinc-950' : 'bg-gradient-to-b from-neon-400 to-neon-600 text-zinc-950')}
+            >
+              {l < 0 ? <ChevronLeft className="h-9 w-9" /> : l > 0 ? <ChevronRight className="h-9 w-9" /> : <Zap className="h-8 w-8" />}
+              {l < 0 ? t('LEFT') : l > 0 ? t('RIGHT') : t('CENTRE')}
+            </button>
+          ))}
         </div>
       )}
     </div>

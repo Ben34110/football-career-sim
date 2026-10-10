@@ -14,7 +14,7 @@ export function Honours({ trophies, history, clubId }: { trophies: string[]; his
   return (
     <div className="flex flex-wrap gap-2">
       {groups.map((g) => (
-        <Chip key={g.key} tone={g.title.startsWith('Ballon') ? 'good' : 'gold'}>
+        <Chip key={g.key} tone={g.title.startsWith('Golden Star') ? 'good' : 'gold'}>
           <Trophy className="h-3 w-3" />
           <span>{g.count === 1 ? t(g.labels[0]) : t(g.title)}</span>
           {g.flag && <Flag emoji={g.flag} size={11} />}

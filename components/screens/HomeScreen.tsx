@@ -26,6 +26,7 @@ import { cn, crestFace, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
 import { SeasonEnd } from './SeasonEnd';
 import { GameIcon } from '@/components/ui/GameIcon';
+import { SquadStatusCard } from '@/components/ui/SquadStatusCard';
 
 const TONE: Record<string, string> = { good: 'bg-neon-400', bad: 'bg-crimson-500', gold: 'bg-gold-400', neutral: 'bg-zinc-500' };
 
@@ -85,6 +86,8 @@ export function HomeScreen() {
       )}
 
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
+
+      <SquadStatusCard compact />
 
       {/* Next fixture */}
       {fixture && (
@@ -161,7 +164,7 @@ export function HomeScreen() {
           </div>
           {season && (() => {
             const z = leagueZone(pos, season.division ?? 1, season.table.length);
-            const label = z === 'champions' ? 'Champions League place' : z === 'europa' ? 'Europa League place' : z === 'promoted' ? 'Promotion place' : z === 'relegated' ? 'Relegation zone' : null;
+            const label = z === 'champions' ? 'Europe Elite Cup place' : z === 'europa' ? 'Europe Challenge Cup place' : z === 'promoted' ? 'Promotion place' : z === 'relegated' ? 'Relegation zone' : null;
             return label ? (
               <p className={cn('mt-2.5 rounded-xl px-3 py-2 text-xs font-semibold', z === 'relegated' ? 'bg-crimson-500/10 text-crimson-400' : z === 'promoted' ? 'bg-neon-400/10 text-neon-300' : 'bg-sky-400/10 text-sky-300')}>
                 <GameIcon e={z === 'relegated' ? '⬇' : z === 'promoted' ? '⬆' : '⭐'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(label)}

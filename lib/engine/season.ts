@@ -1,4 +1,4 @@
-import { CLUBS, COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
+import { CLUBS, COUNTRY_RIVALS, getClub, getClubBoost, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
 import { NATIONS_LEAGUE, nationalTournament, OPPONENT_NATIONS } from '../data/nationalities';
 import type {
   Club,
@@ -35,14 +35,14 @@ export const baseDivision = (club: Club): Division => (club.tier <= 3 ? 1 : club
 
 /**
  * A club you join arrives with a history: last season it may already have qualified for Europe.
- * Elite clubs usually play the Champions League, solid top-flight clubs the Europa League, lower ones rarely.
+ * Elite clubs usually play the Europe Elite Cup, solid top-flight clubs the Europe Challenge Cup, lower ones rarely.
  */
 export function europeFor(club: Club, rng: Rng): EuroComp | null {
   if (club.tier > 3) return null;
   const roll = rng();
-  if (club.tier === 1) return roll < 0.8 ? 'Champions League' : roll < 0.95 ? 'Europa League' : null;
-  if (club.tier === 2) return roll < 0.25 ? 'Champions League' : roll < 0.65 ? 'Europa League' : null;
-  return roll < 0.15 ? 'Europa League' : null;
+  if (club.tier === 1) return roll < 0.8 ? 'Europe Elite Cup' : roll < 0.95 ? 'Europe Challenge Cup' : null;
+  if (club.tier === 2) return roll < 0.25 ? 'Europe Elite Cup' : roll < 0.65 ? 'Europe Challenge Cup' : null;
+  return roll < 0.15 ? 'Europe Challenge Cup' : null;
 }
 
 export const zonesFor = (d: Division): SeasonZones =>
@@ -73,9 +73,9 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   setClubYear(year);
   // every club is as strong as it really is this season (give or take a point of form), not as strong as you are
   const abroad = CLUBS.filter((c) => c.country !== club.country).sort((a, b) => b.strength - a.strength);
-  // who is in the competition: the Champions League is mostly the biggest clubs (the elite are almost always there),
-  // the Europa League the middle of the table; a weak club rarely gets in. A weighted draw, strongest favoured.
-  const weight = (c: Club) => (comp === 'Champions League' ? Math.exp((c.strength - 76) / 5) : Math.exp(-Math.pow((c.strength - 73) / 8, 2) / 2));
+  // who is in the competition: the Europe Elite Cup is mostly the biggest clubs (the elite are almost always there),
+  // the Europe Challenge Cup the middle of the table; a weak club rarely gets in. A weighted draw, strongest favoured.
+  const weight = (c: Club) => (comp === 'Europe Elite Cup' ? Math.exp((c.strength - 76) / 5) : Math.exp(-Math.pow((c.strength - 73) / 8, 2) / 2));
   const foreign = abroad
     .map((c) => ({ c, k: -Math.log(Math.max(1e-9, rng())) / Math.max(1e-6, weight(c)) }))
     .sort((a, b) => a.k - b.k)
@@ -84,7 +84,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   const form = () => rand(-2, 2, rng);
   // never the same club twice in one round, even when the supply of fresh clubs runs out
   const next = (round?: Set<string>, lo = 0, hi = foreign.length): Club => {
-    const band = abroad.slice(comp === 'Champions League' ? lo : lo + 6, comp === 'Champions League' ? hi : hi + 6);
+    const band = abroad.slice(comp === 'Europe Elite Cup' ? lo : lo + 6, comp === 'Europe Elite Cup' ? hi : hi + 6);
     const fresh = shuffle(band.filter((x) => !used.has(x.id) && !round?.has(x.id)), rng);
     const c = fresh[0] ?? foreign.find((x) => !used.has(x.id)) ?? foreign.find((x) => !round?.has(x.id)) ?? foreign[0];
     used.add(c.id);
@@ -166,7 +166,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     id: `${year}-r${i}`,
     name,
     short: shortOf(name),
-    strength: clamp(Math.round(club.strength - (ELITE_GAP[tier] ?? 0) + offset + rand(-8, 8, rng)), 45, 92),
+    // the league is as strong as it is for the division: what your club gained by being promoted does not make its rivals stronger
+    strength: clamp(Math.round(club.strength - getClubBoost(club.id) - (ELITE_GAP[tier] ?? 0) + offset + rand(-8, 8, rng)), 45, 92),
     color: RIVAL_COLORS[i % RIVAL_COLORS.length],
   }));
 
@@ -523,7 +524,7 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
   }
 
   if (fixture.kind === 'euro') {
-    const comp = (season.europe ?? 'Champions League') as EuroComp;
+    const comp = (season.europe ?? 'Europe Elite Cup') as EuroComp;
     if (!fixture.knockout) {
       next.euroPts = (next.euroPts ?? 0) + (result.outcome === 'W' ? 3 : result.outcome === 'D' ? 1 : 0);
       // saves made before the group table existed get one rebuilt from what was already played
@@ -628,11 +629,11 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
     if (!canPick('window')) {
       next = { ...next, callUpQueued: true, callUpOmitted: true };
     } else {
-    // The break brings two games: qualifiers (or Nations League matches) when a tournament is coming next summer, friendlies otherwise
+    // The break brings two games: qualifiers (or Nations Trophy matches) when a tournament is coming next summer, friendlies otherwise
     const comp = nationalTournament(level, next.year + 1, nat, age, ovr);
     // the Olympics are played by an under-23 side (with three older players), whatever level you usually play at
-    const compLevel: NationalLevel = comp === 'Olympic Games' ? 'U23' : level;
-    const label = comp === NATIONS_LEAGUE ? 'UEFA Nations League Group Phase' : comp ? `${comp} Qualifier` : 'International Friendly';
+    const compLevel: NationalLevel = comp === 'Summer Games' ? 'U23' : level;
+    const label = comp === NATIONS_LEAGUE ? 'European Nations Trophy Group Phase' : comp ? `${comp} Qualifier` : 'International Friendly';
     const confed = OPPONENT_NATIONS.filter((n) => n.confederation === nat.confederation && n.code !== nat.code);
     const first = nationOpponent(nat, comp ? -3 : -1, label, `${next.year}-I1`, 'intl', false, rng, compLevel, comp ? confed : undefined);
     const second = nationOpponent(nat, comp ? -2 : 0, label, `${next.year}-I2`, 'intl', false, rng, compLevel, comp ? confed.filter((n) => !first.opponent.startsWith(n.name)) : OPPONENT_NATIONS.filter((n) => n.code !== nat.code && n.strength >= 66 && !first.opponent.startsWith(n.name)));
@@ -645,12 +646,12 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
 
   // Summer tournament once the domestic calendar is done
   const tournament = nationalTournament(level, next.year + 1, nat, age, ovr);
-  const tLevel: NationalLevel = tournament === 'Olympic Games' ? 'U23' : level;
+  const tLevel: NationalLevel = tournament === 'Summer Games' ? 'U23' : level;
   const domesticLeft = next.fixtures.some((f) => f.status === 'upcoming' && (f.kind === 'league' || f.kind === 'cup' || f.kind === 'intl' || f.kind === 'euro'));
   // Reaching the summer tournament takes qualifying: stronger nations and good qualifier results help
   const qualifies = (): boolean => {
     // the Olympic places are scarcer than the places at a continental final
-    const p = clamp((tournament === 'Olympic Games' ? 0.42 : 0.62) + (nat.strength - 74) / 40 + ((next.qualPts ?? 3) - 3) * 0.07, 0.1, 0.97);
+    const p = clamp((tournament === 'Summer Games' ? 0.42 : 0.62) + (nat.strength - 74) / 40 + ((next.qualPts ?? 3) - 3) * 0.07, 0.1, 0.97);
     return rng() < p;
   };
   if (!next.tournamentQueued && tournament && !domesticLeft && !qualifies()) {

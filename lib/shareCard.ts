@@ -319,7 +319,7 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
     const y = top + row * step + step * 0.72;
     let x = 80 + colW * (col + 0.5) - (tw + extra - 12) / 2;
     g.textAlign = 'left';
-    g.fillStyle = gr.title.startsWith('Ballon') ? '#86efac' : '#fafafa';
+    g.fillStyle = gr.title.startsWith('Golden Star') ? '#86efac' : '#fafafa';
     g.fillText(label, x, y);
     x += tw + 12;
     if (flag) {

@@ -95,7 +95,7 @@ export function CalendarScreen() {
             <div className="eyebrow mb-2">{t('Next major tournaments')}</div>
             <div className="flex flex-wrap gap-1.5">
               {upcoming.map((u) => (
-                <Chip key={`${u.name}-${u.y}`} tone={u.name.includes('World Cup') ? 'gold' : 'neutral'}>
+                <Chip key={`${u.name}-${u.y}`} tone={u.name.includes('World Nations Cup') ? 'gold' : 'neutral'}>
                   <GameIcon e="🏆" className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(u.name)} {u.y}
                 </Chip>
               ))}
@@ -284,8 +284,8 @@ function Table() {
         })}
       </Card>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-[11px] text-zinc-400">
-        {z.champions > 0 && <Legend color="#38bdf8" label={t('Champions League')} />}
-        {z.europa > 0 && <Legend color="#f97316" label={t('Europa League')} />}
+        {z.champions > 0 && <Legend color="#38bdf8" label={t('Europe Elite Cup')} />}
+        {z.europa > 0 && <Legend color="#f97316" label={t('Europe Challenge Cup')} />}
         {z.promo > 0 && <Legend color="#34d399" label={t('Promotion')} />}
         {z.relegation > 0 && <Legend color="#ef4444" label={t('Relegation')} />}
       </div>
@@ -361,7 +361,7 @@ function EuropeTable({ season, table }: { season: SeasonState; table: TableRow[]
         <div className="eyebrow mb-2.5">{t('Road to the final')}</div>
         <ol className="space-y-2">
           {rounds.map((f) => {
-            const round = f.label.replace(/^(Champions League|Europa League) /, '');
+            const round = f.label.replace(/^(Europe Elite Cup|Europe Challenge Cup) /, '');
             const r = f.result;
             return (
               <li key={f.id} className={cn('flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[13px]', f.status === 'skipped' ? 'opacity-40' : 'bg-white/[0.04]')}>

@@ -16,7 +16,9 @@ import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
 import { sortTable } from '@/lib/engine/season';
 import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniExtra, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
 import { cn, flagOnly } from '@/lib/utils';
-import { GameIcon } from '@/components/ui/GameIcon';
+import { GameIcon, SoccerBall } from '@/components/ui/GameIcon';
+import { ArrowLeftRight, CircleX, Crosshair, Flag as FlagIcon, Flame, Hand, Play as PlayIcon, Timer, Whistle } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { stripEmoji } from '@/lib/emoji';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
@@ -44,14 +46,32 @@ const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced:
 const MENTALITY_ICON: Record<Mentality, string> = { attack: '⚔', balanced: '⚖', defend: '🛡' };
 
 /** The little icon in front of each line of the live feed. */
-function EventMark({ type, text }: { type: MatchEvent['type']; text: string }) {
+export function EventMark({ type, text }: { type: MatchEvent['type']; text: string }) {
   if (type === 'card') {
     const red = /red card|sent off|sending|rouge|expuls/i.test(text);
-    return <span aria-hidden className={cn('mt-0.5 h-3.5 w-2.5 shrink-0 rounded-[2px]', red ? 'bg-red-500' : 'bg-yellow-400')} />;
+    return (
+      <span aria-hidden className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+        <span className={cn('h-3.5 w-2.5 rounded-[2px] shadow-sm', red ? 'bg-red-500' : 'bg-yellow-400')} />
+      </span>
+    );
   }
-  const icon: Partial<Record<MatchEvent['type'], string>> = { goal: '⚽', save: '🧤', miss: '😱', foul: '🚩', sub: '🔁', clutch: '⚡', chance: '🎯', halftime: '🏁', fulltime: '🏁', kickoff: '⚽' };
-  const tone: Partial<Record<MatchEvent['type'], string>> = { goal: 'text-neon-300', save: 'text-sky-300', miss: 'text-crimson-400', foul: 'text-amber-300', clutch: 'text-gold-300', chance: 'text-zinc-400' };
-  return <GameIcon e={icon[type] ?? '⚽'} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', tone[type] ?? 'text-zinc-500')} />;
+  // one clear picture per kind of moment: a ball for a goal, gloves for a save, a whistle for a foul…
+  const Icon: Record<MatchEvent['type'], ComponentType<{ className?: string }>> = {
+    goal: SoccerBall,
+    save: Hand,
+    miss: CircleX,
+    foul: Whistle,
+    sub: ArrowLeftRight,
+    clutch: Flame,
+    chance: Crosshair,
+    halftime: Timer,
+    fulltime: FlagIcon,
+    kickoff: PlayIcon,
+    card: FlagIcon,
+  };
+  const tone: Partial<Record<MatchEvent['type'], string>> = { goal: 'text-neon-300', save: 'text-sky-300', miss: 'text-crimson-400', foul: 'text-amber-300', clutch: 'text-gold-300', chance: 'text-zinc-400', fulltime: 'text-zinc-300' };
+  const I = Icon[type];
+  return <I className={cn('mt-0.5 h-4 w-4 shrink-0', tone[type] ?? 'text-zinc-500')} />;
 }
 
 const COMPETITION_LABEL: Record<FixtureKind, string> = {

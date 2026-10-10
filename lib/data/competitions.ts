@@ -1,13 +1,13 @@
-/** The short name of a national tournament, for chips and headers: "WC", "Euro", "AFCON"… (translated by `t`). */
+/** The short name of a national tournament, for chips and headers: "WNC", "Euro", "ANC"… (translated by `t`). */
 const BASE: [RegExp, string][] = [
-  [/World Cup$/, 'WC'],
+  [/World Nations Cup$/, 'WNC'],
   [/European Championship$/, 'Euro'],
-  [/Africa Cup of Nations$/, 'AFCON'],
-  [/Copa América$/, 'Copa América'],
-  [/Asian Cup$/, 'Asian Cup'],
-  [/Gold Cup$/, 'Gold Cup'],
-  [/Olympic Games$/, 'Olympics'],
-  [/Nations League$/, 'UNL'],
+  [/African Nations Cup$/, 'ANC'],
+  [/South American Cup$/, 'SA Cup'],
+  [/Asian Nations Cup$/, 'Asian Cup'],
+  [/North American Cup$/, 'NA Cup'],
+  [/Summer Games$/, 'Games'],
+  [/Nations Trophy$/, 'ENT'],
 ];
 
 export function tournamentShort(name: string | null | undefined, t: (s: string) => string): string {
@@ -15,5 +15,5 @@ export function tournamentShort(name: string | null | undefined, t: (s: string) 
   const hit = BASE.find(([re]) => re.test(name));
   if (!hit) return t('Tournament');
   const youth = name.match(/^(U20|U23) /)?.[1];
-  return youth && hit[1] !== 'Olympics' ? `${t(hit[1])} ${youth}` : t(hit[1]);
+  return youth && hit[1] !== 'Games' ? `${t(hit[1])} ${youth}` : t(hit[1]);
 }

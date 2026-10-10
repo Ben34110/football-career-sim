@@ -153,9 +153,9 @@ function BallonDorCard({ result }: { result: NonNullable<ReturnType<typeof useGa
     <Card gold className="overflow-hidden p-0">
       <div className="bg-gradient-to-b from-gold-300/25 to-transparent px-4 py-3.5 text-center">
         <GameIcon e={result.won ? '🏆' : '🥇'} className="mx-auto h-9 w-9 text-gold-300" />
-        <div className="font-display text-2xl font-extrabold uppercase leading-none text-gold-200">{t('Ballon d’Or')}</div>
+        <div className="font-display text-2xl font-extrabold uppercase leading-none text-gold-200">{t('Golden Star')}</div>
         <p className="mt-1 text-xs text-zinc-300">
-          {result.won ? t('You won the Ballon d’Or!') : t('You finished {rank} in the vote.', { rank: ordinalOf(result.rank, lang) })}
+          {result.won ? t('You won the Golden Star!') : t('You finished {rank} in the vote.', { rank: ordinalOf(result.rank, lang) })}
         </p>
       </div>
       <div className="divide-y divide-white/[0.05]">

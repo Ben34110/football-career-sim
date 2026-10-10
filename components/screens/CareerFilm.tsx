@@ -166,8 +166,8 @@ function SeasonSlide({ rec, prev, total, history, lang }: { rec: SeasonRecord; p
   const club = getClub(rec.clubId);
   const moved = !!prev && prev.clubId !== rec.clubId;
   const champion = rec.leaguePos === 1;
-  const ballon = rec.trophies.some((x) => x.startsWith('Ballon'));
-  const tagline = ballon ? 'Ballon d’Or season' : champion ? 'League champions' : rec.trophies.length ? 'Silverware' : moved ? 'A new chapter' : rec.goals >= 20 ? 'On fire' : rec.avgRating >= 7.5 ? 'A superb year' : 'Steady progress';
+  const ballon = rec.trophies.some((x) => x.startsWith('Golden Star'));
+  const tagline = ballon ? 'Golden Star season' : champion ? 'League champions' : rec.trophies.length ? 'Silverware' : moved ? 'A new chapter' : rec.goals >= 20 ? 'On fire' : rec.avgRating >= 7.5 ? 'A superb year' : 'Steady progress';
   const delta = prev ? rec.ovr - prev.ovr : null;
   return (
     <div className="flex w-full flex-1 flex-col items-center text-center">

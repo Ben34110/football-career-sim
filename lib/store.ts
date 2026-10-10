@@ -2,8 +2,10 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { getClub, setClubYear } from './data/clubs';
+import { getClub, setClubBoosts, setClubYear } from './data/clubs';
 import { archiveCurrent } from './archive';
+import { squadStatus } from './engine/status';
+import { STATUS_LABEL } from './data/status';
 import { stripEmoji } from './emoji';
 import { getNationality, nationalityByName } from './data/nationalities';
 import type { PressAnswer } from './data/press';
@@ -95,6 +97,8 @@ interface GameData {
   division: Division;
   /** European competition qualified for next season */
   europe: EuroComp | null;
+  /** The level your clubs have gained (promotion, good seasons) or lost (relegation) on top of their normal strength */
+  clubBoost: Record<string, number>;
   hasCareer: boolean;
   phase: GamePhase;
   year: number;
@@ -120,7 +124,7 @@ interface GameActions {
   drawFixture: (fixtureId: string, index: number) => void;
   /** The tournament group draw: one ball per pot */
   drawTournamentGroup: (picks: number[]) => void;
-  /** The Champions League / Europa League group draw */
+  /** The Europe Elite Cup / Europe Challenge Cup group draw */
   drawEuroGroup: (picks: number[]) => void;
   applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
@@ -159,6 +163,7 @@ export type GameStore = GameData & GameActions;
 const initial: GameData = {
   division: 1,
   europe: null,
+  clubBoost: {},
   hasCareer: false,
   phase: 'playing',
   year: START_YEAR,
@@ -191,6 +196,7 @@ export const useGameStore = create<GameStore>()(
       createCareer: (input) => {
         // the career you were playing goes to the archive before the new one starts
         archiveCurrent(get());
+        setClubBoosts({});
         const player = { ...createPlayer(input, Date.now()), careerId: uid('career') };
         const club = getClub(input.clubId)!;
         const season = generateSeason(START_YEAR, club, Math.random);
@@ -217,6 +223,7 @@ export const useGameStore = create<GameStore>()(
 
       resetCareer: () => {
         archiveCurrent(get());
+        setClubBoosts({});
         set({ ...initial });
       },
 
@@ -387,16 +394,16 @@ export const useGameStore = create<GameStore>()(
           } else {
             const games = nextSeason.fixtures.map((f, i) => ({ f, i })).filter(({ f }) => f.kind === 'intl' && f.status === 'upcoming');
             // Olympic qualifiers are played by the under-23 side, with up to three older players
-            const olympicQ = games.some(({ f }) => /^Olympic Games Qualifier/.test(f.label));
+            const olympicQ = games.some(({ f }) => /^Summer Games Qualifier/.test(f.label));
             const squad = olympicQ ? 'U23' : lvlNow;
             const squadName = `${tr(getNationality(player.nationality).name)}${squad !== 'A' ? ' ' + squad : ''}`;
             nextNews = addNews(nextNews, mkNews(tr('🌍 Call-up! You’re named in the {team} squad.', { team: squadName }), 'gold'));
-            if (games.length) ui.pushCallUp({ outcome: 'called', level: squad, nationCode: player.nationality, competition: olympicQ ? 'Olympic Games Qualifier' : undefined, overage: olympicQ && player.age > 23, matches: games.map(({ f, i }) => ({ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, i).toISOString() })) });
+            if (games.length) ui.pushCallUp({ outcome: 'called', level: squad, nationCode: player.nationality, competition: olympicQ ? 'Summer Games Qualifier' : undefined, overage: olympicQ && player.age > 23, matches: games.map(({ f, i }) => ({ label: f.label, opponent: f.opponent, date: fixtureDate(nextSeason, i).toISOString() })) });
           }
         }
         if (nextSeason.tournamentQueued && !season.tournamentQueued && lvlNow) {
           // the Olympics are an under-23 tournament, whatever your usual level; older players come as one of the three overage picks
-          const olympic = nextSeason.tournamentName === 'Olympic Games';
+          const olympic = nextSeason.tournamentName === 'Summer Games';
           const tLevel = olympic ? 'U23' : lvlNow;
           const overage = olympic && player.age > 23;
           const tTeam = `${tr(getNationality(player.nationality).name)}${tLevel !== 'A' ? ' ' + tLevel : ''}`;
@@ -814,6 +821,7 @@ export const useGameStore = create<GameStore>()(
       storage: createJSONStorage(() => (typeof window === 'undefined' ? undefined : window.localStorage) as Storage),
       skipHydration: true,
       onRehydrateStorage: () => (state) => {
+        setClubBoosts(state?.clubBoost ?? {});
         if (state?.season?.year) setClubYear(state.season.year);
         // a career that ended before the archive existed is filed the first time the save loads
         if (state?.phase === 'retired') archiveCurrent(state);
@@ -898,7 +906,7 @@ function finishSeason(set: Setter, get: Getter) {
     trophies,
   };
 
-  // Ballon d'Or: the player's season is ranked against nine invented superstars
+  // Golden Star: the player's season is ranked against nine invented superstars
   const clubNow = getClub(p.clubId);
   const award = runBallonDor(
     {
@@ -915,7 +923,7 @@ function finishSeason(set: Setter, get: Getter) {
     Math.random,
   );
   if (award?.won) {
-    const t = `Ballon d’Or ${seasonLabel(season.year)}`;
+    const t = `Golden Star ${seasonLabel(season.year)}`;
     {
       const ev = celebrationFor(t, { club: clubNow?.name ?? '', kit: clubNow?.color ?? '#10b981', nation: '', clubShort: clubNow?.short, clubCountryCode: nationalityByName(clubNow?.country ?? '')?.code });
       if (ev) useUiStore.getState().queueCelebration(ev);
@@ -923,14 +931,14 @@ function finishSeason(set: Setter, get: Getter) {
     p = { ...p, trophies: [...p.trophies, t], rep: applyRep(p.rep, { fanPopularity: 8, mediaHeat: 6, lockerRoom: 2 }) };
     nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — you are the best player in the world!', { t: tr(t) }), 'gold'));
   } else if (award) {
-    nextNews = addNews(nextNews, mkNews(tr('Ballon d’Or: you finish {rank} in the vote.', { rank: ordinalOf(award.rank) }), 'neutral'));
+    nextNews = addNews(nextNews, mkNews(tr('Golden Star: you finish {rank} in the vote.', { rank: ordinalOf(award.rank) }), 'neutral'));
   }
 
   // Where the league finish leads: Europe, promotion or relegation
   const divNow: Division = season.division ?? 1;
   const zone = leagueZone(pos, divNow, season.table.length);
   const nextDivision: Division = zone === 'promoted' ? ((divNow - 1) as Division) : zone === 'relegated' ? ((divNow + 1) as Division) : divNow;
-  const nextEurope: EuroComp | null = zone === 'champions' ? 'Champions League' : zone === 'europa' ? 'Europa League' : null;
+  const nextEurope: EuroComp | null = zone === 'champions' ? 'Europe Elite Cup' : zone === 'europa' ? 'Europe Challenge Cup' : null;
   if (zone === 'relegated') {
     p = { ...p, morale: clamp(p.morale - 10, 0, 100), rep: applyRep(p.rep, { fanPopularity: -4, coachTrust: -3 }) };
     nextNews = addNews(nextNews, mkNews(tr('⬇️ Relegation: the club drops to Division {n}.', { n: nextDivision }), 'bad'));
@@ -940,6 +948,38 @@ function finishSeason(set: Setter, get: Getter) {
   } else if (nextEurope) {
     p = { ...p, rep: applyRep(p.rep, { fanPopularity: 3, mediaHeat: 3 }) };
     nextNews = addNews(nextNews, mkNews(tr('⭐ Qualified for the {comp} next season!', { comp: tr(nextEurope) }), 'gold'));
+  }
+
+  // the club's level follows its results: promotion strengthens the squad, relegation weakens it, and a good (or bad) season nudges it
+  const clubNowId = player.clubId;
+  const clubBoost = { ...(get().clubBoost ?? {}) };
+  if (clubNowId) {
+    const total = season.table.length;
+    let delta = zone === 'promoted' ? 6 : zone === 'relegated' ? -6 : pos === 1 ? 2 : pos <= Math.ceil(total / 3) ? 1 : pos > Math.floor((total * 2) / 3) ? -1 : 0;
+    // the biggest clubs are already at the top of the scale
+    if (delta > 0 && (getClub(clubNowId)?.strength ?? 0) >= 90) delta = 0;
+    const next = Math.max(-14, Math.min(18, (clubBoost[clubNowId] ?? 0) + delta));
+    if (next !== (clubBoost[clubNowId] ?? 0)) {
+      clubBoost[clubNowId] = next;
+      if (zone === 'promoted') nextNews = addNews(nextNews, mkNews(tr('📈 The squad is reinforced for the step up: level +{n}.', { n: delta }), 'good'));
+      else if (zone === 'relegated') nextNews = addNews(nextNews, mkNews(tr('📉 The squad weakens after relegation: level {n}.', { n: delta }), 'bad'));
+    }
+    setClubBoosts(clubBoost);
+  }
+
+  // your role in the squad: it changes with the years, the trust and the results
+  {
+    const st = squadStatus(p, [...history, record]);
+    // a role is compared with the one you had at the same club: a new club starts you over
+    const [prevClub, prevRole] = (p.squadStatus ?? '').split('|');
+    if (prevRole && prevClub === (p.clubId ?? '') && prevRole !== st.id && st.id !== 'free') {
+      const order: Record<string, number> = { newcomer: 0, marquee: 1, prospect: 1, rotation: 1, starter: 2, key: 3, star: 4, captain: 5, legend: 6 };
+      const up = (order[st.id] ?? 0) >= (order[prevRole] ?? 0);
+      nextNews = addNews(nextNews, mkNews(tr(up ? 'Your role in the squad: you are now {role}.' : 'Your role in the squad has dropped: you are now {role}.', { role: tr(STATUS_LABEL[st.id]) }), up ? 'good' : 'bad'));
+      if (st.id === 'captain') p = { ...p, morale: clamp(p.morale + 6, 0, 100), rep: applyRep(p.rep, { lockerRoom: 3, fanPopularity: 2 }) };
+      if (st.id === 'legend') p = { ...p, rep: applyRep(p.rep, { fanPopularity: 4, mediaHeat: 2 }) };
+    }
+    p = { ...p, squadStatus: `${p.clubId ?? ''}|${st.id}` };
   }
 
   const summary: SeasonSummary = {
@@ -966,6 +1006,7 @@ function finishSeason(set: Setter, get: Getter) {
     news: nextNews,
     division: nextDivision,
     europe: nextEurope,
+    clubBoost,
     offerKey: '',
   });
 }

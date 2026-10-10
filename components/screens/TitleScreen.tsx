@@ -62,7 +62,7 @@ export function TitleScreen() {
           <span className="block bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent">Legacy</span>
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-4 max-w-[280px] text-sm leading-relaxed text-zinc-400">
-          {t('From the lower leagues to World Cup glory. Win the dressing room, own the press, step up when it matters.')}
+          {t('From the lower leagues to World Nations Cup glory. Win the dressing room, own the press, step up when it matters.')}
         </motion.p>
       </div>
 

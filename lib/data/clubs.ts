@@ -10,40 +10,40 @@ const CURATED_CLUBS: Club[] = [
   { id: 'fc-lyonnais-b', name: 'Stade Lavallois', short: 'LAV', league: 'National 1', country: 'France', flag: '🇫🇷', tier: 5, strength: 58, budget: 1, color: '#f97316', starter: true },
   { id: 'us-orleans', name: 'US Orléans', short: 'ORL', league: 'National 1', country: 'France', flag: '🇫🇷', tier: 5, strength: 56, budget: 0.8, color: '#ef4444', starter: true },
   { id: 'fc-versailles', name: 'FC Versailles', short: 'VER', league: 'National 1', country: 'France', flag: '🇫🇷', tier: 5, strength: 60, budget: 1.4, color: '#3b82f6', starter: true },
-  { id: 'tranmere', name: 'Tranmere Town', short: 'TRA', league: 'English League Two', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 59, budget: 1.2, color: '#e5e7eb', starter: true },
-  { id: 'grimsby', name: 'Grimsby Mariners', short: 'GRI', league: 'English League Two', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 57, budget: 0.9, color: '#a3a3a3', starter: true },
-  { id: 'crawley', name: 'Crawley Rovers', short: 'CRA', league: 'English League Two', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 56, budget: 0.8, color: '#dc2626', starter: true },
-  { id: 'real-murcia', name: 'Real Murcia B', short: 'MUR', league: 'Segunda RFEF', country: 'Spain', flag: '🇪🇸', tier: 5, strength: 57, budget: 0.7, color: '#be123c', starter: true },
-  { id: 'ud-logrones', name: 'UD Logroñés', short: 'LOG', league: 'Segunda RFEF', country: 'Spain', flag: '🇪🇸', tier: 5, strength: 55, budget: 0.6, color: '#16a34a', starter: true },
+  { id: 'tranmere', name: 'Tranmere Town', short: 'TRA', league: 'Fourth Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 59, budget: 1.2, color: '#e5e7eb', starter: true },
+  { id: 'grimsby', name: 'Grimsby Mariners', short: 'GRI', league: 'Fourth Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 57, budget: 0.9, color: '#a3a3a3', starter: true },
+  { id: 'crawley', name: 'Crawley Rovers', short: 'CRA', league: 'Fourth Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 5, strength: 56, budget: 0.8, color: '#dc2626', starter: true },
+  { id: 'real-murcia', name: 'Real Murcia B', short: 'MUR', league: 'Tercera División', country: 'Spain', flag: '🇪🇸', tier: 5, strength: 57, budget: 0.7, color: '#be123c', starter: true },
+  { id: 'ud-logrones', name: 'UD Logroñés', short: 'LOG', league: 'Tercera División', country: 'Spain', flag: '🇪🇸', tier: 5, strength: 55, budget: 0.6, color: '#16a34a', starter: true },
   { id: 'americano-fc', name: 'Americano FC', short: 'AME', league: 'Série B', country: 'Brazil', flag: '🇧🇷', tier: 4, strength: 63, budget: 2, color: '#facc15', starter: true },
   { id: 'vila-nova', name: 'Vila Nova', short: 'VIL', league: 'Série B', country: 'Brazil', flag: '🇧🇷', tier: 4, strength: 62, budget: 1.8, color: '#ef4444', starter: true },
-  { id: 'us-goree', name: 'US Gorée', short: 'GOR', league: 'Ligue 1 Sénégal', country: 'Senegal', flag: '🇸🇳', tier: 5, strength: 55, budget: 0.5, color: '#22c55e', starter: true },
-  { id: 'generation-foot', name: 'Génération Foot', short: 'GEN', league: 'Ligue 1 Sénégal', country: 'Senegal', flag: '🇸🇳', tier: 5, strength: 60, budget: 1.1, color: '#f59e0b', starter: true },
+  { id: 'us-goree', name: 'US Gorée', short: 'GOR', league: 'Première Division Sénégal', country: 'Senegal', flag: '🇸🇳', tier: 5, strength: 55, budget: 0.5, color: '#22c55e', starter: true },
+  { id: 'generation-foot', name: 'Génération Foot', short: 'GEN', league: 'Première Division Sénégal', country: 'Senegal', flag: '🇸🇳', tier: 5, strength: 60, budget: 1.1, color: '#f59e0b', starter: true },
 
   /* ── Tier 4 – second divisions ── */
-  { id: 'sc-bastia', name: 'SC Bastia', short: 'BAS', league: 'Ligue 2', country: 'France', flag: '🇫🇷', tier: 4, strength: 66, budget: 5, color: '#2563eb' },
-  { id: 'leeds-utd', name: 'Leeds Albion', short: 'LEE', league: 'Championship', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 4, strength: 70, budget: 12, color: '#fafafa' },
-  { id: 'real-oviedo', name: 'Real Oviedo', short: 'OVI', league: 'La Liga 2', country: 'Spain', flag: '🇪🇸', tier: 4, strength: 67, budget: 6, color: '#2563eb' },
-  { id: 'fortuna-koln', name: 'Fortuna Köln', short: 'KOL', league: '2. Bundesliga', country: 'Germany', flag: '🇩🇪', tier: 4, strength: 68, budget: 8, color: '#dc2626' },
+  { id: 'sc-bastia', name: 'SC Bastia', short: 'BAS', league: 'Deuxième Division', country: 'France', flag: '🇫🇷', tier: 4, strength: 66, budget: 5, color: '#2563eb' },
+  { id: 'leeds-utd', name: 'Leeds Albion', short: 'LEE', league: 'Second Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 4, strength: 70, budget: 12, color: '#fafafa' },
+  { id: 'real-oviedo', name: 'Real Oviedo', short: 'OVI', league: 'Segunda División', country: 'Spain', flag: '🇪🇸', tier: 4, strength: 67, budget: 6, color: '#2563eb' },
+  { id: 'fortuna-koln', name: 'Fortuna Köln', short: 'KOL', league: '2. Deutsche Liga', country: 'Germany', flag: '🇩🇪', tier: 4, strength: 68, budget: 8, color: '#dc2626' },
 
   /* ── Tier 3 – solid top flights ── */
-  { id: 'stade-reims', name: 'Stade de Reims', short: 'REI', league: 'Ligue 1', country: 'France', flag: '🇫🇷', tier: 3, strength: 72, budget: 20, color: '#dc2626' },
-  { id: 'brighton-hv', name: 'Brighton Harbour', short: 'BRH', league: 'Premier League', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 3, strength: 76, budget: 45, color: '#38bdf8' },
-  { id: 'real-sociedad-x', name: 'Real Bahía', short: 'RBA', league: 'La Liga', country: 'Spain', flag: '🇪🇸', tier: 3, strength: 76, budget: 40, color: '#3b82f6' },
-  { id: 'sporting-cl', name: 'Sporting Lusitano', short: 'SPL', league: 'Liga Portugal', country: 'Portugal', flag: '🇵🇹', tier: 3, strength: 75, budget: 35, color: '#16a34a' },
+  { id: 'stade-reims', name: 'Stade de Reims', short: 'REI', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 3, strength: 72, budget: 20, color: '#dc2626' },
+  { id: 'brighton-hv', name: 'Brighton Harbour', short: 'BRH', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 3, strength: 76, budget: 45, color: '#38bdf8' },
+  { id: 'real-sociedad-x', name: 'Real Bahía', short: 'RBA', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 3, strength: 76, budget: 40, color: '#3b82f6' },
+  { id: 'sporting-cl', name: 'Sporting Lusitano', short: 'SPL', league: 'Primeira Divisão', country: 'Portugal', flag: '🇵🇹', tier: 3, strength: 75, budget: 35, color: '#16a34a' },
   { id: 'flamengo-x', name: 'CR Carioca', short: 'CAR', league: 'Brasileirão', country: 'Brazil', flag: '🇧🇷', tier: 3, strength: 74, budget: 30, color: '#ef4444' },
 
   /* ── Tier 2 – continental contenders ── */
-  { id: 'ol-rhone', name: 'Olympique du Rhône', short: 'OLR', league: 'Ligue 1', country: 'France', flag: '🇫🇷', tier: 2, strength: 80, budget: 90, color: '#1d4ed8' },
-  { id: 'dortmund-x', name: 'Borussia Rhein', short: 'BRR', league: 'Bundesliga', country: 'Germany', flag: '🇩🇪', tier: 2, strength: 82, budget: 110, color: '#facc15' },
-  { id: 'napoli-x', name: 'Napoli Azzurri', short: 'NAP', league: 'Serie A', country: 'Italy', flag: '🇮🇹', tier: 2, strength: 81, budget: 100, color: '#38bdf8' },
-  { id: 'villa-x', name: 'Aston Vale', short: 'AVL', league: 'Premier League', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 2, strength: 82, budget: 130, color: '#7c3aed' },
+  { id: 'ol-rhone', name: 'Olympique du Rhône', short: 'OLR', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 2, strength: 80, budget: 90, color: '#1d4ed8' },
+  { id: 'dortmund-x', name: 'Borussia Rhein', short: 'BRR', league: 'Deutsche Liga', country: 'Germany', flag: '🇩🇪', tier: 2, strength: 82, budget: 110, color: '#facc15' },
+  { id: 'napoli-x', name: 'Napoli Azzurri', short: 'NAP', league: 'Prima Divisione', country: 'Italy', flag: '🇮🇹', tier: 2, strength: 81, budget: 100, color: '#38bdf8' },
+  { id: 'villa-x', name: 'Aston Vale', short: 'AVL', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 2, strength: 82, budget: 130, color: '#7c3aed' },
 
   /* ── Tier 1 – global elite ── */
-  { id: 'psg-x', name: 'Paris Étoile FC', short: 'PEF', league: 'Ligue 1', country: 'France', flag: '🇫🇷', tier: 1, strength: 88, budget: 300, color: '#1e3a8a' },
-  { id: 'madrid-x', name: 'Real Capital CF', short: 'RCC', league: 'La Liga', country: 'Spain', flag: '🇪🇸', tier: 1, strength: 90, budget: 350, color: '#f5f5f5' },
-  { id: 'city-x', name: 'Manchester Sky', short: 'MSK', league: 'Premier League', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 1, strength: 90, budget: 380, color: '#7dd3fc' },
-  { id: 'bayern-x', name: 'Bayern Alpen', short: 'BAL', league: 'Bundesliga', country: 'Germany', flag: '🇩🇪', tier: 1, strength: 89, budget: 320, color: '#dc2626' },
+  { id: 'psg-x', name: 'Paris Étoile FC', short: 'PEF', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 1, strength: 88, budget: 300, color: '#1e3a8a' },
+  { id: 'madrid-x', name: 'Real Capital CF', short: 'RCC', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 1, strength: 90, budget: 350, color: '#f5f5f5' },
+  { id: 'city-x', name: 'Manchester Sky', short: 'MSK', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 1, strength: 90, budget: 380, color: '#7dd3fc' },
+  { id: 'bayern-x', name: 'Bayern Alpen', short: 'BAL', league: 'Deutsche Liga', country: 'Germany', flag: '🇩🇪', tier: 1, strength: 89, budget: 320, color: '#dc2626' },
 ];
 
 /* ───────── Generated clubs for every other country ───────── */
@@ -156,7 +156,7 @@ export const LEAGUE_RIVALS: Record<number, string[]> = {
  * so a Senegalese career is played against Thiès, Saint-Louis, Ziguinchor… (all club names invented).
  */
 const CURATED_RIVALS: Record<string, string[]> = {
-  'Ligue 1 Sénégal': [
+  'Première Division Sénégal': [
     'Thiès Étoile FC', 'AS Saint-Louis', 'Kaolack Racing', 'Ziguinchor Casamance FC', 'Touba Espoir', 'Mbour Teranga FC',
     'Louga Sahel', 'Tambacounda Baobab', 'Diourbel Baol FC', 'Kolda Fouladou', 'Rufisque Océan FC', 'Fatick Sine FC',
     'Saly Atlantique', 'Matam Fleuve', 'Kédougou Sabadola', 'Joal Pirogue FC',
@@ -166,12 +166,12 @@ const CURATED_RIVALS: Record<string, string[]> = {
     'Annecy Lac FC', 'Grenoble Alpes', 'Perpignan Catalan', 'Cherbourg Cotentin', 'Pau Pyrénées', 'Troyes Aube FC',
     'Épinal Vosges', 'Nîmes Garrigue', 'Amiens Picardie', 'Metz Moselle FC',
   ],
-  'English League Two': [
+  'Fourth Division': [
     'Bradford Mills', 'Salford Docks', 'Walsall Leather', 'Colchester Roman', 'Gillingham Medway', 'Newport Severn',
     'Harrogate Spa', 'Carlisle Border', 'Doncaster Don', 'Stockport Hatters', 'Morecambe Bay', 'Accrington Brick',
     'Swindon Wiltshire', 'Barrow Furness', 'Mansfield Stags', 'Wrexham Dragons',
   ],
-  'Segunda RFEF': [
+  'Tercera División': [
     'CD Alcoyano Costa', 'Baleares Mar CF', 'Ferrol Rías', 'UD Ibiza Isla', 'CF Badalona Mar', 'Águilas Levante',
     'CD Calahorra Rioja', 'Real Avilés', 'Cartagena Naval', 'Lorca Alfonso', 'Yeclano Vino', 'Linares Minero',
     'Talavera Cerámica', 'Marbella Costa del Sol', 'Algeciras Estrecho', 'Gijón Cantábrico',
@@ -191,14 +191,25 @@ export const LOCAL_RIVALS: Record<string, string[]> = { ...CURATED_RIVALS, ...GE
 const FIRST_YEAR = 2026;
 const BASE = new Map(CLUBS.map((c) => [c.id, c.strength]));
 let appliedYear = FIRST_YEAR;
+/** What your club has gained or lost on top of its normal level: promotion strengthens it, relegation weakens it */
+let boosts: Record<string, number> = {};
+let dirty = false;
+export const getClubBoost = (id: string) => boosts[id] ?? 0;
+/** Gives the clubs the levels earned in this career. */
+export function setClubBoosts(next: Record<string, number>) {
+  boosts = next;
+  dirty = true;
+  setClubYear(appliedYear);
+}
 
 /**
  * Gives every club its strength for `year`. A club drifts by a point or two a season around its own level
  * (never by ten): the drift is a fixed function of the club and the year, so a saved game reloads the same world.
  */
 export function setClubYear(year: number) {
-  if (year === appliedYear) return;
+  if (year === appliedYear && !dirty) return;
   appliedYear = year;
+  dirty = false;
   for (const c of CLUBS) {
     const base = BASE.get(c.id) ?? c.strength;
     let d = 0;
@@ -207,6 +218,6 @@ export function setClubYear(year: number) {
       // a pull back towards its normal level, plus a small push
       d = Math.max(-7, Math.min(7, d * 0.88 + (u - 0.5) * 3));
     }
-    c.strength = Math.max(45, Math.min(94, Math.round(base + d)));
+    c.strength = Math.max(45, Math.min(94, Math.round(base + d + (boosts[c.id] ?? 0))));
   }
 }

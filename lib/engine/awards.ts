@@ -22,15 +22,15 @@ export interface SeasonForAward {
 
 const trophyPoints = (t: string) => {
   if (t.startsWith('League Title')) return 10;
-  if (t.startsWith('Champions League')) return 14;
-  if (t.startsWith('Europa League')) return 7;
+  if (t.startsWith('Europe Elite Cup')) return 14;
+  if (t.startsWith('Europe Challenge Cup')) return 7;
   if (t.startsWith('Domestic Cup')) return 5;
-  if (t.startsWith('FIFA World Cup')) return 22;
-  // youth trophies are a stepping stone, not a Ballon d’Or argument
+  if (t.startsWith('World Nations Cup')) return 22;
+  // youth trophies are a stepping stone, not a Golden Star argument
   if (t.startsWith('U20')) return 2;
   if (t.startsWith('U23')) return 3;
-  if (t.startsWith('Olympic')) return 6;
-  if (t.startsWith('UEFA Nations League')) return 8;
+  if (t.startsWith('Summer Games')) return 6;
+  if (t.startsWith('European Nations Trophy')) return 8;
   return 13; // continental nations tournament
 };
 
@@ -47,7 +47,7 @@ export function ballonDorScore(s: SeasonForAward): number {
 }
 
 /**
- * Season-end Ballon d'Or: the player is ranked against nine invented rivals.
+ * Season-end Golden Star: the player is ranked against nine invented rivals.
  * Returns undefined when the player isn't even in the conversation.
  */
 export function runBallonDor(s: SeasonForAward, rng: Rng): BallonDorResult | undefined {

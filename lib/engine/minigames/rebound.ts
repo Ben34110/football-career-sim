@@ -48,6 +48,22 @@ export const tClear = (r: ReboundRound) => r.t2 + r.win;
 
 export type ReboundVerdict = 'perfect' | 'good' | 'early' | 'late' | 'wrong';
 
+/** Seconds the poacher takes to sprint to the lane you pick */
+export const DASH = 0.32;
+
+/** When he gets his boot to the ball: as soon as he arrives, but never before it has landed. */
+export const strikeAt = (r: ReboundRound, tTap: number) => Math.max(tTap + DASH, r.t2 - 0.02);
+
+/**
+ * One tap picks the lane where you think the ball will drop; he sprints there on his own.
+ * Right lane and there in time: a goal (perfect if he is there as it lands). Wrong lane: nothing. Too slow: a defender clears.
+ */
+export function judgeDash(r: ReboundRound, lane: Lane, tTap: number): ReboundVerdict {
+  if (lane !== r.lane) return 'wrong';
+  if (tTap + DASH > tClear(r) - 0.02) return 'late';
+  return tTap + DASH <= r.t2 + 0.14 ? 'perfect' : 'good';
+}
+
 /** What a pounce at local time `tp` (seconds since this round's shot) gives when you stand at `pos`. */
 export function judgePounce(r: ReboundRound, plan: ReboundPlan, pos: number, tp: number): ReboundVerdict {
   if (Math.abs(pos - r.lane) > plan.reach) return 'wrong';

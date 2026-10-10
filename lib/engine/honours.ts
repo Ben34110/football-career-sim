@@ -14,14 +14,14 @@ export interface HonourGroup {
   labels: string[];
 }
 
-/** "League Title 2026/27" → "League Title"; "Africa Cup of Nations 2029" → "Africa Cup of Nations" */
+/** "League Title 2026/27" → "League Title"; "African Nations Cup 2029" → "African Nations Cup" */
 export const honourTitle = (trophy: string) => trophy.replace(/\s+\d{4}(\/\d{2})?$/, '');
 
-/** Only the titles that belong to one country carry its flag: not the Champions League, the World Cup, the Olympics… */
+/** Only the titles that belong to one country carry its flag: not the Europe Elite Cup, the World Nations Cup, the Summer Games… */
 const NATIONAL = /^(League Title|Domestic Cup)$/;
 
 /** How prestigious each kind of title is, for the order of the cabinet. */
-const ORDER: RegExp[] = [/^Ballon/, /World Cup$/, /^Champions League/, /^Olympic/, /^Europa League/, /Championship|Cup of Nations|Copa|Asian Cup|Gold Cup|Nations League/, /^League Title/, /^Domestic Cup/];
+const ORDER: RegExp[] = [/^Golden Star/, /World Nations Cup$/, /^Europe Elite Cup/, /^Summer Games/, /^Europe Challenge Cup/, /Championship|African Nations Cup|South American Cup|Asian Nations Cup|North American Cup|Nations Trophy/, /^League Title/, /^Domestic Cup/];
 const rank = (title: string) => {
   const i = ORDER.findIndex((re) => re.test(title));
   return i === -1 ? ORDER.length : i;

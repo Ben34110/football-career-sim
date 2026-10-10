@@ -37,7 +37,7 @@ export interface KickInput {
   composure: number;
   /** Opposition strength — better teams have better keepers */
   keeperLevel: number;
-  /** 0 (relaxed) … 1 (World Cup final) */
+  /** 0 (relaxed) … 1 (World Nations Cup final) */
   pressure: number;
   /** Free kicks only: bend the ball around the wall */
   curl?: Curl;

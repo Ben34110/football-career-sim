@@ -86,9 +86,9 @@ function Card({ event, onClose }: { event: CallUpEvent; onClose: () => void }) {
             <div className="flex gap-2.5 rounded-xl border border-sky-400/25 bg-sky-400/10 p-3 text-[12.5px] leading-snug text-sky-100">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
               <div>
-                <div className="font-bold">{t('The Olympic rule')}</div>
+                <div className="font-bold">{t('The Summer Games rule')}</div>
                 <p className="mt-0.5 text-sky-100/85">
-                  {t('The Olympic football tournament is for players under 23, but every nation may bring up to three older players.')}{' '}
+                  {t('The Summer Games football tournament is for players under 23, but every nation may bring up to three older players.')}{' '}
                   {called ? t('You are one of the three overage players picked: a sign of how highly the coach rates you.') : t('The coach used his three overage places on other players.')}
                 </p>
               </div>

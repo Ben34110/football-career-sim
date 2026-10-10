@@ -114,7 +114,7 @@ export function Fireworks({ colors }: { colors: string[] }) {
   );
 }
 
-/** Photographers' flashes popping all over the stands (Ballon d'Or). */
+/** Photographers' flashes popping all over the stands (Golden Star). */
 export function CameraFlashes() {
   const r = rng(21);
   return (

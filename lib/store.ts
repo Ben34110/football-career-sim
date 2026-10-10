@@ -191,7 +191,7 @@ export const useGameStore = create<GameStore>()(
       createCareer: (input) => {
         // the career you were playing goes to the archive before the new one starts
         archiveCurrent(get());
-        const player = createPlayer(input, Date.now());
+        const player = { ...createPlayer(input, Date.now()), careerId: uid('career') };
         const club = getClub(input.clubId)!;
         const season = generateSeason(START_YEAR, club, Math.random);
         set({

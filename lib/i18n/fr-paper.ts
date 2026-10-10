@@ -312,6 +312,7 @@ export const FR_PAPER: Record<string, string> = {
   Unfinished: 'Inachevée',
   'Delete this career': 'Supprimer cette carrière',
   Delete: 'Supprimer',
+  'A career that ended before it began.': 'Une carrière arrêtée avant d’avoir commencé.',
   'Shuffling the balls…': 'Les boules sont mélangées…',
   'Pick a ball': 'Choisis une boule',
   LEFT: 'GAUCHE',

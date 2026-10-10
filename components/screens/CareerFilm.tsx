@@ -111,7 +111,7 @@ export function CareerFilm({ player, history, onClose }: { player: Player; histo
                 <Flag emoji={nat.flag} size={14} /> {t(nat.name)} · {player.position}
               </div>
               <p className="mt-6 max-w-[17rem] text-lg font-semibold text-zinc-200">
-                {t('{n} seasons, from {a} to {b}.', { n: history.length, a: history[0]?.year ?? '—', b: lastRec ? lastRec.year + 1 : '—' })}
+                {history.length === 0 ? t('A career that ended before it began.') : t('{n} seasons, from {a} to {b}.', { n: history.length, a: history[0].year, b: lastRec.year + 1 })}
               </p>
             </div>
           )}

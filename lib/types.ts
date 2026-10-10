@@ -238,6 +238,8 @@ export interface Upgrades {
 }
 
 export interface Player {
+  /** Identifies this career in the hall of fame */
+  careerId?: string;
   name: string;
   nationality: string;
   position: Position;

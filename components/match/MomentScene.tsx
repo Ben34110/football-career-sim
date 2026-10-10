@@ -1,3 +1,4 @@
+import { flagUrl } from '@/lib/flags';
 import { useId } from 'react';
 import { HeadAvatar, shade, type Expression } from '@/components/ui/HeadAvatar';
 import { DEFAULT_LOOK, SKINS, type Look } from '@/lib/data/look';
@@ -167,7 +168,35 @@ export const SCENE_BLEED = 20 / 170;
 
 const TORSO = 'M46 190L52 140C53 126 57 114 66 108C74 104 84 103 90 102L110 102C116 103 126 104 134 108C143 114 147 126 148 140L154 190Z';
 
-export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178, trophy = 'cup', accent, hideTrophy = false }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number; trophy?: TrophyKind; accent?: string; hideTrophy?: boolean }) {
+const BADGE_SHIELD = 'M20 1.5 37 7v17c0 10-7.5 16.5-17 20.5C10.500 40.500 3 34 3 24V7z';
+
+/** The badge on the left chest: a nation's flag, or a club's colours and initials. */
+function ChestBadge({ short, color, uid }: { short: string; color: string; uid: string }) {
+  const flag = /^(\p{Regional_Indicator}{2}|\u{1F3F4})/u.test(short);
+  const url = flag ? flagUrl(short) : null;
+  return (
+    <g transform="translate(112 134) scale(.52)">
+      <defs>
+        <clipPath id={`bd${uid}`}>
+          <path d={BADGE_SHIELD} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#bd${uid})`}>
+        <rect width="40" height="46" fill={url ? '#3f3f46' : color} />
+        {url && <image href={url} x="-10.670" y="0" width="61.330" height="46" preserveAspectRatio="none" />}
+        <path d="M20 1.5 37 7v6H3V7z" fill="rgba(255,255,255,0.16)" />
+      </g>
+      <path d={BADGE_SHIELD} fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2.200" />
+      {!url && (
+        <text x="20" y="28" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff" fontFamily="sans-serif">
+          {short.slice(0, 3)}
+        </text>
+      )}
+    </g>
+  );
+}
+
+export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178, trophy = 'cup', accent, hideTrophy = false, badge }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number; trophy?: TrophyKind; accent?: string; hideTrophy?: boolean; badge?: { short: string; color: string } }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const skin = SKINS[look.skin] ?? SKINS[2];
   const line = shade(skin, -0.62);
@@ -206,6 +235,7 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
       <path d={TORSO} fill={kitLine} stroke={kitLine} strokeWidth="2.200" strokeLinejoin="round" />
       <path d={TORSO} fill={`url(#${ids.t})`} />
       <path d="M90 102C94 112 106 112 110 102" fill="none" stroke={shade(kit, -0.62)} strokeWidth=".8" opacity=".5" />
+      {badge && <ChestBadge short={badge.short} color={badge.color} uid={uid} />}
 
       {/* the head, tilted from the neck */}
       <g transform={`rotate(${tilt} 100 112)`}>

@@ -29,6 +29,7 @@ const KIND_LABEL: Record<Fixture['kind'], string> = {
 
 export function PreMatch({
   fixture,
+  competitionName,
   me,
   opp,
   myStrength,
@@ -43,6 +44,8 @@ export function PreMatch({
   onKickoff,
 }: {
   fixture: Fixture;
+  /** Short name of the tournament, for national tournament games */
+  competitionName?: string;
   me: TeamBadge;
   opp: TeamBadge;
   myStrength: number;
@@ -77,7 +80,7 @@ export function PreMatch({
       {/* Fixture hero */}
       <Card strong gold className="overflow-hidden p-4">
         <div className="mb-4 flex items-center justify-between">
-          <Chip tone="gold">{t(KIND_LABEL[fixture.kind])}</Chip>
+          <Chip tone="gold">{competitionName ?? t(KIND_LABEL[fixture.kind])}</Chip>
           <span className="eyebrow">{t(fixture.label)} · {fmtShortDate(date, lang)}</span>
         </div>
         <div className="flex items-center justify-between">

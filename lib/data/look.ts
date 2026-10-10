@@ -101,16 +101,82 @@ export const DEFAULT_LOOK: Look = { skin: 2, hair: 'short', hairColor: 0, beard:
 
 export const lookOf = (p: { look?: Look } | null | undefined): Look => p?.look ?? DEFAULT_LOOK;
 
-/** A random head. Pass a seeded `rng` to get the same teammates every time. */
-export const randomLook = (rng: () => number = Math.random): Look => {
+/** How skin tones are spread in a country's squad: weights for the six tones of SKINS, lightest first. */
+const P = {
+  light: [0.38, 0.4, 0.18, 0.04, 0, 0],
+  euroMixed: [0.26, 0.3, 0.18, 0.1, 0.09, 0.07],
+  euroDiverse: [0.22, 0.25, 0.16, 0.1, 0.14, 0.13],
+  olive: [0.12, 0.35, 0.35, 0.15, 0.03, 0],
+  oliveLight: [0.25, 0.4, 0.28, 0.07, 0, 0],
+  maghreb: [0.02, 0.18, 0.4, 0.28, 0.1, 0.02],
+  horn: [0, 0, 0.1, 0.35, 0.4, 0.15],
+  black: [0, 0, 0.02, 0.12, 0.44, 0.42],
+  southAfrica: [0.02, 0.03, 0.08, 0.2, 0.35, 0.32],
+  mestizo: [0.05, 0.25, 0.4, 0.25, 0.05, 0],
+  brazil: [0.15, 0.2, 0.2, 0.2, 0.15, 0.1],
+  northAmerica: [0.28, 0.22, 0.16, 0.1, 0.14, 0.1],
+  caribbean: [0, 0, 0.02, 0.15, 0.45, 0.38],
+  eastAsia: [0.3, 0.5, 0.2, 0, 0, 0],
+  southAsia: [0, 0.05, 0.35, 0.45, 0.15, 0],
+  middleEast: [0.05, 0.3, 0.4, 0.2, 0.05, 0],
+  oceania: [0.4, 0.3, 0.15, 0.08, 0.04, 0.03],
+  anywhere: [0.15, 0.2, 0.25, 0.2, 0.12, 0.08],
+} as const;
+type Spread = readonly number[];
+
+const SKIN_BY_CODE: Record<string, Spread> = {
+  FRA: P.euroDiverse, ENG: P.euroDiverse,
+  NED: P.euroMixed, BEL: P.euroMixed, POR: P.euroMixed, GER: P.euroMixed, SWE: P.euroMixed, DEN: P.euroMixed, SUI: P.euroMixed, WAL: P.euroMixed, AUT: P.euroMixed,
+  ESP: P.oliveLight, ITA: P.oliveLight, CRO: P.oliveLight,
+  GRE: P.olive, TUR: P.olive, ALB: P.olive, ISR: P.olive, CYP: P.olive, MLT: P.olive, KOS: P.olive, MKD: P.olive, GEO: P.olive, ARM: P.olive, AZE: P.olive,
+  ARG: P.light, URU: P.light, CHI: P.light,
+  BRA: P.brazil, COL: P.mestizo, ECU: P.mestizo, PAR: P.mestizo, PER: P.mestizo, VEN: P.mestizo, BOL: P.mestizo,
+  USA: P.northAmerica, CAN: P.northAmerica, MEX: P.mestizo, CRC: P.mestizo, PAN: P.mestizo, HON: P.mestizo, JAM: P.caribbean,
+  MAR: P.maghreb, ALG: P.maghreb, TUN: P.maghreb, EGY: P.maghreb, LBY: P.maghreb,
+  ETH: P.horn, ERI: P.horn, SOM: P.horn, DJI: P.horn, SDN: P.horn, SSD: P.horn,
+  RSA: P.southAfrica,
+  JPN: P.eastAsia, KOR: P.eastAsia, CHN: P.eastAsia,
+  IND: P.southAsia, THA: P.southAsia, VIE: P.southAsia, IDN: P.southAsia,
+  IRN: P.middleEast, KSA: P.middleEast, QAT: P.middleEast, UAE: P.middleEast, IRQ: P.middleEast, UZB: P.middleEast, JOR: P.middleEast,
+  AUS: P.oceania,
+};
+/** Sub-Saharan Africa is the rest of CAF; the rest of Europe is light. */
+const AFRICA = new Set('SEN NGA CIV GHA CMR MLI BFA COD CGO GAB GUI GNB CPV ZAM UGA ANG BEN MOZ KEN TAN ZIM TOG NIG MTN GAM SLE LBR CHA CTA EQG COM MAD MRI SEY BDI RWA MWI NAM BOT LES SWZ STP'.split(' '));
+
+/** The skin tones of a country's players: a Senegal squad is almost all dark-skinned with a few mixed-race players, Argentina's almost all light. */
+export const skinSpreadFor = (code?: string): Spread => (code ? SKIN_BY_CODE[code] ?? (AFRICA.has(code) ? P.black : P.light) : P.anywhere);
+
+/** A random head. Pass a seeded `rng` to get the same teammates every time, and a nation to get the faces of that country. */
+export const randomLook = (rng: () => number = Math.random, nation?: string): Look => {
   const pick = <T,>(a: readonly T[]) => a[Math.floor(rng() * a.length)];
   const female = rng() < 0.4;
+  const spread = skinSpreadFor(nation);
+  let r = rng();
+  let skin = spread.length - 1;
+  for (let i = 0; i < spread.length; i++) {
+    if (r < spread[i]) {
+      skin = i;
+      break;
+    }
+    r -= spread[i];
+  }
+  const dark = skin >= 4;
+  const asian = spread === P.eastAsia;
+  const hairs: HairStyle[] = dark
+    ? female
+      ? ['braids', 'afro', 'curls', 'bun', 'short', 'bob']
+      : ['buzz', 'short', 'afro', 'curls', 'braids', 'bald']
+    : female
+      ? ['long', 'bob', 'ponytail', 'bun', 'pixie', 'curls', 'braids', 'short']
+      : ['buzz', 'short', 'quiff', 'curls', 'bald', 'long'];
+  // hair colour follows the skin: dark heads have dark hair, blond only on the lightest
+  const hairColor = dark || asian ? (rng() < 0.9 ? 0 : 1) : skin >= 3 ? pick([0, 0, 1]) : skin === 2 ? pick([0, 1, 2, 0, 1]) : Math.floor(rng() * 6);
   return {
-    skin: Math.floor(rng() * SKINS.length),
-    hair: pick(female ? (['long', 'bob', 'ponytail', 'bun', 'pixie', 'curls', 'braids', 'afro', 'short'] as HairStyle[]) : (['buzz', 'short', 'quiff', 'afro', 'curls', 'braids', 'bald', 'long'] as HairStyle[])),
-    hairColor: Math.floor(rng() * 6),
+    skin,
+    hair: pick(hairs),
+    hairColor,
     beard: female ? 'none' : pick(BEARD_STYLES),
-    eyes: Math.floor(rng() * EYE_COLORS.length),
+    eyes: dark || asian ? pick([0, 0, 1]) : Math.floor(rng() * EYE_COLORS.length),
     face: pick(FACE_SHAPES),
     gender: female ? 'female' : 'male',
     hat: rng() < 0.15 ? pick(['cap', 'beanie', 'headband'] as Hat[]) : 'none',

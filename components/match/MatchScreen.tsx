@@ -28,6 +28,7 @@ import { crestFace } from '@/lib/utils';
 import type { Fixture, FixtureResult, MatchState, SeasonState } from '@/lib/types';
 import { CupDraw } from './CupDraw';
 import { GroupDraw } from './GroupDraw';
+import { tournamentShort } from '@/lib/data/competitions';
 import { LiveMatch, type LiveBoard, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
@@ -265,6 +266,7 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn !== false && ritual && (
         <PreMatch
           fixture={fixture}
+          competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined}
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}
@@ -286,7 +288,7 @@ export function MatchScreen() {
         />
       )}
       {stage === 'live' && ctx && (
-        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label }} board={liveBoardFor(season, fixture, others, t)} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
+        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label, name: fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined }} board={liveBoardFor(season, fixture, others, t)} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
       )}
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />

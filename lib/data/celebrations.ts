@@ -22,6 +22,10 @@ export interface CelebrationEvent {
   kit: string;
   /** Alone on a stage (Ballon d'Or) instead of with the squad */
   solo: boolean;
+  /** The chest badge on every shirt: a nation's flag, or a club's crest */
+  badge?: { short: string; color: string };
+  /** Nationality code that decides what the squad looks like */
+  squad?: string;
   trophyKind: TrophyKind;
   /** Ribbon / base colour for the cups that have one */
   accent: string;
@@ -51,14 +55,14 @@ const ACCENT: [RegExp, string][] = [
  * Which ceremony a trophy deserves. `club` is where you play, `nation` your country (for tournaments).
  * Returns null for anything that is not worth a celebration.
  */
-export function celebrationFor(trophy: string, ctx: { club: string; kit: string; nation: string; nationKit?: string }): Omit<CelebrationEvent, 'id'> | null {
-  const club = { team: ctx.club, kit: ctx.kit };
+export function celebrationFor(trophy: string, ctx: { club: string; kit: string; nation: string; nationKit?: string; clubShort?: string; clubCountryCode?: string; nationCode?: string; nationFlag?: string }): Omit<CelebrationEvent, 'id'> | null {
+  const club = { team: ctx.club, kit: ctx.kit, badge: ctx.clubShort ? { short: ctx.clubShort, color: ctx.kit } : undefined, squad: ctx.clubCountryCode };
   if (/^League Title/.test(trophy)) return { scenario: 'league', trophy, ...club, solo: false, trophyKind: 'league', accent: '#16a34a' };
   if (/^Domestic Cup/.test(trophy)) return { scenario: 'cup', trophy, ...club, solo: false, trophyKind: 'cup', accent: '#16a34a' };
   if (/^Champions League/.test(trophy)) return { scenario: 'champions', trophy, ...club, solo: false, trophyKind: 'bigears', accent: '#1d4ed8' };
   if (/^Europa League/.test(trophy)) return { scenario: 'europa', trophy, ...club, solo: false, trophyKind: 'europa', accent: '#ea580c' };
   if (/^Ballon/.test(trophy)) return { scenario: 'ballon', trophy, ...club, solo: true, trophyKind: 'ballon', accent: '#fbbf24' };
-  const nation = { team: ctx.nation, kit: ctx.nationKit ?? '#fbbf24' };
+  const nation = { team: ctx.nation, kit: ctx.nationKit ?? '#fbbf24', badge: ctx.nationCode ? { short: `${ctx.nationFlag ?? ''} ${ctx.nationCode}`.trim(), color: ctx.nationKit ?? '#fbbf24' } : undefined, squad: ctx.nationCode };
   if (/World Cup/.test(trophy)) return { scenario: 'worldcup', trophy, ...nation, solo: false, trophyKind: 'globe', accent: '#16a34a' };
   if (/Olympic/.test(trophy)) return { scenario: 'olympic', trophy, ...nation, solo: false, trophyKind: 'medal', accent: '#2563eb' };
   if (/Championship|Cup of Nations|Copa|Asian Cup|Gold Cup/.test(trophy)) {

@@ -40,10 +40,10 @@ const ROW_B = [
 ];
 
 /** One of the squad, cheering: heavy to draw, so it only renders again if its props change. */
-const Teammate = memo(function Teammate({ look, kit, height, delay }: { look: Look; kit: string; height: number; delay: number }) {
+const Teammate = memo(function Teammate({ look, kit, height, delay, badge }: { look: Look; kit: string; height: number; delay: number; badge?: { short: string; color: string } }) {
   return (
     <motion.div animate={{ y: [0, -9, 0] }} transition={{ duration: 0.62, repeat: Infinity, delay, ease: 'easeInOut' }}>
-      <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} />
+      <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} badge={badge} />
     </motion.div>
   );
 });
@@ -79,8 +79,8 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
       let s = event.id * 7919 + 13;
       return () => ((s = (s * 16807) % 2147483647) / 2147483647);
     })();
-    return { a: ROW_A.map(() => randomLook(r)), b: ROW_B.map(() => randomLook(r)) };
-  }, [event.id]);
+    return { a: ROW_A.map(() => randomLook(r, event.squad)), b: ROW_B.map(() => randomLook(r, event.squad)) };
+  }, [event.id, event.squad]);
 
   const confetti = [event.kit, '#fbbf24', '#f4f4f5', '#ef4444', '#38bdf8', '#a3e635'];
   const fire = [palette.glow, '#fbbf24', '#f472b6', '#a3e635', '#fff'];
@@ -119,13 +119,13 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           {!solo &&
             ROW_B.map((p, i) => (
               <div key={`b${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 34, transform: 'translate3d(-50%,0,-190px)', opacity: phase >= 0 ? 1 : 0 }}>
-                <Teammate look={squad.b[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.11} />
+                <Teammate look={squad.b[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.11} badge={event.badge} />
               </div>
             ))}
           {!solo &&
             ROW_A.map((p, i) => (
               <div key={`a${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 8, transform: 'translate3d(-50%,0,-95px)' }}>
-                <Teammate look={squad.a[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.09 + 0.05} />
+                <Teammate look={squad.a[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.09 + 0.05} badge={event.badge} />
               </div>
             ))}
 
@@ -146,7 +146,7 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
             animate={{ y: lifted ? [0, -9, 0] : 0, opacity: 1, scale: 1 }}
             transition={lifted ? { y: { duration: 0.62, repeat: Infinity, ease: 'easeInOut' }, opacity: { duration: 0.5 } } : { duration: 0.8, ease: 'easeOut' }}
           >
-            <MomentScene look={look} kit={event.kit} pose={phase >= 1 ? 'trophy' : 'arms'} expression="cheer" height={heroH} hideTrophy />
+            <MomentScene look={look} kit={event.kit} pose={phase >= 1 ? 'trophy' : 'arms'} expression="cheer" height={heroH} hideTrophy badge={event.badge} />
             {/* the trophy comes down from the sky into your hands */}
             {phase >= 1 && (
               <>

@@ -15,6 +15,7 @@ import { getClub } from '@/lib/data/clubs';
 import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
 import { currentFixture, leaguePosition, leagueZone } from '@/lib/engine/season';
 import { transferWindow } from '@/lib/engine/transfers';
+import { tournamentShort } from '@/lib/data/competitions';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtGameDate, fmtShortDate, gameDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
@@ -90,7 +91,7 @@ export function HomeScreen() {
           <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Next fixture')}</SectionTitle>
           <Card strong className="overflow-hidden p-4">
             <div className="flex items-center justify-between">
-              <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'euro' ? 'Europe' : fixture.kind === 'intl' ? 'International' : 'Tournament')}</Chip>
+              <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'euro' ? 'Europe' : 'International')}</Chip>
               <span className="eyebrow">{t(fixture.label)}{season && fixtureIdx >= 0 ? ` · ${fmtShortDate(fixtureDate(season, fixtureIdx), lang)}` : ''}</span>
             </div>
             <div className="mt-4 flex items-center gap-4">

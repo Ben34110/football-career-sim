@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub, setClubYear } from './data/clubs';
-import { getNationality } from './data/nationalities';
+import { getNationality, nationalityByName } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
 import { BOOST_BY_ID, boostPrice } from './data/boosts';
@@ -295,7 +295,7 @@ export const useGameStore = create<GameStore>()(
           const clubNow = getClub(player.clubId);
           const nat = getNationality(player.nationality);
           for (const trName of newTrophies) {
-            const ev = celebrationFor(trName, { club: clubNow?.name ?? tr('Free agent'), kit: clubNow?.color ?? '#10b981', nation: tr(nat.name), nationKit: nationKit(nat.code) });
+            const ev = celebrationFor(trName, { club: clubNow?.name ?? tr('Free agent'), kit: clubNow?.color ?? '#10b981', nation: tr(nat.name), nationKit: nationKit(nat.code), clubShort: clubNow?.short, clubCountryCode: nationalityByName(clubNow?.country ?? '')?.code, nationCode: nat.code, nationFlag: nat.flag });
             if (ev) useUiStore.getState().queueCelebration(ev);
           }
         }
@@ -840,7 +840,7 @@ function finishSeason(set: Setter, get: Getter) {
     trophies.push(t);
     {
       const c = getClub(player.clubId);
-      const ev = celebrationFor(t, { club: c?.name ?? '', kit: c?.color ?? '#10b981', nation: '' });
+      const ev = celebrationFor(t, { club: c?.name ?? '', kit: c?.color ?? '#10b981', nation: '', clubShort: c?.short, clubCountryCode: nationalityByName(c?.country ?? '')?.code });
       if (ev) useUiStore.getState().queueCelebration(ev);
     }
     p = { ...p, trophies: [...p.trophies, t] };
@@ -895,7 +895,7 @@ function finishSeason(set: Setter, get: Getter) {
   if (award?.won) {
     const t = `Ballon d’Or ${seasonLabel(season.year)}`;
     {
-      const ev = celebrationFor(t, { club: clubNow?.name ?? '', kit: clubNow?.color ?? '#10b981', nation: '' });
+      const ev = celebrationFor(t, { club: clubNow?.name ?? '', kit: clubNow?.color ?? '#10b981', nation: '', clubShort: clubNow?.short, clubCountryCode: nationalityByName(clubNow?.country ?? '')?.code });
       if (ev) useUiStore.getState().queueCelebration(ev);
     }
     p = { ...p, trophies: [...p.trophies, t], rep: applyRep(p.rep, { fanPopularity: 8, mediaHeat: 6, lockerRoom: 2 }) };

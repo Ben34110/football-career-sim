@@ -1,13 +1,14 @@
 'use client';
 
 import { Flag } from '@/components/ui/Flag';
-import { RotateCcw, Trophy } from 'lucide-react';
+import { RotateCcw, Scale, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { PlayerCard } from '@/components/ui/PlayerCard';
+import { RebalanceSheet } from './RebalanceSheet';
 import { ShareCardButton } from '@/components/ui/ShareCardButton';
 import { Sheet } from '@/components/ui/Sheet';
 import { getNationality } from '@/lib/data/nationalities';
@@ -23,6 +24,7 @@ export function ProfileScreen() {
   const retire = useGameStore((s) => s.retireNow);
   const router = useRouter();
   const [sheet, setSheet] = useState<null | 'reset' | 'retire'>(null);
+  const [retrain, setRetrain] = useState(false);
   if (!player) return null;
   const nat = getNationality(player.nationality);
 
@@ -83,7 +85,11 @@ export function ProfileScreen() {
         <Card className="p-4">
           <AttributeBars attrs={player.attrs} />
         </Card>
+        <Button variant="ghost" block className="mt-2" onClick={() => setRetrain(true)}>
+          <Scale className="h-4 w-4" /> {t('Rebalance attributes')}
+        </Button>
       </div>
+      <RebalanceSheet open={retrain} onClose={() => setRetrain(false)} />
       <div>
         <SectionTitle>{t('Reputation')}</SectionTitle>
         <Card className="p-4">

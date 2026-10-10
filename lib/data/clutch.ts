@@ -10,7 +10,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     setup: 'A killer through ball splits the defence. It’s just you and the keeper.',
     options: [
       { id: 'place', label: 'Place it low', hint: 'Side-foot into the corner', risk: 'Safe', mini: 'power', attr: 'finishing', base: 0.58, onSuccess: 'goal', successText: 'calmly slots it into the bottom corner', failText: 'sees it smothered by the keeper' },
-      { id: 'chip', label: 'Chip the keeper', hint: 'Audacious panenka-style lob', risk: 'Bold', mini: 'aim', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'lifts it over the diving keeper with ice-cold composure', failText: 'tries to chip it but the keeper stands tall' },
+      { id: 'chip', label: 'Chip the keeper', hint: 'Audacious panenka-style lob', risk: 'Bold', mini: 'oneonone', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'lifts it over the diving keeper with ice-cold composure', failText: 'tries to chip it but the keeper stands tall' },
       { id: 'square', label: 'Square it across', hint: 'Unselfish pass to an open teammate', risk: 'Balanced', mini: 'memory', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'squares it perfectly for a tap-in', failText: 'squares it but the cover slides in to clear' },
     ],
   },
@@ -33,7 +33,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     options: [
       { id: 'shoot', label: 'Shoot early', hint: 'Catch the keeper off guard', risk: 'Balanced', mini: 'aim', attr: 'finishing', base: 0.46, onSuccess: 'goal', successText: 'hits it first time and beats the keeper', failText: 'sees the early shot blocked' },
       { id: 'release', label: 'Release the winger', hint: 'Slide it into his stride', risk: 'Safe', mini: 'charge', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'threads the pass and the winger finishes', failText: 'overhits the pass out of play' },
-      { id: 'dribble', label: 'Take on the last man', hint: 'Skin him and go alone', risk: 'Bold', mini: 'dribble', attr: 'composure', base: 0.38, onSuccess: 'goal', successText: 'dances past the defender and scores', failText: 'loses the ball to a sliding tackle' },
+      { id: 'dribble', label: 'Take on the last man', hint: 'Skin him and go alone', risk: 'Bold', mini: 'slalom', attr: 'composure', base: 0.38, onSuccess: 'goal', successText: 'dances past the defender and scores', failText: 'loses the ball to a sliding tackle' },
     ],
   },
   {
@@ -114,7 +114,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Slalom Run',
     setup: 'You pick up the ball in midfield and defenders are backing off. Time to show what you can do.',
     options: [
-      { id: 'skills', label: 'Dance through them', hint: 'Chain your skill moves', risk: 'Bold', mini: 'dribble', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'weaves through three defenders and finishes in style', failText: 'gets too cute and is dispossessed' },
+      { id: 'skills', label: 'Dance through them', hint: 'Chain your skill moves', risk: 'Bold', mini: 'slalom', attr: 'composure', base: 0.4, onSuccess: 'goal', successText: 'weaves through three defenders and finishes in style', failText: 'gets too cute and is dispossessed' },
       { id: 'one-two', label: 'Play a one-two', hint: 'Use the striker as a wall', risk: 'Balanced', mini: 'memory', attr: 'vision', base: 0.56, onSuccess: 'assist', successText: 'plays a slick one-two and feeds the runner', failText: 'sees the return pass cut out' },
       { id: 'safe', label: 'Recycle possession', hint: 'Keep the shape, calm the game', risk: 'Safe', attr: 'composure', base: 0.78, onSuccess: 'momentum', successText: 'keeps possession and settles the team', failText: 'plays it a little loose' },
     ],
@@ -147,7 +147,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Keeper Error',
     setup: 'The goalkeeper under-hits a pass-back and the ball runs loose in the box.',
     options: [
-      { id: 'race', label: 'Race him to it', hint: 'Win the sprint to the ball', risk: 'Bold', mini: 'sprint', attr: 'stamina', base: 0.5, onSuccess: 'goal', successText: 'wins the race and rolls it into the empty net', failText: 'is beaten to the ball by the keeper' },
+      { id: 'race', label: 'Race him to it', hint: 'Win the sprint to the ball', risk: 'Bold', mini: 'race', attr: 'stamina', base: 0.5, onSuccess: 'goal', successText: 'wins the race and rolls it into the empty net', failText: 'is beaten to the ball by the keeper' },
       { id: 'pressure', label: 'Close him down', hint: 'Force a mistake', risk: 'Balanced', attr: 'composure', base: 0.52, onSuccess: 'momentum', successText: 'harries the keeper into a panicked clearance', failText: 'watches the keeper clear calmly' },
       { id: 'wait', label: 'Hold your run', hint: 'Let a teammate arrive', risk: 'Safe', attr: 'vision', base: 0.6, onSuccess: 'assist', successText: 'lets the ball run and a teammate slots home', failText: 'hesitates and the chance is gone' },
     ],
@@ -158,7 +158,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'The Offside Line',
     setup: 'The back four steps up as one. The next pass could put you through — or put you offside.',
     options: [
-      { id: 'beat', label: 'Break the line', hint: 'Go early and trust the pass', risk: 'Bold', mini: 'sprint', attr: 'stamina', base: 0.44, onSuccess: 'goal', successText: 'bursts past the line and finishes coolly', failText: 'goes too early and the flag is up' },
+      { id: 'beat', label: 'Break the line', hint: 'Go early and trust the pass', risk: 'Bold', mini: 'race', attr: 'stamina', base: 0.44, onSuccess: 'goal', successText: 'bursts past the line and finishes coolly', failText: 'goes too early and the flag is up' },
       { id: 'check', label: 'Check your run', hint: 'Come short, then spin', risk: 'Balanced', attr: 'vision', base: 0.55, onSuccess: 'assist', successText: 'checks his run, spins and lays it off for a goal', failText: 'checks his run but the defence recovers' },
       { id: 'drop', label: 'Drop into midfield', hint: 'Link up and keep the ball', risk: 'Safe', attr: 'composure', base: 0.74, onSuccess: 'momentum', successText: 'drops deep and the team starts to dominate possession', failText: 'drops deep but loses the ball' },
     ],
@@ -181,7 +181,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Fifty-Fifty',
     setup: 'A loose ball and a defender charging in. Whoever wants it more will win it.',
     options: [
-      { id: 'strong', label: 'Go in strong', hint: 'Win the duel at all costs', risk: 'Bold', mini: 'tackle', attr: 'stamina', base: 0.5, onSuccess: 'save', successText: 'wins the duel with a crunching challenge', failText: 'arrives a split second late' },
+      { id: 'strong', label: 'Go in strong', hint: 'Win the duel at all costs', risk: 'Bold', mini: 'slide', attr: 'stamina', base: 0.5, onSuccess: 'save', successText: 'wins the duel with a crunching challenge', failText: 'arrives a split second late' },
       { id: 'skill', label: 'Flick it past him', hint: 'Use your technique', risk: 'Balanced', mini: 'dribble', attr: 'composure', base: 0.45, onSuccess: 'momentum', successText: 'flicks it past the defender and drives away', failText: 'tries a flick that rolls out of play' },
       { id: 'hold', label: 'Hold back', hint: 'Don’t risk an injury', risk: 'Safe', attr: 'vision', base: 0.66, onSuccess: 'momentum', successText: 'shows great awareness and reads the next pass', failText: 'hesitates and the opponent takes the ball' },
     ],
@@ -226,7 +226,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Goalmouth Scramble',
     setup: 'Bodies everywhere and the ball is bobbling around the six-yard box.',
     options: [
-      { id: 'poke', label: 'Poke it home', hint: 'Get a toe to it first', risk: 'Bold', mini: 'aim', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'gets a toe to it and pokes it over the line', failText: 'slices it wide in the melee' },
+      { id: 'poke', label: 'Poke it home', hint: 'Get a toe to it first', risk: 'Bold', mini: 'rebound', attr: 'finishing', base: 0.44, onSuccess: 'goal', successText: 'gets a toe to it and pokes it over the line', failText: 'slices it wide in the melee' },
       { id: 'clear', label: 'Hack it clear', hint: 'Get rid of the danger', risk: 'Safe', attr: 'composure', base: 0.72, onSuccess: 'save', successText: 'hacks the ball clear before the danger builds', failText: 'swings and misses completely' },
       { id: 'keepball', label: 'Hook it back to a teammate', hint: 'Keep it alive', risk: 'Balanced', attr: 'vision', base: 0.5, onSuccess: 'assist', successText: 'hooks it back and a teammate smashes it in', failText: 'sees the hooked pass blocked' },
     ],
@@ -251,7 +251,7 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     options: [
       { id: 'head', label: 'Head it clear', hint: 'Win the aerial battle', risk: 'Balanced', mini: 'header', attr: 'stamina', base: 0.56, onSuccess: 'save', successText: 'wins the header and clears the danger', failText: 'is beaten in the air' },
       { id: 'drop', label: 'Cushion it down', hint: 'Control and play out', risk: 'Bold', attr: 'composure', base: 0.42, onSuccess: 'momentum', successText: 'cushions it down and plays out with composure', failText: 'cannot control it and gifts possession' },
-      { id: 'tackle', label: 'Tackle the striker', hint: 'Get there before he controls it', risk: 'Safe', mini: 'tackle', attr: 'stamina', base: 0.6, onSuccess: 'save', successText: 'gets there first and wins the ball', failText: 'is late and gives away a free kick' },
+      { id: 'tackle', label: 'Tackle the striker', hint: 'Get there before he controls it', risk: 'Safe', mini: 'slide', attr: 'stamina', base: 0.6, onSuccess: 'save', successText: 'gets there first and wins the ball', failText: 'is late and gives away a free kick' },
     ],
   },
   {
@@ -272,9 +272,52 @@ export const CLUTCH_DECK: ClutchTemplate[] = [
     title: 'Danger! They Break',
     setup: 'You lose the ball and the opposition sprint into the space you left behind.',
     options: [
-      { id: 'sprint', label: 'Sprint back & tackle', hint: 'All-out recovery run', risk: 'Bold', mini: 'sprint', attr: 'stamina', base: 0.56, onSuccess: 'save', successText: 'sprints 50 yards and slides in with a perfect tackle', failText: 'is too late — the break continues' },
+      { id: 'sprint', label: 'Sprint back & tackle', hint: 'All-out recovery run', risk: 'Bold', mini: 'race', attr: 'stamina', base: 0.56, onSuccess: 'save', successText: 'sprints 50 yards and slides in with a perfect tackle', failText: 'is too late — the break continues' },
       { id: 'foul', label: 'Professional foul', hint: 'Stop the move at any cost', risk: 'Safe', attr: 'composure', base: 0.78, onSuccess: 'save', successText: 'brings him down — yellow card but the danger is over', failText: 'fouls him in a dangerous area' },
       { id: 'track', label: 'Track the runner', hint: 'Force him wide', risk: 'Balanced', mini: 'tackle', attr: 'vision', base: 0.62, onSuccess: 'save', successText: 'reads the run and forces him wide', failText: 'gets the angle wrong' },
+    ],
+  },
+  {
+    id: 'last-man',
+    weight: 3,
+    defensive: true,
+    title: 'Last Man!',
+    setup: 'You are the last defender and their striker is through, twenty yards from goal.',
+    options: [
+      { id: 'slide', label: 'Slide in', hint: 'Win the ball — or take the man', risk: 'Bold', mini: 'slide', attr: 'stamina', base: 0.5, onSuccess: 'save', successText: 'slides in and wins the ball cleanly', failText: 'mistimes the slide and the striker is gone' },
+      { id: 'jockey', label: 'Hold your ground', hint: 'Delay him, wait for help', risk: 'Safe', attr: 'composure', base: 0.66, onSuccess: 'save', successText: 'stays on his feet and forces the striker wide', failText: 'is skinned by a quick change of pace' },
+      { id: 'shirt', label: 'Pull his shirt', hint: 'Cynical, but it stops the move', risk: 'Balanced', attr: 'composure', base: 0.58, onSuccess: 'save', successText: 'drags him back and the referee waves play on', failText: 'grabs the shirt and the referee reaches for his pocket', fail: [{ text: 'is caught pulling the shirt and is booked', w: 2, fx: 'card' }, { text: 'tugs him down and concedes a free kick in a dangerous spot', w: 1, fx: 'oppfk' }] },
+    ],
+  },
+  {
+    id: 'shot-block',
+    weight: 2,
+    defensive: true,
+    title: 'He Is Going to Shoot',
+    setup: 'The striker is lining up a shot from the edge of your box. Get in the way.',
+    options: [
+      { id: 'block', label: 'Throw yourself in front', hint: 'Read where he will hit it', risk: 'Balanced', mini: 'block', attr: 'vision', base: 0.55, onSuccess: 'save', successText: 'throws himself in front and blocks the shot', failText: 'guesses the wrong side and the shot flies past' },
+      { id: 'close', label: 'Close him down', hint: 'Make him rush it', risk: 'Safe', attr: 'stamina', base: 0.62, onSuccess: 'save', successText: 'closes him down and the shot is rushed wide', failText: 'is a yard too slow and the shot is on target' },
+    ],
+  },
+  {
+    id: 'loose-ball',
+    weight: 2,
+    title: 'Dropping From the Sky',
+    setup: 'A clearance drops towards you on the edge of the box, over your shoulder.',
+    options: [
+      { id: 'volley', label: 'Hit it on the volley', hint: 'Meet it as it bounces', risk: 'Bold', mini: 'volley', attr: 'finishing', base: 0.38, onSuccess: 'goal', successText: 'meets it on the volley and crashes it into the net', failText: 'swings and the ball sails into the stands' },
+      { id: 'chest', label: 'Chest it down', hint: 'Take a touch, then shoot', risk: 'Safe', attr: 'composure', base: 0.6, onSuccess: 'momentum', successText: 'controls it on the chest and keeps the move alive', failText: 'lets it bounce off his chest and the defender clears' },
+    ],
+  },
+  {
+    id: 'goalmouth-poach',
+    weight: 2,
+    title: 'Ricochet!',
+    setup: 'The ball pinballs around the six-yard box, nobody can control it.',
+    options: [
+      { id: 'poach', label: 'Pounce on it', hint: 'Be sharper than the defenders', risk: 'Bold', mini: 'rebound', attr: 'finishing', base: 0.5, onSuccess: 'goal', successText: 'pounces on the loose ball and pokes it in', failText: 'is a second too slow and the defender hacks it clear' },
+      { id: 'wait', label: 'Hold your run', hint: 'Let the ball come to you', risk: 'Safe', attr: 'vision', base: 0.5, onSuccess: 'assist', successText: 'lets it run and a teammate steers it home', failText: 'waits too long and the chance is gone' },
     ],
   },
 ];

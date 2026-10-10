@@ -15,6 +15,7 @@ import type {
   MatchEventType,
   MatchModifiers,
   MatchState,
+  MiniExtra,
   MiniQuality,
   Position,
   Reputation,
@@ -413,9 +414,38 @@ export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchStat
   return clamp(base * 0.12, 0.02, 0.12);
 }
 
-export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng): ClutchResolution {
+export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng, extra?: MiniExtra): ClutchResolution {
   const { opt } = findOption(m, optionId);
-  return settleOption(m, ctx, opt, rng() < miniSuccessChance(opt, ctx, m, q), rng);
+  const res = settleOption(m, ctx, opt, rng() < miniSuccessChance(opt, ctx, m, q), rng);
+  // a reckless challenge is punished by the referee, whatever the rest of the move did
+  return extra?.card ? { ...res, state: punishFoul(res.state, ctx, rng, extra) } : res;
+}
+
+/** The referee reacts to a foul committed in a mini-game: a booking, a sending-off, maybe a penalty against you. */
+export function punishFoul(input: MatchState, ctx: MatchCtx, rng: Rng, extra: MiniExtra): MatchState {
+  let m = input;
+  const who = surname(ctx.playerName);
+  if (m.sentOff) return m;
+  if (extra.card === 'red') {
+    m = dismissPlayer(m, ctx, rng, m.minute, false);
+  } else {
+    const yellows = (m.yellows ?? 0) + 1;
+    m = { ...m, yellows, rating: m.rating - 0.5, momentum: clamp(m.momentum - 8, -100, 100) };
+    if (yellows >= 2) m = dismissPlayer(m, ctx, rng, m.minute, true);
+    else m = push(m, m.minute, 'card', 'me', tr('🟨 {who} is shown a yellow card for the challenge.', { who }), true);
+  }
+  // a foul in the box: the opponent is awarded a penalty (most are scored)
+  if (extra.inBox && m.status !== 'finished' && rng() < 0.7) {
+    const scored = rng() < 0.78;
+    if (scored) {
+      m = { ...m, oppScore: m.oppScore + 1, momentum: clamp(m.momentum - 24, -100, 100) };
+      m = push(m, m.minute, 'goal', 'opp', tr('💔 Penalty to {opp} — and they score! {a}–{b}', { opp: ctx.oppName, ...sc(ctx, m.myScore, m.oppScore) }));
+    } else {
+      m = { ...m, momentum: clamp(m.momentum + 14, -100, 100) };
+      m = push(m, m.minute, 'save', 'me', tr('🧤 Penalty to {opp} — and the keeper saves it! You are let off.', { opp: ctx.oppName }), true);
+    }
+  }
+  return m;
 }
 
 function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: boolean, rng: Rng): ClutchResolution {

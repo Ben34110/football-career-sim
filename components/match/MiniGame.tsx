@@ -1,13 +1,22 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Footprints, Gauge, Hand, Play, Swords, Target, Users, Wind, Zap, type LucideIcon } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Crosshair, Footprints, Gauge, Hand, Play, Route, Shield, Swords, Target, Timer, Users, Wind, Zap, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
-import type { MiniKind, MiniQuality } from '@/lib/types';
+import { HAIR_COLORS, SKINS } from '@/lib/data/look';
+import { useGameStore } from '@/lib/store';
+import type { MiniExtra, MiniKind, MiniQuality } from '@/lib/types';
+import { BlockGame } from './minigames/BlockGame';
+import { OneOnOneGame } from './minigames/OneOnOneGame';
+import { RaceGame } from './minigames/RaceGame';
+import { ReboundGame } from './minigames/ReboundGame';
+import { SlalomGame } from './minigames/SlalomGame';
+import { SlideGame } from './minigames/SlideGame';
+import { VolleyGame } from './minigames/VolleyGame';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -18,7 +27,12 @@ interface Props {
   pressure: number;
   /** 0..1 — strength of the opposition: narrower margins */
   difficulty: number;
-  onDone: (q: MiniQuality) => void;
+  /** Your shirt and theirs, for the scene-based games */
+  kit?: string;
+  oppKit?: string;
+  /** The moment happens in your own box: a foul can cost a penalty */
+  inBox?: boolean;
+  onDone: (q: MiniQuality, extra?: MiniExtra) => void;
 }
 
 const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: LucideIcon }> = {
@@ -64,6 +78,48 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
     tip: 'It speeds up under pressure — do not wait for the perfect line.',
     icon: Target,
   },
+  slide: {
+    title: 'Sliding Tackle',
+    how: ['The attacker pushes the ball ahead, then reels it back in.', 'Slide while the ball is far from his feet.'],
+    tip: 'Too late and you take the man: yellow card, or red if it is reckless.',
+    icon: Swords,
+  },
+  slalom: {
+    title: 'Dribble Run',
+    how: ['Defenders come down the pitch.', 'Tap left or right to change lane and slip past them.'],
+    tip: 'Every contact slows you down.',
+    icon: Route,
+  },
+  race: {
+    title: 'Sprint Duel',
+    how: ['Tap LEFT and RIGHT in turn to run.', 'Keep the rhythm: tapping the same side twice costs you a step.'],
+    tip: 'Beat the defender to the line.',
+    icon: Timer,
+  },
+  block: {
+    title: 'Block the Shot',
+    how: ['Read the shooter, then pick the lane to cover.', 'You can change your mind until the ball is struck.'],
+    tip: 'Watch his hips, not his eyes.',
+    icon: Shield,
+  },
+  volley: {
+    title: 'Volley',
+    how: ['The ball drops from the sky.', 'Tap when it reaches the gold line.'],
+    tip: 'Hit it at the top of the bounce for the sweetest strike.',
+    icon: Target,
+  },
+  oneonone: {
+    title: 'One on One',
+    how: ['Wait for the keeper to commit.', 'Then beat him: left, right or chip.'],
+    tip: 'Go too early and he reads you.',
+    icon: Crosshair,
+  },
+  rebound: {
+    title: 'Poacher',
+    how: ['The ball ricochets around the six-yard box.', 'Tap it before the defenders clear.'],
+    tip: 'Only the real ball counts.',
+    icon: Zap,
+  },
   charge: {
     title: 'Perfect Delivery',
     how: ['HOLD the button to charge the power.', 'RELEASE when the meter reaches the gold marker.'],
@@ -82,6 +138,13 @@ const HINT: Record<MiniKind, string> = {
   memory: 'Press PLAY, watch the passes, then repeat them.',
   aim: 'Tap when the crosshair is on the target.',
   charge: 'Hold, then release on the gold line.',
+  slide: 'Press START, then slide when the ball is far from his feet.',
+  slalom: 'Tap left or right to dodge the defenders.',
+  race: 'Alternate LEFT and RIGHT as fast as you can.',
+  block: 'Read the shooter and cover the right lane.',
+  volley: 'Tap when the ball reaches the gold line.',
+  oneonone: 'Wait for the keeper to commit, then pick your side.',
+  rebound: 'Tap the real ball before it is cleared.',
 };
 
 const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
@@ -93,11 +156,13 @@ const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
 /** Games with no time pressure — waiting never hurts — begin by themselves; the others wait for the first tap. */
 const AUTO_START: MiniKind[] = ['power', 'aim', 'charge'];
 
-export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
+export function MiniGame({ kind, skill, pressure, difficulty, kit = '#10b981', oppKit = '#ef4444', inBox = false, onDone }: Props) {
   const t = useT();
   // The first frame stays frozen until the player taps once; that first tap only starts the game.
   const [running, setRunning] = useState(!AUTO_START.includes(kind));
   const [result, setResult] = useState<MiniQuality | null>(null);
+  const [extra, setExtra] = useState<MiniExtra | undefined>(undefined);
+  const look = useGameStore((s) => s.player?.look);
   const done = useRef(false);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -122,15 +187,24 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
     [],
   );
 
-  const finish = useCallback((q: MiniQuality) => {
+  const finish = useCallback((q: MiniQuality, ex?: MiniExtra) => {
     if (done.current) return;
     done.current = true;
     setResult(q);
-    haptic(q === 'miss' ? [90] : q === 'perfect' ? [30, 40, 60] : 25);
-    timer.current = setTimeout(() => onDoneRef.current(q), 1100);
+    setExtra(ex);
+    haptic(ex?.card === 'red' ? [120, 60, 120] : q === 'miss' ? [90] : q === 'perfect' ? [30, 40, 60] : 25);
+    timer.current = setTimeout(() => onDoneRef.current(q, ex), 1100);
   }, []);
 
   const game: GameProps = { bonus, pressure, difficulty, locked: !!result, running, onStop: finish };
+  const scene = {
+    ...game,
+    kit,
+    oppKit,
+    inBox,
+    skin: SKINS[look?.skin ?? 2] ?? SKINS[2],
+    hair: (HAIR_COLORS[look?.hairColor ?? 1] ?? HAIR_COLORS[1]).hex,
+  };
 
   return (
     <div className="space-y-4">
@@ -155,6 +229,13 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
         {kind === 'memory' && <MemoryGame {...game} />}
         {kind === 'aim' && <AimGame {...game} />}
         {kind === 'charge' && <ChargeGame {...game} />}
+        {kind === 'slide' && <SlideGame {...scene} />}
+        {kind === 'slalom' && <SlalomGame {...scene} />}
+        {kind === 'race' && <RaceGame {...scene} />}
+        {kind === 'block' && <BlockGame {...scene} />}
+        {kind === 'volley' && <VolleyGame {...scene} />}
+        {kind === 'oneonone' && <OneOnOneGame {...scene} />}
+        {kind === 'rebound' && <ReboundGame {...scene} />}
 
         <AnimatePresence>
           {result && (
@@ -164,8 +245,8 @@ export function MiniGame({ kind, skill, pressure, difficulty, onDone }: Props) {
               transition={{ type: 'spring', stiffness: 380, damping: 16 }}
               className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
             >
-              <span className={cn('font-display text-6xl font-extrabold italic tracking-tight drop-shadow-[0_0_18px_rgba(0,0,0,0.8)]', QUALITY_COPY[result].color)}>
-                {t(QUALITY_COPY[result].text)}
+              <span className={cn('font-display text-6xl font-extrabold italic tracking-tight drop-shadow-[0_0_18px_rgba(0,0,0,0.8)]', extra?.card ? (extra.card === 'red' ? 'text-red-500' : 'text-yellow-300') : QUALITY_COPY[result].color)}>
+                {t(extra?.card ? (extra.card === 'red' ? 'RED CARD' : 'YELLOW CARD') : QUALITY_COPY[result].text)}
               </span>
             </motion.div>
           )}
@@ -182,7 +263,7 @@ interface GameProps {
   locked: boolean;
   /** false until the first tap: the first frame is frozen */
   running: boolean;
-  onStop: (q: MiniQuality) => void;
+  onStop: (q: MiniQuality, extra?: MiniExtra) => void;
 }
 
 /* ───────── Power shot: sweet-spot bar with a restless cursor ───────── */

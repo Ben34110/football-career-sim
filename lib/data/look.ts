@@ -101,23 +101,23 @@ export const DEFAULT_LOOK: Look = { skin: 2, hair: 'short', hairColor: 0, beard:
 
 export const lookOf = (p: { look?: Look } | null | undefined): Look => p?.look ?? DEFAULT_LOOK;
 
-const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
-
-export const randomLook = (): Look => {
-  const female = Math.random() < 0.4;
+/** A random head. Pass a seeded `rng` to get the same teammates every time. */
+export const randomLook = (rng: () => number = Math.random): Look => {
+  const pick = <T,>(a: readonly T[]) => a[Math.floor(rng() * a.length)];
+  const female = rng() < 0.4;
   return {
-    skin: Math.floor(Math.random() * SKINS.length),
+    skin: Math.floor(rng() * SKINS.length),
     hair: pick(female ? (['long', 'bob', 'ponytail', 'bun', 'pixie', 'curls', 'braids', 'afro', 'short'] as HairStyle[]) : (['buzz', 'short', 'quiff', 'afro', 'curls', 'braids', 'bald', 'long'] as HairStyle[])),
-    hairColor: Math.floor(Math.random() * 6),
+    hairColor: Math.floor(rng() * 6),
     beard: female ? 'none' : pick(BEARD_STYLES),
-    eyes: Math.floor(Math.random() * EYE_COLORS.length),
+    eyes: Math.floor(rng() * EYE_COLORS.length),
     face: pick(FACE_SHAPES),
     gender: female ? 'female' : 'male',
-    hat: Math.random() < 0.15 ? pick(['cap', 'beanie', 'headband'] as Hat[]) : 'none',
-    glasses: Math.random() < 0.2 ? pick(['round', 'square', 'sun'] as Glasses[]) : 'none',
-    ears: Math.random() < 0.25 ? pick(['stud', 'hoop', 'earbuds', 'headphones'] as EarGear[]) : 'none',
-    piercing: Math.random() < 0.12 ? pick(['nose', 'brow', 'lip'] as Piercing[]) : 'none',
-    chain: Math.random() < 0.15,
-    accColor: Math.floor(Math.random() * ACC_COLORS.length),
+    hat: rng() < 0.15 ? pick(['cap', 'beanie', 'headband'] as Hat[]) : 'none',
+    glasses: rng() < 0.2 ? pick(['round', 'square', 'sun'] as Glasses[]) : 'none',
+    ears: rng() < 0.25 ? pick(['stud', 'hoop', 'earbuds', 'headphones'] as EarGear[]) : 'none',
+    piercing: rng() < 0.12 ? pick(['nose', 'brow', 'lip'] as Piercing[]) : 'none',
+    chain: rng() < 0.15,
+    accColor: Math.floor(rng() * ACC_COLORS.length),
   };
 };

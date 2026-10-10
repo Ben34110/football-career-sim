@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Briefcase, ChevronRight, HeartPulse, Newspaper, Play, Trophy, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +19,7 @@ import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtGameDate, fmtShortDate, gameDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
+import { useUiStore } from '@/lib/ui';
 import { toast } from '@/lib/toast';
 import { cn, crestFace, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
@@ -36,6 +38,11 @@ export function HomeScreen() {
   const physio = useGameStore((s) => s.physio);
   const offers = useGameStore((s) => s.offers);
   const { bolts, msToNext } = useEnergy();
+  // a trophy won earlier (season end) is celebrated as soon as you are back on the home screen
+  useEffect(() => {
+    useUiStore.getState().releaseCelebrations();
+  }, []);
+
   if (!player) return null;
 
   if (phase === 'retired') return <CareerEnd />;

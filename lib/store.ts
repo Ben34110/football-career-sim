@@ -7,6 +7,7 @@ import { getNationality } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
 import { BOOST_BY_ID, boostPrice } from './data/boosts';
+import { celebrationFor, nationKit } from './data/celebrations';
 import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
 import { useUiStore } from './ui';
 import type { OtherGame } from './engine/livefeed';
@@ -15,8 +16,14 @@ import { fixtureDate } from './dates';
 import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } from './data/shop';
 import {
   applyRep,
+  ATTR_KEYS,
   ATTR_LABEL,
+  calcOvr,
   nationalLevel,
+  pointsMoved,
+  REBALANCE_MAX,
+  REBALANCE_MIN,
+  rebalanceCostPerPoint,
   createPlayer,
   fmtMoneyK,
   addPaidLives,
@@ -57,6 +64,7 @@ import {
   transferWindow,
 } from './engine/transfers';
 import type {
+  Attributes,
   Division,
   EuroComp,
   AttrKey,
@@ -125,6 +133,8 @@ interface GameActions {
   physio: () => Result;
   buyUpgrade: (id: UpgradeId) => Result;
   buyBoost: (id: string) => Result;
+  /** Moves attribute points around (the total stays the same); costs money per point moved */
+  rebalanceAttrs: (next: Attributes) => Result;
   /** Uses one boost at the start of a match */
   consumeBoost: (id: string) => void;
   /** Charity gala: once a season, money for goodwill */
@@ -280,6 +290,15 @@ export const useGameStore = create<GameStore>()(
         );
 
         const newTrophies = nextSeason.trophies.slice(season.trophies.length);
+        // every trophy won today gets its ceremony (shown once the result has been seen)
+        {
+          const clubNow = getClub(player.clubId);
+          const nat = getNationality(player.nationality);
+          for (const trName of newTrophies) {
+            const ev = celebrationFor(trName, { club: clubNow?.name ?? tr('Free agent'), kit: clubNow?.color ?? '#10b981', nation: tr(nat.name), nationKit: nationKit(nat.code) });
+            if (ev) useUiStore.getState().queueCelebration(ev);
+          }
+        }
         const updated: Player = {
           ...player,
           attrs: xp.attrs,
@@ -502,6 +521,23 @@ export const useGameStore = create<GameStore>()(
         const upgrades = { coach: 0, pr: 0, agent: 0, nutrition: 0, ...player.upgrades, [id]: level + 1 };
         set({ player: { ...player, money: player.money - cost, upgrades } });
         return { ok: true, msg: tr('{name} upgraded to level {n}!', { name: tr(def.name), n: level + 1 }) };
+      },
+
+      rebalanceAttrs: (next) => {
+        const { player } = get();
+        if (!player) return { ok: false, msg: tr('No active career.') };
+        const sum = (a: Attributes) => ATTR_KEYS.reduce((s, k) => s + a[k], 0);
+        if (sum(next) !== sum(player.attrs)) return { ok: false, msg: tr('Every point you take must go somewhere else.') };
+        if (ATTR_KEYS.some((k) => next[k] < REBALANCE_MIN || next[k] > REBALANCE_MAX)) return { ok: false, msg: tr('Attributes stay between {a} and {b}.', { a: REBALANCE_MIN, b: REBALANCE_MAX }) };
+        const moved = pointsMoved(player.attrs, next);
+        if (moved === 0) return { ok: false, msg: tr('Nothing to change.') };
+        const cost = moved * rebalanceCostPerPoint(player.contract?.wage ?? 4);
+        if (player.money < cost) return { ok: false, msg: tr('You need {cost} to retrain.', { cost: fmtMoneyK(cost) }) };
+        // an attribute you take points from starts again from zero progress
+        const xp = { ...player.xp };
+        for (const k of ATTR_KEYS) if (next[k] < player.attrs[k]) xp[k] = 0;
+        set({ player: { ...player, attrs: next, xp, money: player.money - cost, peakOvr: Math.max(player.peakOvr, calcOvr(next, player.position, xp)) } });
+        return { ok: true, msg: tr('Retraining done: {n} points moved.', { n: moved }) };
       },
 
       buyBoost: (id) => {
@@ -799,6 +835,11 @@ function finishSeason(set: Setter, get: Getter) {
   if (pos === 1) {
     const t = `League Title ${seasonLabel(season.year)}`;
     trophies.push(t);
+    {
+      const c = getClub(player.clubId);
+      const ev = celebrationFor(t, { club: c?.name ?? '', kit: c?.color ?? '#10b981', nation: '' });
+      if (ev) useUiStore.getState().queueCelebration(ev);
+    }
     p = { ...p, trophies: [...p.trophies, t] };
     nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — champions!', { t: tr(t) }), 'gold'));
   }
@@ -850,6 +891,10 @@ function finishSeason(set: Setter, get: Getter) {
   );
   if (award?.won) {
     const t = `Ballon d’Or ${seasonLabel(season.year)}`;
+    {
+      const ev = celebrationFor(t, { club: clubNow?.name ?? '', kit: clubNow?.color ?? '#10b981', nation: '' });
+      if (ev) useUiStore.getState().queueCelebration(ev);
+    }
     p = { ...p, trophies: [...p.trophies, t], rep: applyRep(p.rep, { fanPopularity: 8, mediaHeat: 6, lockerRoom: 2 }) };
     nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — you are the best player in the world!', { t: tr(t) }), 'gold'));
   } else if (award) {

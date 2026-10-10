@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { HeadAvatar, shade, type Expression } from '@/components/ui/HeadAvatar';
 import { DEFAULT_LOOK, SKINS, type Look } from '@/lib/data/look';
 import type { Pose } from '@/lib/data/newspaper';
+import { TrophyArt, type TrophyKind } from '@/components/celebration/TrophyArt';
 
 type V = [number, number];
 type Hand = 'fist' | 'open' | 'point';
@@ -149,19 +150,6 @@ function Limb({ arm, skin, line, ids, clip }: { arm: Arm; skin: string; line: st
 
 /* ───────── staging ───────── */
 
-function Trophy({ id }: { id: string }) {
-  return (
-    <g transform="translate(100 22) scale(1.18)">
-      <path d="M-12 -10C-23 -12 -22 3 -11 3.500M12 -10C23 -12 22 3 11 3.500" fill="none" stroke="#a96a0a" strokeWidth="3.600" strokeLinecap="round" />
-      <path d="M-12 -10C-23 -12 -22 3 -11 3.500M12 -10C23 -12 22 3 11 3.500" fill="none" stroke={`url(#${id})`} strokeWidth="2" strokeLinecap="round" />
-      <path d="M-12.500 -16H12.500V-4C12.500 7.500 6.500 11.500 0 11.500C-6.500 11.500 -12.500 7.500 -12.500 -4Z" fill={`url(#${id})`} stroke="#a96a0a" strokeWidth=".9" strokeLinejoin="round" />
-      <path d="M-2.500 11H2.500L3.500 19H-3.500Z" fill={`url(#${id})`} stroke="#a96a0a" strokeWidth=".7" />
-      <rect x="-10" y="18.500" width="20" height="5.500" rx="1.800" fill="#c98a12" stroke="#8a5606" strokeWidth=".7" />
-      <path d="M-8 -12C-9.500 -4 -7.500 3.500 -3.500 7" stroke="#fff" strokeWidth="1.800" fill="none" opacity=".75" strokeLinecap="round" />
-    </g>
-  );
-}
-
 function MatchBall() {
   return (
     <g transform="translate(158 40)">
@@ -179,7 +167,7 @@ export const SCENE_BLEED = 20 / 170;
 
 const TORSO = 'M46 190L52 140C53 126 57 114 66 108C74 104 84 103 90 102L110 102C116 103 126 104 134 108C143 114 147 126 148 140L154 190Z';
 
-export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178 }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number }) {
+export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178, trophy = 'cup', accent, hideTrophy = false }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number; trophy?: TrophyKind; accent?: string; hideTrophy?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const skin = SKINS[look.skin] ?? SKINS[2];
   const line = shade(skin, -0.62);
@@ -231,7 +219,11 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
       ))}
 
       {/* props and effects */}
-      {pose === 'trophy' && <Trophy id={ids.g} />}
+      {pose === 'trophy' && !hideTrophy && (
+        <g transform="translate(100 25) scale(1.2)">
+          <TrophyArt kind={trophy} accent={accent} />
+        </g>
+      )}
       {pose === 'ball' && <MatchBall />}
       {pose === 'point' && <path d="M163 30L165 24L167 30L173 32L167 34L165 40L163 34L157 32Z" fill="#fde68a" />}
       {pose === 'shrug' && (

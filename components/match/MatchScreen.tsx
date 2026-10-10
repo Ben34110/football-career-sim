@@ -79,6 +79,11 @@ export function MatchScreen() {
   /** The other games played while yours is on (results are kept when the match is committed) */
   const [others, setOthers] = useState<OtherGame[]>([]);
 
+  // trophies won today are celebrated once the result has been seen
+  useEffect(() => {
+    if (stage === 'summary') useUiStore.getState().releaseCelebrations();
+  }, [stage]);
+
   useEffect(() => {
     setImmersive(stage === 'live' || stage === 'shootout' || stage === 'press');
     return () => setImmersive(false);

@@ -290,3 +290,13 @@ export function seasonDevelopment(
 export function randomName(): string {
   return ['Alex', 'Noah', 'Idris', 'Mateo', 'Kylian', 'Rayan'][randInt(0, 5)];
 }
+
+/** Attributes can be moved around (finishing → stamina…), within these limits. */
+export const REBALANCE_MIN = 35;
+export const REBALANCE_MAX = 99;
+
+/** Price (€K) of moving one attribute point: it scales with what you earn. */
+export const rebalanceCostPerPoint = (wage: number) => Math.max(3, Math.round(Math.max(wage, 3) * 0.5));
+
+/** Points taken from some attributes (the ones that go down). */
+export const pointsMoved = (from: Attributes, to: Attributes) => ATTR_KEYS.reduce((s, k) => s + Math.max(0, from[k] - to[k]), 0);

@@ -14,7 +14,7 @@ import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
 import { sortTable } from '@/lib/engine/season';
-import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
+import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniExtra, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
 import { cn, flagOnly } from '@/lib/utils';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
@@ -111,8 +111,8 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
     if (r.kick) setKick(r.kick);
   };
 
-  const miniDone = (optionId: string, q: MiniQuality) => {
-    setM((prev) => resolveMini(prev, ctx, optionId, q, Math.random).state);
+  const miniDone = (optionId: string, q: MiniQuality, extra?: MiniExtra) => {
+    setM((prev) => resolveMini(prev, ctx, optionId, q, Math.random, extra).state);
     setMini(null);
   };
 
@@ -367,7 +367,10 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
             skill={miniSkill(mini.kind, ctx)}
             pressure={pressureFor(m, ctx)}
             difficulty={Math.min(1, Math.max(0, (ctx.oppStr - 55) / 40))}
-            onDone={(q) => miniDone(mini.optionId, q)}
+            kit={me.color}
+            oppKit={opp.color}
+            inBox={!!moment?.defensive}
+            onDone={(q, extra) => miniDone(mini.optionId, q, extra)}
           />
         )}
       </Sheet>
@@ -401,11 +404,16 @@ function miniSkill(kind: MiniKind, ctx: MatchCtx) {
     case 'power':
     case 'header':
     case 'aim':
+    case 'volley':
+    case 'rebound':
       return ctx.attrs.finishing;
     case 'dribble':
+    case 'slalom':
+    case 'oneonone':
       return ctx.attrs.composure;
     case 'memory':
     case 'charge':
+    case 'block':
       return ctx.attrs.vision;
     default:
       return ctx.attrs.stamina;

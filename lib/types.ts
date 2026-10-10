@@ -396,8 +396,30 @@ export interface MatchEvent {
 export type KickKind = 'penalty' | 'freekick' | 'shootout';
 export type Curl = 'left' | 'straight' | 'right';
 /** Skill mini-games that replace the dice roll on some clutch options */
-export type MiniKind = 'power' | 'header' | 'tackle' | 'dribble' | 'sprint' | 'memory' | 'aim' | 'charge';
+export type MiniKind =
+  | 'power'
+  | 'header'
+  | 'tackle'
+  | 'dribble'
+  | 'sprint'
+  | 'memory'
+  | 'aim'
+  | 'charge'
+  // animated, scene-based games
+  | 'slide'
+  | 'slalom'
+  | 'race'
+  | 'block'
+  | 'volley'
+  | 'oneonone'
+  | 'rebound';
 export type MiniQuality = 'perfect' | 'good' | 'miss';
+/** What a mini-game can add to its result: a reckless challenge is punished by the referee. */
+export interface MiniExtra {
+  card?: 'yellow' | 'red';
+  /** The foul was inside the box: the opponent may get a penalty */
+  inBox?: boolean;
+}
 export type KickResult = 'goal' | 'saved' | 'missed' | 'blocked';
 
 export interface ClutchOption {
@@ -471,6 +493,8 @@ export interface MatchState {
   clutchBoost?: number;
   /** Minute the coach took the player off (or he was sent off), if it happened */
   subbedOffAt?: number;
+  /** Yellow cards shown to the player */
+  yellows?: number;
   /** Players sent off on each side */
   redsMe?: number;
   redsOpp?: number;

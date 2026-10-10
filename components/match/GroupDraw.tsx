@@ -7,10 +7,11 @@ import { Card, Chip } from '@/components/ui/Card';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
+import { drawPotsOf, potTeams } from '@/lib/engine/tournament';
 import type { TournamentState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-const POT_NAME = ['Top seeds', 'Contenders', 'Outsiders'];
+const POT_NAME = ['Top seeds', 'Contenders', 'Challengers', 'Outsiders'];
 const flagOf = (short: string) => short.split(' ')[0];
 
 /** The tournament group draw: one ball from each of the three pots makes your group of four. */
@@ -19,11 +20,14 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
   const [picks, setPicks] = useState<number[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
   const [opened, setOpened] = useState(false);
+  // you draw from every pot but your own, strongest pot first
+  const drawPots = drawPotsOf(tourney);
   const step = picks.length;
-  const potIdx = tourney.potOrder[Math.min(step, 2)];
-  const pot = tourney.pots[potIdx];
-  const done = step >= 3;
-  const chosen = picks.map((p, i) => tourney.teams[tourney.pots[tourney.potOrder[i]][p]]);
+  const potIdx = drawPots[Math.min(step, drawPots.length - 1)];
+  const pot = potTeams(tourney, potIdx);
+  const done = step >= drawPots.length;
+  const chosen = picks.map((p, i) => tourney.teams[potTeams(tourney, drawPots[i])[p]]);
+  const myPot = tourney.pots.findIndex((p) => p.includes(tourney.me));
 
   const pick = (i: number) => {
     if (current !== null) return;
@@ -53,6 +57,27 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
         </p>
       </div>
 
+      {/* the seeding: four pots, strongest first */}
+      <Card className="p-3">
+        <div className="eyebrow mb-2">{t('The pots')}</div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {tourney.pots.map((names, k) => (
+            <div key={k} className={cn('rounded-xl p-1.5', k === myPot ? 'bg-neon-400/10 ring-1 ring-neon-400/30' : 'bg-white/[0.04]')}>
+              <div className="mb-1 text-center text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t('Pot {n}', { n: k + 1 })}</div>
+              <div className="space-y-0.5">
+                {names.map((n) => (
+                  <div key={n} className={cn('flex items-center justify-between gap-0.5 text-[10px] leading-tight', n === tourney.me ? 'font-extrabold text-neon-300' : 'text-zinc-300')}>
+                    <span className="truncate">{flagOf(tourney.teams[n].short)}</span>
+                    <span className="font-num text-zinc-500">{tourney.teams[n].strength}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-zinc-500">{t('You are in Pot {n}. Your group gets one team from each other pot.', { n: myPot + 1 })}</p>
+      </Card>
+
       {/* what is already drawn */}
       <Card className="p-3">
         <div className="eyebrow mb-2">{t('Your group')}</div>
@@ -63,11 +88,11 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
             </span>
             <span className="font-num">{tourney.teams[tourney.me].strength}</span>
           </div>
-          {[0, 1, 2].map((i) => {
+          {drawPots.map((_, i) => {
             const team = chosen[i];
             return (
               <div key={i} className={cn('flex items-center justify-between rounded-xl px-3 py-2 text-[13px]', team ? 'bg-white/[0.06] font-semibold' : 'border border-dashed border-white/15 text-zinc-600')}>
-                <span>{team ? `${flagOf(team.short)} ${t(team.name)}` : `${t('Pot {n}', { n: i + 1 })} · ${t(POT_NAME[tourney.potOrder[i]])}`}</span>
+                <span>{team ? `${flagOf(team.short)} ${t(team.name)}` : `${t('Pot {n}', { n: drawPots[i] + 1 })} · ${t(POT_NAME[drawPots[i]])}`}</span>
                 {team && <span className="font-num text-zinc-400">{team.strength}</span>}
               </div>
             );
@@ -79,10 +104,10 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
         <Card strong className="relative overflow-hidden p-4">
           <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-40" />
           <div className="relative mb-3 flex items-center justify-between">
-            <Chip tone="gold">{t('Pot {n}', { n: step + 1 })}</Chip>
+            <Chip tone="gold">{t('Pot {n}', { n: potIdx + 1 })}</Chip>
             <span className="eyebrow">{t(POT_NAME[potIdx])}</span>
           </div>
-          <div className="relative grid grid-cols-3 gap-3">
+          <div className={cn('relative grid gap-3', pot.length > 3 ? 'grid-cols-2' : 'grid-cols-3')}>
             {pot.map((n, i) => {
               const isPicked = current === i;
               const dim = current !== null && !isPicked;
@@ -133,7 +158,7 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
           </Button>
         ) : (
           <Button block size="lg" disabled={!revealed} onClick={next}>
-            {step === 2 ? t('Reveal my group') : t('Next pot')}
+            {step === drawPots.length - 1 ? t('Reveal my group') : t('Next pot')}
           </Button>
         )}
       </FloatingAction>

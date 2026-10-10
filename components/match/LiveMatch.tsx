@@ -14,7 +14,7 @@ import { useT } from '@/lib/i18n';
 import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
 import { sortTable } from '@/lib/engine/season';
 import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, flagOnly } from '@/lib/utils';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
 import { MiniGame } from './MiniGame';
@@ -32,6 +32,9 @@ export interface LiveBoard {
   table: TableRow[] | null;
   games: OtherGame[];
   opponent: string;
+  /** Title of the table ("Group A") and of the other games (tournament name), already translated */
+  heading?: string;
+  gamesTitle?: string;
 }
 
 const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced: 'Normal', defend: 'Defend' };
@@ -413,11 +416,12 @@ function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
   return (
     <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
       {badge.rank && (
-        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
+        <span className={cn('whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
       )}
       <Crest short={badge.short} color={badge.color} size={48} />
-      <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
-      {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">{t('You')}</span>}
+      <span className="line-clamp-2 min-h-[2.5em] text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
+      {/* always takes its line, so both crests sit at the same height */}
+      <span className={cn('-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300', !you && 'invisible')}>{t('You')}</span>
     </div>
   );
 }
@@ -430,7 +434,7 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(board.table ? 'Live table' : 'Other matches')}</h3>
+        <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{board.heading ?? t(board.table ? 'Live table' : 'Other matches')}</h3>
         <span className="font-num text-sm font-bold text-crimson-400">● {clock}</span>
       </div>
 
@@ -451,7 +455,7 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
               <div key={r.id} className={cn('grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 px-3 py-2 text-[13px]', r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300')}>
                 <span className="font-num text-zinc-500">{i + 1}</span>
                 <span className={cn('text-[10px] font-bold', move > 0 ? 'text-neon-400' : move < 0 ? 'text-crimson-400' : 'text-zinc-700')}>{move > 0 ? '▲' : move < 0 ? '▼' : '–'}</span>
-                <span className="truncate">{r.name}</span>
+                <span className="truncate">{flagOnly(r.short) ? `${flagOnly(r.short)} ` : ''}{t(r.name)}</span>
                 <span className="font-num text-center">{r.played}</span>
                 <span className="font-num text-center">
                   {r.gf - r.ga > 0 ? '+' : ''}
@@ -466,17 +470,17 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
 
       {board.games.length > 0 && (
         <div>
-          <div className="eyebrow mb-2">{t('Elsewhere right now')}</div>
+          <div className="eyebrow mb-2">{board.gamesTitle ?? t('Elsewhere right now')}</div>
           <div className="space-y-1.5">
             {board.games.map((g) => {
               const [h, a] = scoreAt(g, minute);
               return (
                 <div key={g.id} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[13px]">
-                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{g.home}</span>
+                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{t(g.home)} {flagOnly(g.homeShort)}</span>
                   <span className="font-num min-w-[52px] rounded-md bg-black/40 px-2 py-0.5 text-center font-extrabold">
                     {h} – {a}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-semibold">{g.away}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{flagOnly(g.awayShort)} {t(g.away)}</span>
                 </div>
               );
             })}

@@ -152,6 +152,50 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
   });
   g.fillStyle = 'rgba(0,0,0,0.28)';
   g.fillRect(60, photoTop, W - 120, photoH);
+  // light beams, confetti or rain across the whole photo
+  const pose = p.pose ?? 'idle';
+  const celebrating = pose === 'arms' || pose === 'ball' || pose === 'trophy';
+  if (celebrating || pose === 'fist' || pose === 'point') {
+    const cx = W / 2;
+    const cy = photoTop + photoH * 0.6;
+    g.fillStyle = 'rgba(255,255,255,0.13)';
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + 0.2;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.lineTo(cx + 1600 * Math.cos(a), cy + 1600 * Math.sin(a));
+      g.lineTo(cx + 1600 * Math.cos(a + 0.13), cy + 1600 * Math.sin(a + 0.13));
+      g.closePath();
+      g.fill();
+    }
+  }
+  if (celebrating) {
+    const cols = [p.kit ?? '#10b981', '#fbbf24', '#f4f4f5', '#ef4444', '#38bdf8', '#a3e635'];
+    let seed = 5;
+    const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 46; i++) {
+      g.save();
+      g.translate(60 + r() * (W - 120), photoTop + r() * photoH * 0.85);
+      g.rotate(r() * Math.PI);
+      g.fillStyle = cols[i % cols.length];
+      g.fillRect(-5, -10, 10, 20);
+      g.restore();
+    }
+  }
+  if (pose === 'facepalm') {
+    g.strokeStyle = 'rgba(255,255,255,0.28)';
+    g.lineWidth = 3;
+    let seed = 9;
+    const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 70; i++) {
+      const x = 60 + r() * (W - 120);
+      const y = photoTop + r() * photoH;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x - 12, y + 34);
+      g.stroke();
+    }
+  }
   const sceneH = Math.round(photoH);
   const scene = await loadScene(p, sceneH);
   if (scene) {

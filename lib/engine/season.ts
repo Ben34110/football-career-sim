@@ -14,7 +14,7 @@ import type {
   TableRow,
 } from '../types';
 import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
-import { createTournament, drawGroup, groupMatchday, knockoutFixture, myGroupRank, opponentKey, playOut, playRound, roundIndex, startKnockout } from './tournament';
+import { chosenByPot, createTournament, drawGroup, groupMatchday, knockoutFixture, myGroupRank, opponentKey, playOut, playRound, roundIndex, startKnockout } from './tournament';
 import { finalFor, simulateScore, type OtherGame } from './livefeed';
 import { clamp, mulberry32, rand, randInt, shuffle, type Rng } from './rng';
 
@@ -334,7 +334,8 @@ export function applyGroupDraw(season: SeasonState, picks: number[], rng: Rng = 
   if (!t || t.drawn) return season;
   const nt = drawGroup(t, picks, rng);
   // your three matches follow the order of the pots you drew from
-  const byPot = t.potOrder.map((p, i) => nt.teams[t.pots[p][Math.max(0, Math.min(t.pots[p].length - 1, picks[i] ?? 0))]]);
+  const picked = chosenByPot(t, picks);
+  const byPot = t.potOrder.map((p) => nt.teams[picked[p]]);
   return {
     ...season,
     tourney: nt,
@@ -504,7 +505,7 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
     };
     if (!fixture.knockout) {
       const md = Number(fixture.label.match(/Group Match (\d)/)?.[1] ?? 1);
-      t = groupMatchday(t, md, opponentKey(fixture.opponent), result, rng);
+      t = groupMatchday(t, md, opponentKey(fixture.opponent), result, rng, others);
       if (md === 3) {
         t = startKnockout(t);
         if (myGroupRank(t) < 2) {
@@ -517,7 +518,7 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
       }
     } else {
       const r = roundIndex(fixture.label);
-      t = playRound(t, r, result, rng);
+      t = playRound(t, r, result, rng, others);
       if (result.outcome === 'L') {
         t = playOut(t, rng);
         out();

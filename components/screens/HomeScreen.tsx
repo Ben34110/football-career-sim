@@ -18,7 +18,7 @@ import { fixtureDate, fmtGameDate, fmtShortDate, gameDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
-import { cn, crestShort, fmtCountdown } from '@/lib/utils';
+import { cn, crestFace, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
 import { SeasonEnd } from './SeasonEnd';
 
@@ -107,7 +107,7 @@ export function HomeScreen() {
                     <div className="text-sm font-bold leading-tight">{t(fixture.opponent)}</div>
                     <div className="text-[11px] text-zinc-500">{t('Squad')} {fixture.opponentStrength}</div>
                   </div>
-                  <Crest short={crestShort(fixture.opponentShort)} color={fixture.opponentColor} size={44} />
+                  <Crest short={crestFace(fixture.opponentShort)} color={fixture.opponentColor} size={44} />
                 </div>
               </div>
               )}

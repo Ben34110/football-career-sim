@@ -10,7 +10,7 @@ import { FloatingAction } from '@/components/ui/FloatingAction';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import type { Fixture } from '@/lib/types';
-import { cn, crestShort } from '@/lib/utils';
+import { cn, crestFace } from '@/lib/utils';
 import type { TeamBadge } from './LiveMatch';
 
 /** The draw: the player picks one of four balls, which decides the opponent of the round. */
@@ -80,7 +80,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
                 <AnimatePresence mode="wait">
                   {isPicked && opened ? (
                     <motion.span key="open" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center">
-                      <Crest short={crestShort(c.opponentShort)} color={c.opponentColor} size={44} />
+                      <Crest short={crestFace(c.opponentShort)} color={c.opponentColor} size={44} />
                     </motion.span>
                   ) : (
                     <motion.span key="num" exit={{ scale: 0 }} className={cn('font-display font-extrabold text-zinc-900/80', pool.length === 3 ? 'text-4xl' : 'text-5xl')}>
@@ -105,7 +105,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
                   <div className="font-display text-2xl font-extrabold text-zinc-500">VS</div>
                   <Chip tone={tag.tone}>{t(tag.t)}</Chip>
                 </div>
-                <Crest short={crestShort(result.opponentShort)} color={result.opponentColor} size={56} />
+                <Crest short={crestFace(result.opponentShort)} color={result.opponentColor} size={56} />
               </div>
               <div className="mt-3 text-center">
                 <div className="font-display text-4xl font-extrabold uppercase leading-none">{t(result.opponent)}</div>

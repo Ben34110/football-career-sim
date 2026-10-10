@@ -24,17 +24,39 @@ import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useUiStore } from '@/lib/ui';
-import { crestShort } from '@/lib/utils';
-import type { Fixture, FixtureResult, MatchState } from '@/lib/types';
+import { crestFace } from '@/lib/utils';
+import type { Fixture, FixtureResult, MatchState, SeasonState } from '@/lib/types';
 import { CupDraw } from './CupDraw';
 import { GroupDraw } from './GroupDraw';
-import { LiveMatch, type TeamBadge } from './LiveMatch';
+import { LiveMatch, type LiveBoard, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
 import { PressZone, type AnswerInfo } from './PressZone';
 import { Shootout, type ShootoutResult } from './Shootout';
 
 type Stage = 'brief' | 'live' | 'shootout' | 'press' | 'summary';
+
+/** What the live-table sheet shows: the table that matters and the games played at the same time. */
+function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: OtherGame[], t: (k: string, v?: Record<string, string | number>) => string): LiveBoard {
+  const tr = season?.tourney;
+  if (fixture.kind === 'tournament' && tr?.drawn) {
+    const name = t(season?.tournamentName ?? 'Tournament');
+    return {
+      table: fixture.knockout ? null : tr.groups[tr.myGroup],
+      games,
+      opponent: fixture.opponent.replace(/ (U20|U23)$/, ''),
+      heading: fixture.knockout ? name : t('Group {l}', { l: 'ABCD'[tr.myGroup] }),
+      gamesTitle: `${name} · ${t('Elsewhere right now')}`,
+    };
+  }
+  const table =
+    fixture.kind === 'league'
+      ? season?.table ?? null
+      : fixture.kind === 'euro' && !fixture.knockout
+        ? season?.euroTable ?? (season ? deriveEuroTable(season) ?? null : null)
+        : null;
+  return { table, games, opponent: fixture.opponent };
+}
 
 export function MatchScreen() {
   const t = useT();
@@ -72,9 +94,9 @@ export function MatchScreen() {
     const nat = getNationality(player.nationality);
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     const me: TeamBadge = national
-      ? { name: `${t(nat.name)}${fixture.level ? ' ' + fixture.level : ''}`, short: nat.code, color: '#fbbf24' }
+      ? { name: `${t(nat.name)}${fixture.level ? ' ' + fixture.level : ''}`, short: nat.flag, color: '#fbbf24' }
       : { name: club?.name ?? t('Free agent'), short: club?.short ?? 'FA', color: club?.color ?? '#a1a1aa' };
-    const opp: TeamBadge = { name: t(fixture.opponent), short: crestShort(fixture.opponentShort), color: fixture.opponentColor };
+    const opp: TeamBadge = { name: t(fixture.opponent), short: crestFace(fixture.opponentShort), color: fixture.opponentColor };
     const strength = national ? nat.strength + LEVEL_STRENGTH[fixture.level ?? 'A'] : club?.strength ?? 55;
     // who we are facing: the standing in the table that counts, or the team's level when there is none
     const st = standingsFor(season, fixture);
@@ -255,7 +277,7 @@ export function MatchScreen() {
         />
       )}
       {stage === 'live' && ctx && (
-        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label }} board={{ table: fixture.kind === 'league' ? season?.table ?? null : fixture.kind === 'euro' && !fixture.knockout ? season?.euroTable ?? (season ? deriveEuroTable(season) ?? null : null) : null, games: others, opponent: fixture.opponent }} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
+        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label }} board={liveBoardFor(season, fixture, others, t)} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
       )}
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />

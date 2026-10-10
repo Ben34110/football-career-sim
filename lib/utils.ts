@@ -8,6 +8,15 @@ export const fmtCountdown = (ms: number) => {
 export const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
 /** Letters-only 3 char crest code ("🇫🇷 FRA" → "FRA") */
+/** A national flag at the start of a short label ("🇸🇳 SEN"), if any */
+const FLAG = /^(\p{Regional_Indicator}{2}|\u{1F3F4}[\u{E0020}-\u{E007F}]+)/u;
+
+/** The flag of a national side's short label, or '' for a club */
+export const flagOnly = (short: string) => FLAG.exec(short.trim())?.[0] ?? '';
+
+/** What goes inside a crest: the country flag for national sides, the club initials otherwise */
+export const crestFace = (short: string) => FLAG.exec(short.trim())?.[0] ?? crestShort(short);
+
 export const crestShort = (short: string) => short.replace(/[^\p{L}\p{N}]/gu, '').slice(-3) || short.slice(0, 3);
 
 const CLUB_WORDS: [RegExp, string][] = [

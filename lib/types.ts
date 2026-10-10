@@ -145,8 +145,10 @@ export interface TournamentState {
   teams: Record<string, TournamentTeam>;
   /** Your nation (key in `teams`) */
   me: string;
-  /** The 15 other nations in three pots of five, strongest first */
+  /** The 16 nations (you included) in four pots of four, strongest pot first */
   pots: string[][];
+  /** The pots you draw from, strongest first (every pot but your own) */
+  drawPots?: number[];
   /** Which pot each of your three group matches comes from */
   potOrder: number[];
   /** Filled once you have drawn your group */

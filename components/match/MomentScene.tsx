@@ -146,62 +146,6 @@ function Limb({ arm, kit, skin, line, ids }: { arm: Arm; kit: string; skin: stri
 
 /* ───────── staging ───────── */
 
-const rng = (seed: number) => {
-  let s = seed;
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return s / 2147483647;
-  };
-};
-
-function Confetti({ kit }: { kit: string }) {
-  const r = rng(5);
-  const colours = [kit, '#fbbf24', '#f4f4f5', '#ef4444', '#38bdf8', '#a3e635'];
-  return (
-    <g>
-      {[0, 1, 2].map((layer) => (
-        <g key={layer}>
-          <animateTransform attributeName="transform" type="translate" values={`0 ${-24 + layer * 4};0 ${44 + layer * 6}`} dur={`${2.6 + layer * 0.7}s`} repeatCount="indefinite" />
-          {Array.from({ length: 10 }, (_, i) => {
-            const x = r() * 200;
-            const y = r() * 70;
-            return <rect key={i} x={x} y={y} width="3.4" height="6.5" rx=".8" fill={colours[(i + layer) % colours.length]} opacity=".92" transform={`rotate(${Math.round(r() * 180)} ${x} ${y})`} />;
-          })}
-        </g>
-      ))}
-    </g>
-  );
-}
-
-function Rays() {
-  return (
-    <g>
-      <animateTransform attributeName="transform" type="rotate" from="0 100 96" to="360 100 96" dur="40s" repeatCount="indefinite" />
-      <g fill="#fff" opacity=".12">
-        {Array.from({ length: 12 }, (_, i) => {
-          const a = (i / 12) * Math.PI * 2;
-          const b = a + 0.14;
-          return <polygon key={i} points={`100,96 ${100 + 170 * Math.cos(a)},${96 + 170 * Math.sin(a)} ${100 + 170 * Math.cos(b)},${96 + 170 * Math.sin(b)}`} />;
-        })}
-      </g>
-    </g>
-  );
-}
-
-function Rain() {
-  const r = rng(9);
-  return (
-    <g stroke="#fff" strokeWidth=".9" opacity=".28" strokeLinecap="round">
-      <animateTransform attributeName="transform" type="translate" values="0 -14;-6 22" dur="0.9s" repeatCount="indefinite" />
-      {Array.from({ length: 26 }, (_, i) => {
-        const x = r() * 220;
-        const y = r() * 150;
-        return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 11} />;
-      })}
-    </g>
-  );
-}
-
 function Trophy({ id }: { id: string }) {
   return (
     <g transform="translate(100 22) scale(1.18)">
@@ -234,7 +178,6 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
   const kitLine = shade(kit, -0.62);
   const arms = ARMS[pose];
   const tilt = TILT[pose];
-  const celebrating = pose === 'arms' || pose === 'ball' || pose === 'trophy';
   const ids = { s: `skin${uid}`, k: `kit${uid}`, g: `gold${uid}`, t: `torso${uid}` };
 
   return (
@@ -258,10 +201,6 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
           <stop offset="1" stopColor="#d99a1a" />
         </linearGradient>
       </defs>
-
-      {(celebrating || pose === 'fist' || pose === 'point') && <Rays />}
-      {pose === 'facepalm' && <Rain />}
-      {celebrating && <Confetti kit={kit} />}
 
       {/* shoulders and chest: one shape that flows into the sleeves */}
       <path d="M48 170L56 134C58 120 72 110 90 106L110 106C128 110 142 120 144 134L152 170Z" fill={kitLine} stroke={kitLine} strokeWidth="2.200" strokeLinejoin="round" />

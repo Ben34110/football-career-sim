@@ -19,6 +19,13 @@ export interface OtherGame {
   table: boolean;
 }
 
+/** Round-robin order of a four-team group: (team index, team index) per matchday */
+export const GROUP_SCHEDULE: [number, number][][] = [
+  [[0, 1], [2, 3]],
+  [[0, 2], [1, 3]],
+  [[0, 3], [1, 2]],
+];
+
 export function simulateScore(sa: number, sb: number, rng: Rng): [number, number] {
   const pa = clamp(0.4 + (sa - sb) / 70, 0.12, 0.72);
   const roll = rng();
@@ -64,6 +71,30 @@ export function buildOtherGames(season: SeasonState, fixture: Fixture, rng: Rng)
     if (rows.length === 2) return [makeGame('eg', rows[0].id, rows[1].id, [rows[0].name, rows[0].short, rows[0].strength], [rows[1].name, rows[1].short, rows[1].strength], true, rng)];
     return [];
   }
+  // summer tournaments: the real games of the same matchday, whose results are kept
+  if (fixture.kind === 'tournament' && season.tourney?.drawn) {
+    const tr = season.tourney;
+    const opp = fixture.opponent.replace(/ (U20|U23)$/, '');
+    const team = (n: string): [string, string, number] => [n, tr.teams[n].short, tr.teams[n].strength];
+    const out: OtherGame[] = [];
+    if (!fixture.knockout) {
+      const md = Math.max(1, Math.min(3, Number(fixture.label.match(/Group Match (\d)/)?.[1] ?? 1)));
+      tr.groups.forEach((rows, g) => {
+        if (g === tr.myGroup) {
+          const rest = rows.filter((r) => !r.isMe && r.name !== opp);
+          if (rest.length === 2) out.push(makeGame('tg-mine', rest[0].id, rest[1].id, team(rest[0].name), team(rest[1].name), true, rng));
+          return;
+        }
+        GROUP_SCHEDULE[md - 1].forEach(([i, j]) => out.push(makeGame(`tg${g}-${i}${j}`, rows[i].name, rows[j].name, team(rows[i].name), team(rows[j].name), false, rng)));
+      });
+      return out;
+    }
+    const round = ['Quarter-Final', 'Semi-Final', 'Final'].indexOf(fixture.label);
+    (tr.rounds[round]?.ties ?? [])
+      .filter((x) => x.a && x.b && !x.winner && x.a !== tr.me && x.b !== tr.me)
+      .forEach((x, k) => out.push(makeGame(`tk${k}`, x.a, x.b, team(x.a), team(x.b), false, rng)));
+    return out;
+  }
   // knockouts and internationals: other ties going on elsewhere (flavour only)
   const names: [string, string][] =
     fixture.kind === 'tournament' || fixture.kind === 'intl'
@@ -102,6 +133,13 @@ export function liveTable(table: TableRow[], opponentName: string, myScore: numb
     const [h, a] = scoreAt(g, minute);
     return row.id === g.homeId ? bump(row, h, a) : bump(row, a, h);
   });
+}
+
+/** The score of a simulated game between two sides, from the first side's point of view. */
+export function scoreOf(games: OtherGame[] | undefined, a: string, b: string): [number, number] | null {
+  const g = games?.find((x) => (x.homeId === a && x.awayId === b) || (x.homeId === b && x.awayId === a));
+  if (!g) return null;
+  return g.homeId === a ? g.final : [g.final[1], g.final[0]];
 }
 
 /** Result of the game that involves this row, if it was simulated for the live view. */

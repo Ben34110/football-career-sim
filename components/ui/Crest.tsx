@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils';
 
+const IS_FLAG = /^(\p{Regional_Indicator}{2}|\u{1F3F4})/u;
+
 export function Crest({ short, color, size = 40, className }: { short: string; color: string; size?: number; className?: string }) {
   return (
     <div
@@ -17,9 +19,16 @@ export function Crest({ short, color, size = 40, className }: { short: string; c
         <path d="M20 1.5 37 7v17c0 10-7.5 16.5-17 20.5C10.500 40.500 3 34 3 24V7z" fill={`url(#g-${color.slice(1)})`} stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" />
         <path d="M20 1.5 37 7v6H3V7z" fill="rgba(255,255,255,0.16)" />
       </svg>
-      <span className="relative text-[0.34em] leading-none" style={{ fontSize: size * 0.34, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-        {short.slice(0, 3)}
-      </span>
+      {IS_FLAG.test(short) ? (
+        // a national side: its flag instead of the three letters
+        <span className="relative leading-none" style={{ fontSize: size * 0.5, marginTop: size * 0.04 }}>
+          {short}
+        </span>
+      ) : (
+        <span className="relative text-[0.34em] leading-none" style={{ fontSize: size * 0.34, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+          {short.slice(0, 3)}
+        </span>
+      )}
     </div>
   );
 }

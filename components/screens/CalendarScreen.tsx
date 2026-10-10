@@ -14,7 +14,7 @@ import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import type { Fixture, SeasonState, TableRow } from '@/lib/types';
-import { cn, crestShort } from '@/lib/utils';
+import { cn, crestFace } from '@/lib/utils';
 
 const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe, euro: Star };
 const TABS = ['Fixtures', 'Table', 'History'] as const;
@@ -170,7 +170,7 @@ function Fixtures({ season }: { season: SeasonState }) {
             <div className={cn('relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border', next ? 'border-neon-400/60 bg-zinc-950 text-neon-300' : 'border-white/10 bg-zinc-900 text-zinc-500')}>
               <Icon className="h-4 w-4" />
             </div>
-            {pending ? <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-sm">🎱</span> : <Crest short={crestShort(f.opponentShort)} color={f.opponentColor} size={30} />}
+            {pending ? <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-sm">🎱</span> : <Crest short={crestFace(f.opponentShort)} color={f.opponentColor} size={30} />}
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-bold">{pending ? t('Opponent to be drawn') : t(f.opponent)}</div>
               <div className="text-[11px] text-zinc-500">

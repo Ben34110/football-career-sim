@@ -1,17 +1,10 @@
 import { NATIONALITIES } from '../data/nationalities';
 import type { DrawCandidate, Fixture, FixtureResult, Nationality, TableRow, TournamentState, TournamentTeam, TournamentTie } from '../types';
-import { simulateScore } from './livefeed';
+import { GROUP_SCHEDULE, scoreOf, simulateScore, type OtherGame } from './livefeed';
 import { LEVEL_STRENGTH, type NationalLevel } from './player';
 import { clamp, rand, shuffle, type Rng } from './rng';
 
 const ROUND_LABELS = ['Quarter-Final', 'Semi-Final', 'Final'];
-/** Round-robin order of a four-team group (indices into the group) */
-const SCHEDULE: [number, number][][] = [
-  [[0, 1], [2, 3]],
-  [[0, 2], [1, 3]],
-  [[0, 3], [1, 2]],
-];
-
 const stripLevel = (name: string) => name.replace(/ (U20|U23)$/, '');
 
 /**
@@ -66,13 +59,16 @@ export function createTournament(name: string, me: Nationality, level: NationalL
     .map(({ n }) => n);
   const others = [...noisy.slice(0, 15), ...guests].slice(0, 15);
   others.forEach((n) => (teams[n.name] = { name: n.name, short: `${n.flag} ${n.code}`, strength: strengthOf(n) }));
-  const sorted = others.map((n) => n.name).sort((a, b) => teams[b].strength - teams[a].strength);
-  const pots = [sorted.slice(0, 5), sorted.slice(5, 10), sorted.slice(10, 15)];
-  const potOrder = shuffle([0, 1, 2], rng);
+  // seeding: all sixteen sides ranked by the strength shown, four pots of four. You sit in the pot your level earns.
+  const ranked = [me.name, ...others.map((n) => n.name)].sort((x, y) => teams[y].strength - teams[x].strength || x.localeCompare(y));
+  const pots = [0, 1, 2, 3].map((k) => ranked.slice(k * 4, k * 4 + 4));
+  const myPot = pots.findIndex((p) => p.includes(me.name));
+  const drawPots = [0, 1, 2, 3].filter((k) => k !== myPot);
+  const potOrder = shuffle([...drawPots], rng);
 
-  const tourney: TournamentState = { level, teams, me: me.name, pots, potOrder, drawn: false, groups: [], myGroup: 0, rounds: [] };
+  const tourney: TournamentState = { level, teams, me: me.name, pots, drawPots, potOrder, drawn: false, groups: [], myGroup: 0, rounds: [] };
   const fixtures: Fixture[] = potOrder.map((p, i) => {
-    const pool = pots[p].map((n) => candidate(tourney, n));
+    const pool = potTeams(tourney, p).map((n) => candidate(tourney, n));
     return {
       id: `${year}-T${i + 1}`,
       kind: 'tournament' as const,
@@ -89,17 +85,39 @@ export function createTournament(name: string, me: Nationality, level: NationalL
   return { tourney, fixtures };
 }
 
+/** The balls of a pot: its teams, without you. */
+export const potTeams = (t: TournamentState, pot: number): string[] => (t.pots[pot] ?? []).filter((n) => n !== t.me);
+
+/** The pots you draw from, strongest first (older saves had three pots without you). */
+export const drawPotsOf = (t: TournamentState): number[] => t.drawPots ?? t.potOrder;
+
+/** The team you pull from each pot, given the ball you picked (indexes follow `drawPotsOf`). */
+export function chosenByPot(t: TournamentState, picks: number[]): Record<number, string> {
+  const out: Record<number, string> = {};
+  drawPotsOf(t).forEach((p, j) => {
+    const balls = potTeams(t, p);
+    out[p] = balls[Math.max(0, Math.min(balls.length - 1, picks[j] ?? 0))];
+  });
+  return out;
+}
+
 /** You pick one ball from each pot: the group is made, the other three groups are dealt. */
 export function drawGroup(t: TournamentState, picks: number[], rng: Rng): TournamentState {
-  const chosen = t.potOrder.map((p, i) => t.pots[p][Math.max(0, Math.min(t.pots[p].length - 1, picks[i] ?? 0))]);
+  const byPot = chosenByPot(t, picks);
+  const chosen = drawPotsOf(t).map((p) => byPot[p]);
   const mine = [t.me, ...chosen];
-  const rest = shuffle(
-    t.pots.flat().filter((n) => !chosen.includes(n)),
-    rng,
-  ).sort((a, b) => t.teams[b].strength - t.teams[a].strength);
-  // deal the rest in turn so the three other groups are balanced
+  // every other group gets one team from each pot: the three teams left in each pot go one per group
+  const leftovers = t.pots.map((_, p) => shuffle(potTeams(t, p).filter((n) => !chosen.includes(n)), rng));
+  const clean = leftovers.length === 4 && leftovers.every((l) => l.length === 3 || l.length === 0);
   const dealt: string[][] = [[], [], []];
-  rest.forEach((n, i) => dealt[i % 3].push(n));
+  if (clean) leftovers.forEach((l) => l.forEach((n, k) => dealt[k].push(n)));
+  else {
+    // older saves: deal the rest in turn, strongest first
+    leftovers
+      .flat()
+      .sort((a, b) => t.teams[b].strength - t.teams[a].strength)
+      .forEach((n, i) => dealt[i % 3].push(n));
+  }
   const myGroup = Math.floor(rng() * 4);
   const groups: TableRow[][] = [];
   let d = 0;
@@ -125,7 +143,7 @@ function applyScore(rows: TableRow[], a: string, ga: number, b: string, gb: numb
 }
 
 /** Your group match is played; every other group match of the same matchday is played too. */
-export function groupMatchday(t: TournamentState, matchday: number, opponent: string, result: FixtureResult, rng: Rng): TournamentState {
+export function groupMatchday(t: TournamentState, matchday: number, opponent: string, result: FixtureResult, rng: Rng, others?: OtherGame[]): TournamentState {
   const md = clamp(matchday, 1, 3) - 1;
   const groups = t.groups.map((rows, g) => {
     let next = rows;
@@ -133,13 +151,14 @@ export function groupMatchday(t: TournamentState, matchday: number, opponent: st
       next = applyScore(next, t.me, result.myScore, opponent, result.oppScore);
       const rest = rows.filter((r) => r.name !== t.me && r.name !== opponent);
       if (rest.length === 2) {
-        const [x, y] = simulateScore(rest[0].strength, rest[1].strength, rng);
+        // the score shown live is the score kept
+        const [x, y] = scoreOf(others, rest[0].name, rest[1].name) ?? simulateScore(rest[0].strength, rest[1].strength, rng);
         next = applyScore(next, rest[0].name, x, rest[1].name, y);
       }
       return next;
     }
-    for (const [i, j] of SCHEDULE[md]) {
-      const [x, y] = simulateScore(rows[i].strength, rows[j].strength, rng);
+    for (const [i, j] of GROUP_SCHEDULE[md]) {
+      const [x, y] = scoreOf(others, rows[i].name, rows[j].name) ?? simulateScore(rows[i].strength, rows[j].strength, rng);
       next = applyScore(next, rows[i].name, x, rows[j].name, y);
     }
     return next;
@@ -165,8 +184,8 @@ export function startKnockout(t: TournamentState): TournamentState {
 
 export const myGroupRank = (t: TournamentState) => rankGroup(t.groups[t.myGroup]).findIndex((r) => r.name === t.me);
 
-function playTie(t: TournamentState, x: TournamentTie, rng: Rng): TournamentTie {
-  let [ga, gb] = simulateScore(t.teams[x.a].strength, t.teams[x.b].strength, rng);
+function playTie(t: TournamentState, x: TournamentTie, rng: Rng, others?: OtherGame[]): TournamentTie {
+  const [ga, gb] = scoreOf(others, x.a, x.b) ?? simulateScore(t.teams[x.a].strength, t.teams[x.b].strength, rng);
   let pens: [number, number] | undefined;
   if (ga === gb) {
     const pa = t.teams[x.a].strength / (t.teams[x.a].strength + t.teams[x.b].strength);
@@ -183,7 +202,7 @@ function playTie(t: TournamentState, x: TournamentTie, rng: Rng): TournamentTie 
  * Plays a round: your tie takes your real result (when there is one), every other tie is simulated,
  * and the next round's pairings are filled in from the winners.
  */
-export function playRound(t: TournamentState, round: number, mine: FixtureResult | null, rng: Rng): TournamentState {
+export function playRound(t: TournamentState, round: number, mine: FixtureResult | null, rng: Rng, others?: OtherGame[]): TournamentState {
   const rounds = t.rounds.map((r) => ({ ...r, ties: [...r.ties] }));
   rounds[round].ties = rounds[round].ties.map((x) => {
     if (x.winner || !x.a || !x.b) return x;
@@ -195,7 +214,7 @@ export function playRound(t: TournamentState, round: number, mine: FixtureResult
       const meWon = mine.outcome === 'W';
       return { ...x, ga, gb, pens, winner: meWon ? t.me : meIsA ? x.b : x.a };
     }
-    return playTie(t, x, rng);
+    return playTie(t, x, rng, others);
   });
   if (round + 1 < rounds.length) {
     const w = rounds[round].ties.map((x) => x.winner ?? '');

@@ -5,6 +5,7 @@ import { Loader2, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Crowd } from "./Crowd";
 import { MomentScene } from "./MomentScene";
+import { PhotoFx } from "./PhotoFx";
 import type { Look } from "@/lib/data/look";
 import { buildFrontPage, type PaperCtx, type Pose } from "@/lib/data/newspaper";
 import { fmtGameDate } from "@/lib/dates";
@@ -126,6 +127,7 @@ export function Newspaper({
             >
               {/* supporters in the stands, out of focus */}
               <Crowd kit={kit} joy={joy} />
+              <PhotoFx pose={page.pose} kit={kit} />
               <motion.div
                 className="absolute inset-x-0 bottom-0 flex origin-bottom justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]"
                 animate={SCENE_MOTION[page.pose]}

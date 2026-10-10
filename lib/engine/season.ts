@@ -12,9 +12,10 @@ import type {
   SeasonState,
   SeasonZones,
   TableRow,
+  TournamentState,
 } from '../types';
 import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
-import { chosenByPot, createTournament, drawGroup, groupMatchday, knockoutFixture, myGroupRank, opponentKey, playOut, playRound, roundIndex, startKnockout } from './tournament';
+import { chosenByPot, createEuroDraw, createTournament, drawGroup, drawPool, groupMatchday, knockoutFixture, myGroupRank, opponentKey, playOut, playRound, roundIndex, startKnockout } from './tournament';
 import { finalFor, simulateScore, type OtherGame } from './livefeed';
 import { clamp, mulberry32, rand, randInt, shuffle, type Rng } from './rng';
 
@@ -68,9 +69,11 @@ export interface SeasonOptions {
 }
 
 /** The European run: a short group stage with fixed opponents, then four draws. */
-function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixture[] {
+function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixtures: Fixture[]; draw: TournamentState } {
   const boost = comp === 'Champions League' ? 6 : 1;
-  const foreign = shuffle(CLUBS.filter((c) => c.country !== club.country && c.tier <= 3), rng);
+  // top clubs first, smaller ones only to fill the pots
+  const abroad = CLUBS.filter((c) => c.country !== club.country);
+  const foreign = [...shuffle(abroad.filter((c) => c.tier <= 3), rng), ...shuffle(abroad.filter((c) => c.tier > 3), rng)];
   const used = new Set<string>();
   // never the same club twice in one round, even when the supply of fresh clubs runs out
   const next = (round?: Set<string>): Club => {
@@ -86,16 +89,27 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixtur
     opponentColor: c.color,
   });
 
-  const groupSpread = shuffle([-3, 1, 4], rng);
-  const group: Fixture[] = groupSpread.map((sp, i) => ({
-    id: `${year}-E${i + 1}`,
-    kind: 'euro' as const,
-    label: `${comp} Group Match ${i + 1}`,
-    ...cand(next(), club.strength + boost + sp),
-    home: i !== 1,
-    knockout: false,
-    status: 'upcoming' as const,
-  }));
+  // the group stage is drawn from four pots: you and fifteen clubs, ranked by level (a club's tier sets how it ranks among them)
+  const shift = (club.tier - 2) * 4 + boost / 2;
+  const fifteen = foreign.slice(0, 15).map((c) => {
+    used.add(c.id);
+    return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(club.strength + shift + rand(-9, 9, rng)), 45, 95) };
+  });
+  const draw = createEuroDraw({ name: club.name, short: club.short, color: club.color, strength: club.strength }, fifteen, rng);
+  const group: Fixture[] = draw.potOrder.map((p, i) => {
+    const pool = drawPool(draw, p);
+    return {
+      id: `${year}-E${i + 1}`,
+      kind: 'euro' as const,
+      label: `${comp} Group Match ${i + 1}`,
+      ...pool[0],
+      home: i !== 1,
+      knockout: false,
+      status: 'upcoming' as const,
+      drawn: false,
+      pool,
+    };
+  });
 
   const rounds: [string, number][] = [
     ['Round of 16', 1],
@@ -120,7 +134,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixtur
       pool,
     };
   });
-  return [...group, ...knock];
+  return { fixtures: [...group, ...knock], draw };
 }
 
 export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonOptions = {}): SeasonState {
@@ -204,7 +218,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
   });
 
   // Interleave cup rounds (and the European run, if qualified) with the league run
-  const eu = opts.europe ? buildEurope(year, club, opts.europe, rng) : [];
+  const built = opts.europe ? buildEurope(year, club, opts.europe, rng) : null;
+  const eu = built?.fixtures ?? [];
   const fixtures: Fixture[] = [
     league[0],
     ...(eu[0] ? [eu[0]] : []),
@@ -239,24 +254,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     zones: zonesFor(division),
     europe: opts.europe ?? null,
     euroPts: 0,
-    euroTable: eu.length
-      ? [
-          { id: 'me', name: club.name, short: club.short, strength: club.strength, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0, isMe: true },
-          ...eu.slice(0, 3).map((f, i) => ({
-            id: `${year}-eg${i + 1}`,
-            name: f.opponent,
-            short: f.opponentShort,
-            strength: f.opponentStrength,
-            played: 0,
-            won: 0,
-            drawn: 0,
-            lost: 0,
-            gf: 0,
-            ga: 0,
-            pts: 0,
-          })),
-        ]
-      : undefined,
+    // the group table appears once you have drawn your group
+    euroDraw: built?.draw,
     training: { cursor: 0, count: 0 },
     stats: { apps: 0, goals: 0, assists: 0, ratingSum: 0 },
     trophies: [],
@@ -366,6 +365,22 @@ export function applyGroupDraw(season: SeasonState, picks: number[], rng: Rng = 
   };
 }
 
+/** The European group draw: one club from each of the other pots makes your group. */
+export function applyEuroGroupDraw(season: SeasonState, picks: number[], rng: Rng = Math.random): SeasonState {
+  const d = season.euroDraw;
+  if (!d || d.drawn) return season;
+  const nd = drawGroup(d, picks, rng);
+  const picked = chosenByPot(d, picks);
+  const fixtures = season.fixtures.map((f) => {
+    const m = f.kind === 'euro' && !f.knockout ? Number(f.label.match(/Group Match (\d)/)?.[1]) : NaN;
+    if (!m || f.drawn !== false) return f;
+    const team = nd.teams[picked[d.potOrder[m - 1]]];
+    return { ...f, opponent: team.name, opponentShort: team.short, opponentStrength: team.strength, opponentColor: team.color ?? f.opponentColor, drawn: true };
+  });
+  const next: SeasonState = { ...season, euroDraw: nd, fixtures, euroTable: undefined };
+  return { ...next, euroTable: deriveEuroTable(next) };
+}
+
 export function applyDraw(season: SeasonState, fixtureId: string, index: number, rng: Rng = Math.random): SeasonState {
   const fx = season.fixtures.find((f) => f.id === fixtureId);
   if (!fx?.pool) return season;
@@ -428,6 +443,8 @@ export function deriveEuroTable(season: SeasonState): TableRow[] | undefined {
   const me = season.table.find((r) => r.isMe);
   const group = season.fixtures.filter((f) => f.kind === 'euro' && !f.knockout);
   if (!me || group.length === 0) return undefined;
+  // before the draw there is no group yet
+  if (group.some((f) => f.drawn === false)) return undefined;
   let table: TableRow[] = [
     { ...me, id: 'me', played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 },
     ...group.map((f, i) => ({

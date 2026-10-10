@@ -155,7 +155,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
           </span>
         </div>
         <div className="relative flex items-center justify-between">
-          <TeamSide badge={meHome ? me : opp} you={meHome} />
+          <TeamSide badge={meHome ? me : opp} you={meHome} reds={meHome ? m.redsMe : m.redsOpp} />
           <div className="text-center">
             <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
               <motion.span key={`h${homeScore}`} initial={{ scale: 1.5, color: meHome ? '#6ee7b7' : '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} className="inline-block">
@@ -171,7 +171,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
               {finished ? t('FULL TIME') : `${m.minute}'`}
             </div>
           </div>
-          <TeamSide badge={meHome ? opp : me} you={!meHome} />
+          <TeamSide badge={meHome ? opp : me} you={!meHome} reds={meHome ? m.redsOpp : m.redsMe} />
         </div>
 
         {/* Timeline (clutch moments stay a surprise) */}
@@ -417,14 +417,24 @@ function Short({ value }: { value: string }) {
   return flagOnly(value) ? <Flag emoji={flagOnly(value)} size={11} /> : <>{value}</>;
 }
 
-function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
+function TeamSide({ badge, you, reds = 0 }: { badge: TeamBadge; you?: boolean; reds?: number }) {
   const t = useT();
   return (
     <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
       {badge.rank && (
         <span className={cn('whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
       )}
-      <Crest short={badge.short} color={badge.color} size={48} />
+      <div className="relative">
+        <Crest short={badge.short} color={badge.color} size={48} />
+        {/* red cards shown to this side */}
+        {reds > 0 && (
+          <span className="absolute -right-2.5 -top-1 flex gap-0.5" aria-label="red card">
+            {Array.from({ length: reds }, (_, i) => (
+              <motion.span key={i} initial={{ scale: 2, rotate: 20 }} animate={{ scale: 1, rotate: 8 }} className="h-4 w-3 rounded-[2px] bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+            ))}
+          </span>
+        )}
+      </div>
       {/* the name and "You" stay together; the block has a fixed height so both crests sit at the same level */}
       <div className="flex min-h-[2.9rem] flex-col items-center gap-0.5">
         <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>

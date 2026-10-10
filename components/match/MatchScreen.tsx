@@ -232,6 +232,7 @@ export function MatchScreen() {
       shootout: shoot ? { my: shoot.my, opp: shoot.opp } : undefined,
       benched: !!res.benched,
       subbedOff: !!res.subbedOff,
+      sentOff: !!res.sentOff,
     });
     setStage('press');
   };
@@ -250,7 +251,10 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn === false && fixture.kind === 'tournament' && season?.tourney && !season.tourney.drawn && (
         <GroupDraw tourney={season.tourney} tournament={season.tournamentName ?? ''} onDraw={(picks) => useGameStore.getState().drawTournamentGroup(picks)} />
       )}
-      {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && (
+      {stage === 'brief' && fixture.drawn === false && fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw && !season.euroDraw.drawn && (
+        <GroupDraw tourney={season.euroDraw} tournament={season.europe ?? 'Champions League'} onDraw={(picks) => useGameStore.getState().drawEuroGroup(picks)} />
+      )}
+      {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
       {stage === 'brief' && fixture.drawn !== false && ritual && (

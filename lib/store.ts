@@ -35,6 +35,7 @@ import { runBallonDor } from './engine/awards';
 import { ordinalOf, translate as tr } from './i18n';
 import {
   applyDraw,
+  applyEuroGroupDraw,
   applyGroupDraw,
   applyFixtureResult,
   baseDivision,
@@ -109,6 +110,8 @@ interface GameActions {
   drawFixture: (fixtureId: string, index: number) => void;
   /** The tournament group draw: one ball per pot */
   drawTournamentGroup: (picks: number[]) => void;
+  /** The Champions League / Europa League group draw */
+  drawEuroGroup: (picks: number[]) => void;
   applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult, others?: OtherGame[]) => void;
@@ -221,6 +224,12 @@ export const useGameStore = create<GameStore>()(
         set({ season: applyDraw(season, fixtureId, index) });
       },
 
+      drawEuroGroup: (picks) => {
+        const { season } = get();
+        if (!season) return;
+        set({ season: applyEuroGroupDraw(season, picks) });
+      },
+
       drawTournamentGroup: (picks) => {
         const { season } = get();
         if (!season) return;
@@ -276,8 +285,15 @@ export const useGameStore = create<GameStore>()(
           attrs: xp.attrs,
           xp: xp.xp,
           form: [...player.form, result.rating].slice(-5),
-          morale: clamp(morale + (result.subbedOff ? -4 : 0), 0, 100),
-          rep: applyRep(player.rep, result.subbedOff ? { ...repDelta, coachTrust: repDelta.coachTrust - 2, lockerRoom: repDelta.lockerRoom - 1 } : repDelta),
+          morale: clamp(morale + (result.sentOff ? -9 : result.subbedOff ? -4 : 0), 0, 100),
+          rep: applyRep(
+            player.rep,
+            result.sentOff
+              ? { ...repDelta, coachTrust: repDelta.coachTrust - 5, lockerRoom: repDelta.lockerRoom - 3, fanPopularity: repDelta.fanPopularity - 2, mediaHeat: repDelta.mediaHeat + 3 }
+              : result.subbedOff
+                ? { ...repDelta, coachTrust: repDelta.coachTrust - 2, lockerRoom: repDelta.lockerRoom - 1 }
+                : repDelta,
+          ),
           national: intl
             ? fixture.level
               ? { caps: player.national?.caps ?? 0, goals: player.national?.goals ?? 0, youthCaps: (player.national?.youthCaps ?? 0) + 1 }
@@ -299,7 +315,8 @@ export const useGameStore = create<GameStore>()(
         if (xp.gained.length > 0) {
           nextNews = addNews(nextNews, mkNews(tr('Attribute boost: +{n} after a {r} rating.', { n: xp.gained.length, r: result.rating.toFixed(1) }), 'good'));
         }
-        if (result.subbedOff) nextNews = addNews(nextNews, mkNews(tr('The coach hauled you off early after a poor display.'), 'bad'));
+        if (result.sentOff) nextNews = addNews(nextNews, mkNews(tr('🟥 You were sent off — the dressing room is not happy.'), 'bad'));
+        else if (result.subbedOff) nextNews = addNews(nextNews, mkNews(tr('The coach hauled you off early after a poor display.'), 'bad'));
         for (const t of newTrophies) nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — silverware!', { t: tr(t) }), 'gold'));
         const rank = { U20: 1, U23: 2, A: 3 } as const;
         const lvlBefore = nationalLevel(ovrOf(player), player.age);

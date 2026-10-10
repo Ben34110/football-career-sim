@@ -74,6 +74,8 @@ export interface FixtureResult {
   benched?: boolean;
   /** The coach took the player off after a poor showing */
   subbedOff?: boolean;
+  /** The player was shown a red card */
+  sentOff?: boolean;
   clutchWins?: number;
   clutchTotal?: number;
 }
@@ -124,6 +126,8 @@ export interface TableRow {
 
 export interface TournamentTeam {
   name: string;
+  /** Club colour (European draws); nations use their flag */
+  color?: string;
   /** "🇸🇳 SEN" */
   short: string;
   strength: number;
@@ -196,6 +200,8 @@ export interface SeasonState {
   euroPts?: number;
   /** The European group: you and three foreign clubs */
   euroTable?: TableRow[];
+  /** The European group draw (pots) of this season's campaign */
+  euroDraw?: TournamentState | null;
   /** The summer tournament, once it is queued (older saves keep per-round draws without it) */
   tourney?: TournamentState | null;
   /** Training sessions used at the current cursor (capped per fixture) */
@@ -463,6 +469,11 @@ export interface MatchState {
   rallyUsed?: boolean;
   /** Added to every decision for the rest of the match (rally, second wind) */
   clutchBoost?: number;
-  /** Minute the coach took the player off, if it happened */
+  /** Minute the coach took the player off (or he was sent off), if it happened */
   subbedOffAt?: number;
+  /** Players sent off on each side */
+  redsMe?: number;
+  redsOpp?: number;
+  /** The player himself was shown a red card */
+  sentOff?: boolean;
 }

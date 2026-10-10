@@ -43,8 +43,29 @@ const candidate = (t: TournamentState, name: string): DrawCandidate => ({
   opponent: t.level === 'A' ? name : `${name} ${t.level}`,
   opponentShort: t.teams[name].short,
   opponentStrength: t.teams[name].strength,
-  opponentColor: '#fbbf24',
+  opponentColor: t.teams[name].color ?? '#fbbf24',
 });
+
+/** Seeding: all sixteen sides ranked by the strength shown, four pots of four. You sit in the pot your level earns. */
+export function seedPots(teams: Record<string, TournamentTeam>, me: string, rng: Rng) {
+  const ranked = Object.keys(teams).sort((x, y) => teams[y].strength - teams[x].strength || x.localeCompare(y));
+  const pots = [0, 1, 2, 3].map((k) => ranked.slice(k * 4, k * 4 + 4));
+  const myPot = pots.findIndex((p) => p.includes(me));
+  const drawPots = [0, 1, 2, 3].filter((k) => k !== myPot);
+  const potOrder = shuffle([...drawPots], rng);
+  return { pots, drawPots, potOrder };
+}
+
+/** The European group draw: you and fifteen clubs in four pots (you draw one club from each of the other pots). */
+export function createEuroDraw(me: TournamentTeam, others: TournamentTeam[], rng: Rng): TournamentState {
+  const teams: Record<string, TournamentTeam> = { [me.name]: me };
+  others.slice(0, 15).forEach((o) => (teams[o.name] = o));
+  const { pots, drawPots, potOrder } = seedPots(teams, me.name, rng);
+  return { level: 'A', teams, me: me.name, pots, drawPots, potOrder, drawn: false, groups: [], myGroup: 0, rounds: [] };
+}
+
+/** The balls for one of your group matches, as fixture candidates. */
+export const drawPool = (t: TournamentState, pot: number): DrawCandidate[] => potTeams(t, pot).map((n) => candidate(t, n));
 
 /** Builds the field, the three pots and your three (still undrawn) group matches. */
 export function createTournament(name: string, me: Nationality, level: NationalLevel, year: number, rng: Rng): { tourney: TournamentState; fixtures: Fixture[] } {
@@ -59,12 +80,7 @@ export function createTournament(name: string, me: Nationality, level: NationalL
     .map(({ n }) => n);
   const others = [...noisy.slice(0, 15), ...guests].slice(0, 15);
   others.forEach((n) => (teams[n.name] = { name: n.name, short: `${n.flag} ${n.code}`, strength: strengthOf(n) }));
-  // seeding: all sixteen sides ranked by the strength shown, four pots of four. You sit in the pot your level earns.
-  const ranked = [me.name, ...others.map((n) => n.name)].sort((x, y) => teams[y].strength - teams[x].strength || x.localeCompare(y));
-  const pots = [0, 1, 2, 3].map((k) => ranked.slice(k * 4, k * 4 + 4));
-  const myPot = pots.findIndex((p) => p.includes(me.name));
-  const drawPots = [0, 1, 2, 3].filter((k) => k !== myPot);
-  const potOrder = shuffle([...drawPots], rng);
+  const { pots, drawPots, potOrder } = seedPots(teams, me.name, rng);
 
   const tourney: TournamentState = { level, teams, me: me.name, pots, drawPots, potOrder, drawn: false, groups: [], myGroup: 0, rounds: [] };
   const fixtures: Fixture[] = potOrder.map((p, i) => {

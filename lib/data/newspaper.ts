@@ -16,6 +16,7 @@ export interface PaperCtx {
   home: boolean;
   missedKick: boolean;
   subbedOff: boolean;
+  sentOff?: boolean;
   benched: boolean;
   shootout?: { my: number; opp: number };
   recent: Outcome[];
@@ -76,6 +77,7 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   else if (win && diff >= 3) headline = pick(['{club} TEAR {opp} APART', 'ROUT! {club} RUN RIOT AGAINST {opp}', '{opp} GET THE POWER-WASH TREATMENT', '{club} PUT THE BEST CHINA ON THE TABLE'], rng);
   else if (win) headline = pick(['{club} GRIND OUT THE WIN', 'THREE POINTS FOR {club}', '{club} DO THE JOB AGAINST {opp}', 'NOTHING TO SEE HERE: {club} WIN', 'ANOTHER DAY, ANOTHER THREE POINTS'], rng);
   else if (c.outcome === 'D') headline = pick(['HONOURS EVEN: {club} AND {opp} SHARE THE POINTS', 'STALEMATE: {my}–{their}', 'NO WINNER AS {club} HELD BY {opp}', 'TAKE THE POINT AND GO HOME: {my}–{their}', 'NEITHER HOT NOR COLD: {my}–{their}'], rng);
+  else if (c.sentOff) headline = pick(['RED MIST: {name} SENT OFF', '{name} SEES RED AND {club} PAY THE PRICE', 'STRAIGHT TO THE SHOWERS: {name} DISMISSED', 'TEN MEN {club}: {name} SHOWN THE DOOR'], rng);
   else if (c.missedKick) headline = pick(['THE KICK THAT HAUNTS {name}', '{name} FLUFFS THE BIG MOMENT AS {club} FALL', '{name}\'S PENALTY ORBITS THE MOON', '12 YARDS, ONE GOAL, ONE BIG MISS: {name}'], rng);
   else if (c.subbedOff) headline = pick(['{name} HAULED OFF IN {club} DEFEAT', 'DISASTER: {club} LOSE AND {name} IS SUBSTITUTED', '{name} IS OFF BEFORE DESSERT', 'THE COACH PULLS THE PLUG ON {name}'], rng);
   else if (c.rating < 5.8) headline = pick(['MISSING IN ACTION: {name} FAILS TO SHINE', '{opp} STUN {club} AS {name} STRUGGLES', 'WHERE WAS {name}? NOBODY KNOWS', 'IT IS THE REF’S FAULT AGAIN: {club} FALL', 'BACK TO THE DRAWING BOARD FOR {club}', '{opp} SEND {club} HOME TO MUM'], rng);
@@ -100,6 +102,7 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   else if (c.assists >= 1) paragraphs.push('{name} did not score, but the creativity came from them: {assists} assist(s) tell the story.');
   else if (c.benched) paragraphs.push('{name} started on the bench and came on to try and change things.');
   else if (c.missedKick) paragraphs.push('{name} had the chance to change the story from the spot, but could not find the net.');
+  else if (c.sentOff) paragraphs.push('{name} was sent off, leaving {club} to play on with ten men.');
   else if (c.subbedOff) paragraphs.push('{name} was taken off before the end after a below-par display.');
   else paragraphs.push('{name} worked hard but could not find a decisive moment.');
 
@@ -121,6 +124,7 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   if (c.shootout) emotion = win ? 'cheer' : 'sad';
   else if (win) emotion = c.goals >= 1 || final || diff >= 3 ? 'cheer' : 'happy';
   else if (c.outcome === 'D') emotion = c.goals >= 1 ? 'happy' : 'neutral';
+  else if (c.sentOff) emotion = 'angry';
   else if (c.missedKick) emotion = 'shock';
   else if (c.subbedOff || c.rating < 5.8) emotion = 'angry';
   else emotion = rng() < 0.7 ? 'sad' : 'angry';

@@ -95,6 +95,7 @@ export function PressZone({
           home: context.meHome,
           missedKick: context.missedKick,
           subbedOff: context.subbedOff,
+          sentOff: context.sentOff,
           benched: context.benched,
           shootout: context.shootout,
           recent: context.recent,

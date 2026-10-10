@@ -146,6 +146,20 @@ export const FR_PAPER: Record<string, string> = {
   'Agent’s office': 'Bureau de l’agent',
   '{n} offers on the table': '{n} offres sur la table',
 
+  // red cards
+  '🟥 Second yellow! {who} is sent off — {me} are down to ten men.': '🟥 Second jaune ! {who} est expulsé — {me} se retrouve à dix.',
+  '🟥 RED CARD! {who} sees a straight red — {me} are down to ten men.': '🟥 CARTON ROUGE ! {who} est expulsé directement — {me} se retrouve à dix.',
+  '🟥 RED CARD! {mate} is sent off — {me} are down to ten men.': '🟥 CARTON ROUGE ! {mate} est expulsé — {me} se retrouve à dix.',
+  '🟥 Second yellow for {mate}! {me} must play on with ten.': '🟥 Second jaune pour {mate} ! {me} doit finir à dix.',
+  '🟥 RED CARD! {mate} is sent off — {opp} are down to ten men!': '🟥 CARTON ROUGE ! {mate} est expulsé — {opp} se retrouve à dix !',
+  '🟥 {mate} sees a second yellow — {opp} are down to ten and {me} smell blood.': '🟥 {mate} prend un second jaune — {opp} est à dix et {me} sent le sang.',
+  '🟥 You were sent off — the dressing room is not happy.': '🟥 Tu as été expulsé — le vestiaire n’est pas content.',
+  'RED MIST: {name} SENT OFF': 'COUP DE SANG : {name} EXPULSÉ',
+  '{name} SEES RED AND {club} PAY THE PRICE': '{name} PREND ROUGE ET {club} PAIE LA FACTURE',
+  'STRAIGHT TO THE SHOWERS: {name} DISMISSED': 'DIRECTION LES DOUCHES : {name} EXPULSÉ',
+  'TEN MEN {club}: {name} SHOWN THE DOOR': '{club} À DIX : {name} MONTRÉ À LA PORTE',
+  '{name} was sent off, leaving {club} to play on with ten men.': '{name} a été expulsé, laissant {club} terminer à dix.',
+
   // rounds
   '{club} ARE IN THE FINAL!': '{club} EST EN FINALE !',
   'FINAL BOUND: {club} SEE OFF {opp}': 'DIRECTION LA FINALE : {club} ÉLIMINE {opp}',

@@ -158,7 +158,7 @@ function Fixtures({ season }: { season: SeasonState }) {
     // rounds you can no longer reach (knocked out) simply disappear
     .filter(({ f }) => f.status !== 'skipped')
     // later knockout rounds stay hidden until you reach them (European knockouts also wait for the group stage)
-    .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && (f.kind === 'tournament' && season.tourney ? false : firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
+    .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && ((f.kind === 'tournament' && season.tourney) || (f.kind === 'euro' && !f.knockout && season.euroDraw) ? false : firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
   return (
     <ol className="relative space-y-2 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-white/10">
       {visible.map(({ f, i }) => {

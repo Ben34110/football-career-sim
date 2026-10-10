@@ -220,6 +220,26 @@ function push(m: MatchState, minute: number, type: MatchEventType, side: MatchEv
 
 const POSITION_SHARE: Record<Position, number> = { ST: 0.24, CAM: 0.14, RW: 0.17, LW: 0.17 };
 
+/** The player is shown a red card: he walks, his team plays on with ten and the rest of his decisions are gone. */
+function dismissPlayer(input: MatchState, ctx: MatchCtx, rng: Rng, minute: number, secondYellow: boolean): MatchState {
+  const who = surname(ctx.playerName);
+  let m: MatchState = {
+    ...input,
+    sentOff: true,
+    subbedOffAt: minute,
+    redsMe: (input.redsMe ?? 0) + 1,
+    rating: input.rating - 1.6,
+    momentum: clamp(input.momentum - 22, -100, 100),
+    clutches: input.clutches.slice(0, input.nextClutch),
+  };
+  m = push(m, minute, 'card', 'me', tr(secondYellow ? '🟥 Second yellow! {who} is sent off — {me} are down to ten men.' : '🟥 RED CARD! {who} sees a straight red — {me} are down to ten men.', { who, me: ctx.myTeam }), true);
+  // off the pitch: the match goes on without the player, except in knockout ties where the result still matters
+  if (!ctx.knockout && m.status === 'playing') {
+    while (m.status === 'playing') m = tickMatch(m, ctx, rng);
+  }
+  return m;
+}
+
 export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchState {
   if (input.status !== 'playing') return input;
 
@@ -257,6 +277,23 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   }
   const playerOn = m.minute > m.startMinute && (m.subbedOffAt === undefined || m.minute <= m.subbedOffAt);
 
+  // A red card can turn the match: rare, and more likely for the weaker, more stretched side
+  if (m.minute >= 12 && m.minute <= 88 && (m.redsMe ?? 0) + (m.redsOpp ?? 0) < 2 && rng() < 0.0045) {
+    const meSide = rng() < clamp(0.5 + (ctx.oppStr - ctx.myStr) / 160, 0.3, 0.7);
+    const minute = at();
+    if (meSide) {
+      // sometimes it is the player himself
+      if (playerOn && !m.sentOff && rng() < 0.2) return dismissPlayer(m, ctx, rng, minute, rng() < 0.4);
+      const mate = nameFrom(ctx.myNames, rng);
+      m = { ...m, redsMe: (m.redsMe ?? 0) + 1, momentum: clamp(m.momentum - 18, -100, 100) };
+      m = push(m, minute, 'card', 'me', tr(rng() < 0.5 ? '🟥 RED CARD! {mate} is sent off — {me} are down to ten men.' : '🟥 Second yellow for {mate}! {me} must play on with ten.', { mate, me: ctx.myTeam }), true);
+    } else {
+      const mate = nameFrom(ctx.oppNames, rng);
+      m = { ...m, redsOpp: (m.redsOpp ?? 0) + 1, momentum: clamp(m.momentum + 18, -100, 100) };
+      m = push(m, minute, 'card', 'opp', tr(rng() < 0.5 ? '🟥 RED CARD! {mate} is sent off — {opp} are down to ten men!' : '🟥 {mate} sees a second yellow — {opp} are down to ten and {me} smell blood.', { mate, opp: ctx.oppName, me: ctx.myTeam }), true);
+    }
+  }
+
   if (prev < 45 && m.minute >= 45) {
     m = push(m, 45, 'halftime', 'neutral', tr('Half-time: {home} {a}–{b} {away}.', { ...sides(ctx), ...sc(ctx, m.myScore, m.oppScore) }));
   }
@@ -267,10 +304,13 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     m = push(m, m.minute, 'chance', 'opp', tr('⚡ {opp} come out fired up — this is no walkover!', { opp: ctx.oppName }), true);
   }
   const surging = m.surgeUntil !== undefined && m.minute <= m.surgeUntil;
+  // a side with ten men attacks less and leaks chances; the other smells it
+  const manMe = 0.55 ** (m.redsMe ?? 0) * 1.6 ** (m.redsOpp ?? 0);
+  const manOpp = 0.55 ** (m.redsOpp ?? 0) * 1.6 ** (m.redsMe ?? 0);
   const d = ctx.myStr - ctx.oppStr;
   const men = MENTALITY[m.mentality ?? 'balanced'];
-  const myRate = clamp(0.13 * ctx.myRateMul * men.my * Math.exp(d / 38 + m.momentum / 300), 0.04, 0.5);
-  const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.04, 0.5);
+  const myRate = clamp(0.13 * ctx.myRateMul * men.my * manMe * Math.exp(d / 38 + m.momentum / 300), 0.03, 0.55);
+  const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * manOpp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.03, 0.55);
   const myConv = clamp(0.18 * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.08, 0.38);
   const oppConv = clamp(0.22 * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.08, 0.4);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
@@ -338,7 +378,7 @@ export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): 
   // Better opposition makes every decision harder
   const opposition = (ctx.oppStr - ctx.myStr) / 100;
   return clamp(
-    ctx.clutchBonus + (m.clutchBoost ?? 0) + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
+    ctx.clutchBonus + (m.clutchBoost ?? 0) + (m.redsOpp ?? 0) * 0.05 - (m.redsMe ?? 0) * 0.06 + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
     0.05,
     0.86,
   );
@@ -439,10 +479,13 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
     return { state: push(m, m.minute, 'clutch', 'me', text, true), success: true, kick: 'penalty' };
   }
   s = { ...s, rating: s.rating - 0.2, momentum: clamp(s.momentum - 12, -100, 100) };
+  const redCard = variant?.fx === 'card' && rng() < 0.2;
   if (variant?.fx === 'card') s = { ...s, rating: s.rating - 0.4 };
   if (variant?.fx === 'oppfk') s = { ...s, momentum: clamp(s.momentum - 8, -100, 100) };
   const failText = variant ? variant.text : opt.failText;
   s = push(s, s.minute, 'miss', 'me', `😬 ${who} ${said(failText)}.${variant ? '' : flavour(false)}`, true);
+  // a reckless challenge can be worse than a booking
+  if (redCard) return { state: dismissPlayer(s, ctx, rng, s.minute, false), success: false };
   if (!variant && !moment.defensive) {
     // a lucky break now and then: second chance or a foul won
     const r = rng();
@@ -602,7 +645,8 @@ export function buildResult(
     assists: m.assists,
     outcome,
     benched: !m.isStarter || undefined,
-    subbedOff: m.subbedOffAt !== undefined || undefined,
+    subbedOff: (m.subbedOffAt !== undefined && !m.sentOff) || undefined,
+    sentOff: m.sentOff || undefined,
     clutchWins: m.clutchWins,
     clutchTotal: m.clutchTotal,
   };

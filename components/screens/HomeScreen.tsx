@@ -49,7 +49,12 @@ export function HomeScreen() {
     <div className="space-y-5">
       <div className="-mb-2 flex items-center justify-between px-1">
         <span className="eyebrow capitalize">{fmtGameDate(gameDate(season, year), lang)}</span>
-        <LangToggle />
+        <div className="flex items-center gap-2">
+          <Link href="/profile" className="flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 text-[11px] font-bold text-zinc-300 active:scale-95">
+            👤 {t('Profile')}
+          </Link>
+          <LangToggle />
+        </div>
       </div>
       {phase === 'season-end' && <SeasonEnd />}
 

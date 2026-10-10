@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CalendarDays, Home, Repeat, User, Zap } from 'lucide-react';
+import { CalendarDays, Home, Repeat, ShoppingBag, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { haptic } from '@/lib/haptics';
@@ -13,7 +13,7 @@ const TABS = [
   { href: '/calendar', label: 'Season', icon: CalendarDays },
   { href: '/match', label: 'Play', icon: Zap, hero: true },
   { href: '/transfers', label: 'Market', icon: Repeat },
-  { href: '/profile', label: 'Player', icon: User },
+  { href: '/shop', label: 'Shop', icon: ShoppingBag },
 ];
 
 export function BottomNav() {

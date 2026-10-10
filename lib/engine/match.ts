@@ -3,6 +3,7 @@ import { CLUTCH_DECK } from '../data/clutch';
 import { SURNAMES } from '../data/names';
 import type {
   FailVariant,
+  Mentality,
   Attributes,
   ClutchMoment,
   ClutchOption,
@@ -177,6 +178,7 @@ export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
     eid: 0,
     isStarter,
     missedKick: false,
+    mentality: 'balanced',
   };
   m = push(m, 0, 'kickoff', 'neutral', tr('Kick-off! {me} vs {opp}.', { me: ctx.myTeam, opp: ctx.oppName }));
   if (!isStarter) {
@@ -239,8 +241,9 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   }
 
   const d = ctx.myStr - ctx.oppStr;
-  const myRate = clamp(0.13 * ctx.myRateMul * Math.exp(d / 45 + m.momentum / 300), 0.04, 0.45);
-  const oppRate = clamp(0.19 * ctx.oppRateMul * Math.exp(-d / 45 - m.momentum / 300), 0.04, 0.45);
+  const men = MENTALITY[m.mentality ?? 'balanced'];
+  const myRate = clamp(0.13 * ctx.myRateMul * men.my * Math.exp(d / 45 + m.momentum / 300), 0.04, 0.5);
+  const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * Math.exp(-d / 45 - m.momentum / 300), 0.04, 0.5);
   const myConv = clamp(0.18 * Math.exp(d / 70), 0.08, 0.38);
   const oppConv = clamp(0.22 * Math.exp(-d / 70), 0.08, 0.38);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
@@ -249,7 +252,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   if (rng() < myRate) {
     m.shots.me += 1;
     if (rng() < myConv) {
-      const share = POSITION_SHARE[ctx.position] * clamp(1 + (ctx.effOvr - 70) / 120, 0.6, 1.5);
+      const share = POSITION_SHARE[ctx.position] * men.share * clamp(1 + (ctx.effOvr - 70) / 120, 0.6, 1.5);
       const mate = SURNAMES[randInt(0, SURNAMES.length - 1, rng)];
       if (playerOn && rng() < share) {
         m = { ...m, myScore: m.myScore + 1, goals: m.goals + 1, rating: m.rating + 1, momentum: clamp(m.momentum + 22, -100, 100) };
@@ -458,6 +461,27 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
   return push(s, s.minute, 'miss', 'me', text[result as Exclude<KickResult, 'goal'>], true);
 }
 
+/* ───────────── Team mentality ───────────── */
+
+export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number }> = {
+  attack: { my: 1.22, opp: 1.18, share: 1.15 },
+  balanced: { my: 1, opp: 1, share: 1 },
+  defend: { my: 0.8, opp: 0.74, share: 0.85 },
+};
+
+/** Switch the team's approach: it stays until you change it again. */
+export function setMentality(m: MatchState, ctx: MatchCtx, mode: Mentality): MatchState {
+  if ((m.mentality ?? 'balanced') === mode) return m;
+  const who = surname(ctx.playerName);
+  const text =
+    mode === 'attack'
+      ? tr('📋 {who} signals to the bench: the team goes all-out attack!', { who })
+      : mode === 'defend'
+        ? tr('📋 {who} calls for calm: the team drops deeper and defends.', { who })
+        : tr('📋 {who} steadies things: the team goes back to a balanced shape.', { who });
+  return push({ ...m, mentality: mode }, m.minute, 'clutch', 'me', text, true);
+}
+
 /* ───────────── In-match team boosts ───────────── */
 
 export interface RallyOption {
@@ -478,22 +502,15 @@ const TRAILING: RallyOption[] = [
   { id: 'calm', emoji: '🧘', label: 'Calm everyone down', hint: 'A smaller but safer reaction.', base: 0.72, swing: 12, clutch: 0.02, risk: 3 },
   { id: 'self', emoji: '🔥', label: 'Take it on yourself', hint: 'Your decisions get easier, the team follows less.', base: 0.58, swing: 6, clutch: 0.07, risk: 10 },
 ];
-const TIRED: RallyOption[] = [
-  { id: 'breath', emoji: '🌬️', label: 'Find a second wind', hint: 'Slow your breathing and reset.', base: 0.8, swing: 5, clutch: 0.04, risk: 2 },
-  { id: 'push', emoji: '💪', label: 'Push through the pain', hint: 'Higher reward, but your legs may give.', base: 0.5, swing: 8, clutch: 0.09, risk: 8 },
-];
 
 /** When the game offers a boost: you are losing, or running on empty late on. */
-export function rallyKind(m: MatchState, ctx: MatchCtx): 'trailing' | 'tired' | null {
+export function rallyKind(m: MatchState, ctx: MatchCtx): 'trailing' | null {
   if (m.status !== 'playing' || m.rallyUsed || m.subbedOffAt !== undefined) return null;
   if (m.minute < 25 || m.minute > 82 || m.minute <= m.startMinute) return null;
-  if (m.myScore < m.oppScore) return 'trailing';
-  const fatigue = Math.max(0, 5 - ctx.boltsBefore);
-  if (fatigue >= 1 && m.minute >= 55) return 'tired';
-  return null;
+  return m.myScore < m.oppScore ? 'trailing' : null;
 }
 
-export const rallyOptions = (kind: 'trailing' | 'tired') => (kind === 'trailing' ? TRAILING : TIRED);
+export const rallyOptions = (_kind: 'trailing') => TRAILING;
 
 export function rallyChance(o: RallyOption, ctx: MatchCtx): number {
   const mood = o.id === 'self' ? (ctx.attrs.composure - 70) / 160 : (ctx.rep.lockerRoom - 50) / 180;
@@ -504,11 +521,9 @@ const RALLY_TEXT: Record<string, [string, string]> = {
   rally: ['📣 {who} rallies the lads — the whole team lifts!', '📣 {who} shouts at the lads, but the words fall flat.'],
   calm: ['🧘 {who} calms everyone down — the team settles.', '🧘 {who} tries to calm things, but the nerves remain.'],
   self: ['🔥 {who} grabs the game by the scruff of the neck.', '🔥 {who} tries to do too much and the team loses its shape.'],
-  breath: ['🌬️ {who} finds a second wind!', '🌬️ {who} takes a deep breath, but the legs are still heavy.'],
-  push: ['💪 {who} ignores the pain and keeps running.', '💪 {who} pushes too hard — the legs give out for a moment.'],
 };
 
-export function applyRally(m: MatchState, ctx: MatchCtx, kind: 'trailing' | 'tired', optionId: string, rng: Rng): MatchState {
+export function applyRally(m: MatchState, ctx: MatchCtx, kind: 'trailing', optionId: string, rng: Rng): MatchState {
   const o = rallyOptions(kind).find((x) => x.id === optionId) ?? rallyOptions(kind)[0];
   const who = surname(ctx.playerName);
   const ok = rng() < rallyChance(o, ctx);

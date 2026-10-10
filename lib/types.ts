@@ -305,6 +305,8 @@ export interface TalkMemory {
   mood: number;
 }
 
+export type Mentality = 'attack' | 'balanced' | 'defend';
+
 export type StanceId = 'back-boss' | 'for-lads' | 'demand-ball' | 'crack-joke' | 'stay-quiet' | 'challenge-boss' | 'mentor';
 export type Expectation = 'Modest' | 'Standard' | 'Star Role';
 
@@ -405,6 +407,8 @@ export interface MatchState {
   isStarter: boolean;
   /** The player failed to convert a penalty / free kick */
   missedKick: boolean;
+  /** Team mentality for the whole match (changeable at any time) */
+  mentality?: Mentality;
   /** The in-match team boost has been used */
   rallyUsed?: boolean;
   /** Added to every decision for the rest of the match (rally, second wind) */

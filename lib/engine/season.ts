@@ -14,7 +14,8 @@ import type {
   TableRow,
 } from '../types';
 import { LEVEL_STRENGTH, nationalLevel, seasonLabel, type NationalLevel } from './player';
-import { clamp, rand, randInt, shuffle, type Rng } from './rng';
+import { finalFor, simulateScore, type OtherGame } from './livefeed';
+import { clamp, mulberry32, rand, randInt, shuffle, type Rng } from './rng';
 
 const RIVAL_COLORS = ['#38bdf8', '#f97316', '#a78bfa', '#f43f5e', '#22c55e', '#eab308', '#14b8a6', '#fb7185', '#60a5fa', '#c084fc', '#f59e0b'];
 
@@ -258,7 +259,7 @@ export const leaguePosition = (s: SeasonState) => sortTable(s.table).findIndex((
 
 /* ───────── Applying a result ───────── */
 
-function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng: Rng): TableRow[] {
+function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng: Rng, others?: OtherGame[]): TableRow[] {
   const meanStrength = table.reduce((s, t) => s + t.strength, 0) / table.length;
   const played = r.outcome;
   return table.map((row) => {
@@ -286,7 +287,21 @@ function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng:
         pts: row.pts + (played === 'L' ? 3 : played === 'D' ? 1 : 0),
       };
     }
-    // Everyone else plays someone else this matchday
+    // Everyone else plays someone else this matchday — the result you watched live, if there was one
+    const live = finalFor(others, row.id);
+    if (live) {
+      const [gf, ga] = live;
+      return {
+        ...row,
+        played: row.played + 1,
+        won: row.won + (gf > ga ? 1 : 0),
+        drawn: row.drawn + (gf === ga ? 1 : 0),
+        lost: row.lost + (gf < ga ? 1 : 0),
+        gf: row.gf + gf,
+        ga: row.ga + ga,
+        pts: row.pts + (gf > ga ? 3 : gf === ga ? 1 : 0),
+      };
+    }
     const pw = clamp(0.38 + (row.strength - meanStrength) / 70, 0.14, 0.7);
     const roll = rng();
     const won = roll < pw;
@@ -319,22 +334,17 @@ export function applyDraw(season: SeasonState, fixtureId: string, index: number)
 }
 
 /** Results of the group: yours is real, the other two clubs play each other. */
-function updateEuroTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng: Rng): TableRow[] {
+function updateEuroTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng: Rng, liveGames?: OtherGame[]): TableRow[] {
   const slot = Number(fixture.label.match(/Group Match (\d)/)?.[1] ?? 1);
   const opp = table.filter((x) => !x.isMe)[slot - 1];
   if (!opp) return table;
   const others = table.filter((x) => !x.isMe && x.id !== opp.id);
-  // the two other clubs meet on the same matchday
+  // the two other clubs meet on the same matchday (the score you watched, or a simulated one)
   let a = 0;
   let b = 0;
   if (others.length === 2) {
-    const pa = clamp(0.4 + (others[0].strength - others[1].strength) / 80, 0.15, 0.7);
-    const roll = rng();
-    const outcome = roll < pa ? 'A' : roll < pa + 0.22 ? 'D' : 'B';
-    a = outcome === 'A' ? randInt(1, 3, rng) : outcome === 'D' ? randInt(0, 2, rng) : randInt(0, 1, rng);
-    b = outcome === 'B' ? randInt(1, 3, rng) : outcome === 'D' ? a : randInt(0, Math.max(0, a - 1), rng);
-    if (outcome === 'A' && b >= a) b = Math.max(0, a - 1);
-    if (outcome === 'B' && a >= b) a = Math.max(0, b - 1);
+    const live = finalFor(liveGames, others[0].id);
+    [a, b] = live ?? simulateScore(others[0].strength, others[1].strength, rng);
   }
   const apply = (row: TableRow, gf: number, ga: number): TableRow => ({
     ...row,
@@ -354,7 +364,38 @@ function updateEuroTable(table: TableRow[], fixture: Fixture, r: FixtureResult, 
   });
 }
 
-export function applyFixtureResult(season: SeasonState, result: FixtureResult, rng: Rng): SeasonState {
+/** Rebuilds the European group table (older saves, or a season where it was never created). */
+export function deriveEuroTable(season: SeasonState): TableRow[] | undefined {
+  if (!season.europe) return undefined;
+  const me = season.table.find((r) => r.isMe);
+  const group = season.fixtures.filter((f) => f.kind === 'euro' && !f.knockout);
+  if (!me || group.length === 0) return undefined;
+  let table: TableRow[] = [
+    { ...me, id: 'me', played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 },
+    ...group.map((f, i) => ({
+      id: `${season.year}-eg${i + 1}`,
+      name: f.opponent,
+      short: f.opponentShort,
+      strength: f.opponentStrength,
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      gf: 0,
+      ga: 0,
+      pts: 0,
+    })),
+  ];
+  for (const f of group) {
+    if (f.status === 'played' && f.result) {
+      const seed = [...f.id].reduce((a, c) => a + c.charCodeAt(0), 0);
+      table = updateEuroTable(table, f, f.result, mulberry32(seed));
+    }
+  }
+  return table;
+}
+
+export function applyFixtureResult(season: SeasonState, result: FixtureResult, rng: Rng, others?: OtherGame[]): SeasonState {
   const idx = firstUpcoming(season);
   if (idx === -1) return season;
   const fixture = season.fixtures[idx];
@@ -371,7 +412,7 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
   };
 
   if (fixture.kind === 'league') {
-    next.table = updateTable(season.table, fixture, result, rng);
+    next.table = updateTable(season.table, fixture, result, rng, others);
   }
 
   const skipRest = (kind: Fixture['kind']) => {
@@ -394,7 +435,9 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
     const comp = (season.europe ?? 'Champions League') as EuroComp;
     if (!fixture.knockout) {
       next.euroPts = (next.euroPts ?? 0) + (result.outcome === 'W' ? 3 : result.outcome === 'D' ? 1 : 0);
-      if (next.euroTable) next.euroTable = updateEuroTable(next.euroTable, fixture, result, rng);
+      // saves made before the group table existed get one rebuilt from what was already played
+      const base = next.euroTable ?? deriveEuroTable(season);
+      if (base) next.euroTable = updateEuroTable(base, fixture, result, rng, others);
       // three group games: only the top two of the group go through
       if (fixture.label.endsWith('Group Match 3') && next.euroTable && sortTable(next.euroTable).findIndex((r) => r.isMe) >= 2) skipRest('euro');
     } else if (result.outcome === 'L') {

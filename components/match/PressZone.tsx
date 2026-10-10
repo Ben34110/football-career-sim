@@ -1,12 +1,13 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flame, Mic, MicOff, Newspaper } from 'lucide-react';
+import { Flame, Mic, MicOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { FloatingAction } from '@/components/ui/FloatingAction';
-import { CONTROVERSIES, controversyChance, headlineFor, type Controversy, type ControversyCtx } from '@/lib/data/controversies';
+import { CONTROVERSIES, controversyChance, type Controversy, type ControversyCtx } from '@/lib/data/controversies';
+import type { Look } from '@/lib/data/look';
 import { FOLLOW_UPS, PRESS_QUESTIONS, REACTIONS, type FollowUp, type PressAnswer, type PressContext, type PressQuestion } from '@/lib/data/press';
 import { moodLabel, repetition } from '@/lib/data/talks';
 import { REP_LABEL } from '@/lib/engine/player';
@@ -16,6 +17,7 @@ import { useGameStore } from '@/lib/store';
 import type { RepKey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ControversyPanel } from './ControversyPanel';
+import { Newspaper, type RoundupLine } from './Newspaper';
 
 const STYLE_LABEL = { tactical: 'Tactical', bold: 'Bold', humble: 'Humble', deflect: 'Deflect', 'no-comment': 'Silent' } as const;
 const STYLE_TONE = { tactical: 'info', bold: 'bad', humble: 'good', deflect: 'neutral', 'no-comment': 'neutral' } as const;
@@ -30,6 +32,10 @@ export function PressZone({
   playerName,
   recentQuestions,
   recentStyles,
+  look,
+  date,
+  roundup,
+  edition,
   onAnswer,
   onContinue,
 }: {
@@ -39,6 +45,10 @@ export function PressZone({
   recentQuestions: string[];
   /** Answer styles used lately: repeating one weakens it */
   recentStyles: string[];
+  look?: Look;
+  date: Date;
+  roundup: RoundupLine[];
+  edition: number;
   onAnswer: (a: PressAnswer, info: AnswerInfo) => void;
   onContinue: () => void;
 }) {
@@ -60,7 +70,6 @@ export function PressZone({
   const amp = 1 + context.mediaHeat / 150;
   const vars = { opp: t(context.opp), my: context.myScore, their: context.oppScore, name: playerName };
   const done = chosen && (!followUp || followChosen);
-  const headline = useMemo(() => (done && chosen ? headlineFor(chosen.style, stirred) : null), [done, chosen, stirred]);
 
   const answer = (a: PressAnswer) => {
     setChosen(a);
@@ -103,13 +112,37 @@ export function PressZone({
   const label = moodLabel(mood);
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="eyebrow text-neon-400">{t('Post-match')}</div>
-          <h2 className="font-display text-4xl font-extrabold uppercase leading-none">{t('Press Zone')}</h2>
-        </div>
-        <Chip tone={label === 'Friendly' ? 'good' : label === 'Hostile' ? 'bad' : 'neutral'}>
-          {t('Press mood')}: {t(label)}
+      {/* The morning-after front page */}
+      <Newspaper
+        look={look}
+        date={date}
+        roundup={roundup}
+        ctx={{
+          name: playerName,
+          club: context.myTeam,
+          opp: t(context.opp),
+          outcome: context.outcome,
+          my: context.myScore,
+          their: context.oppScore,
+          goals: context.goals,
+          assists: context.assists,
+          rating: context.rating,
+          label: context.label,
+          kind: context.kind,
+          home: context.meHome,
+          missedKick: context.missedKick,
+          subbedOff: context.subbedOff,
+          benched: context.benched,
+          shootout: context.shootout,
+          recent: context.recent,
+          edition,
+        }}
+      />
+
+      <div className="flex items-center justify-between gap-3 px-0.5">
+        <div className="eyebrow text-neon-400">{t('The paper wants your reaction')}</div>
+        <Chip tone={mood >= 25 ? 'good' : mood <= -25 ? 'bad' : 'neutral'}>
+          {t('Press mood')}: {t(moodLabel(mood))}
         </Chip>
       </div>
 
@@ -147,14 +180,8 @@ export function PressZone({
         <Mic className="h-3 w-3" /> {t('Media Heat amplifies every answer — good or bad.')}
       </p>
 
-      {done && headline && (
+      {done && (
         <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-2.5">
-          <Card className="border-gold-400/25 p-4">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gold-300">
-              <Newspaper className="h-3.5 w-3.5" /> {headline.outlet}
-            </div>
-            <p className="mt-1.5 font-display text-2xl font-extrabold uppercase leading-tight">{t(headline.text, { name: playerName })}</p>
-          </Card>
           {!stirred ? (
             <button
               onClick={() => {

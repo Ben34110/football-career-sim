@@ -1,4 +1,4 @@
-import type { Outcome, Reputation } from '../types';
+import type { FixtureKind, Outcome, Reputation } from '../types';
 
 export type PressStyle = 'tactical' | 'bold' | 'humble' | 'deflect' | 'no-comment';
 
@@ -37,6 +37,11 @@ export interface PressContext {
   recent: Outcome[];
   /** How the press feels about you (-100…100) */
   mood: number;
+  // for the newspaper page
+  kind: FixtureKind;
+  meHome: boolean;
+  myTeam: string;
+  shootout?: { my: number; opp: number };
 }
 
 export interface PressQuestion {

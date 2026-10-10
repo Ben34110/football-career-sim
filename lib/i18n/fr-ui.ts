@@ -186,6 +186,14 @@ export const FR_UI: Record<string, string> = {
   '⬆️ Promotion! The club rises to Division {n}.': '⬆️ Promotion ! Le club monte en Division {n}.',
   '⭐ Qualified for the {comp} next season!': '⭐ Qualifié pour la {comp} la saison prochaine !',
 
+  // live standings
+  'Live table': 'Classement en direct',
+  'Other matches': 'Autres matchs',
+  'Elsewhere right now': 'En ce moment ailleurs',
+  'Back to the match': 'Retour au match',
+  'No other matches at the moment.': 'Aucun autre match en ce moment.',
+  FT: 'Fin',
+
   // in-match boosts
   Rally: 'Relance',
   'Second wind': 'Second souffle',
@@ -214,6 +222,9 @@ export const FR_UI: Record<string, string> = {
   '🌬️ {who} takes a deep breath, but the legs are still heavy.': '🌬️ {who} respire à fond, mais les jambes restent lourdes.',
   '💪 {who} ignores the pain and keeps running.': '💪 {who} ignore la douleur et continue de courir.',
   '💪 {who} pushes too hard — the legs give out for a moment.': '💪 {who} force trop — les jambes lâchent un instant.',
+
+  Profile: 'Profil',
+  Boosts: 'Boosts',
 
   // boosts
   'Match-day boosts': 'Boosts de match',
@@ -534,7 +545,7 @@ export const FR_UI: Record<string, string> = {
   'Tap a zone to take the shot': 'Touche une zone pour tirer',
   '★ Corners are harder to save — but easier to miss.': '★ Les lucarnes sont plus dures à arrêter — mais plus faciles à rater.',
   'Low shots risk the wall.': 'Les tirs bas risquent le mur.',
-  'Bend the ball toward the side you aim at to beat the wall and fool the keeper.': 'Enroule le ballon du côté que tu vises pour contourner le mur et tromper le gardien.',
+  'The keeper is behind the wall: aim for the part of the goal it cannot hide.': 'Le gardien est derrière le mur : vise la partie du but qu’il ne cache pas.',
   'Curl left': 'Enroulé gauche',
   Straight: 'Tout droit',
   'Curl right': 'Enroulé droit',

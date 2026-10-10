@@ -1,14 +1,14 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Crosshair, Gauge, MoveRight, MoveUpRight, MoveUpLeft } from 'lucide-react';
+import { Crosshair, Gauge } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { resolveKick, WALL_COLS, ZONE_COUNT, ZONE_NAMES, zoneCol, zoneRow, type KickOutcome, type WallSide } from '@/lib/engine/kick';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
-import type { Curl, KickKind } from '@/lib/types';
+import type { KickKind } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -57,16 +57,9 @@ function pressureLabel(p: number) {
   return p > 0.75 ? 'Nerve-shredding' : p > 0.5 ? 'High' : p > 0.3 ? 'Rising' : 'Calm';
 }
 
-const CURLS: { id: Curl; label: string; Icon: typeof MoveRight }[] = [
-  { id: 'left', label: 'Curl left', Icon: MoveUpLeft },
-  { id: 'straight', label: 'Straight', Icon: MoveRight },
-  { id: 'right', label: 'Curl right', Icon: MoveUpRight },
-];
-
 export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, title, subtitle, continueLabel = 'Continue', wallColor = '#2563eb', onDone }: Props) {
   const t = useT();
   const reduce = useReducedMotion();
-  const [curl, setCurl] = useState<Curl>('straight');
   // the wall lines up on one side of the goal for the whole kick
   const [wall] = useState<WallSide>(() => (['left', 'center', 'right'] as const)[Math.floor(Math.random() * 3)]);
   const [phase, setPhase] = useState<'aim' | 'flying' | 'revealed'>('aim');
@@ -82,7 +75,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
     if (phase !== 'aim') return;
     haptic(18);
     setHover(null);
-    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, curl, wall: kind === 'freekick' ? wall : undefined }, Math.random);
+    const o = resolveKick({ zone, kind, finishing, composure, keeperLevel, pressure, wall: kind === 'freekick' ? wall : undefined }, Math.random);
     setOutcome(o);
     setPhase('flying');
     timer.current = setTimeout(
@@ -131,11 +124,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
 
   const kt = keeperTarget();
   const bt = ballTarget();
-  // Curled free kicks swing out first, then bend back toward the target
-  const curved = !!outcome && outcome.curl !== 'straight' && kind === 'freekick';
   const woodwork = outcome?.result === 'missed' && (outcome.miss === 'post' || outcome.miss === 'bar');
-  const midLeft = curved && outcome ? `${parseFloat(String(bt.left)) + (outcome.curl === 'left' ? 16 : -16)}%` : bt.left;
-  const midTop = curved ? '62%' : bt.top;
   const revealed = phase === 'revealed' && outcome;
   const isGoal = outcome?.result === 'goal';
 
@@ -226,11 +215,11 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
           />
         )}
         {kind === 'freekick' && <Wall side={wall} color={wallColor} phase={phase} result={outcome?.result} />}
-        {kind === 'freekick' && phase === 'aim' && hover !== null && <TrajectoryPreview zone={hover} curl={curl} />}
+        {kind === 'freekick' && phase === 'aim' && hover !== null && <TrajectoryPreview zone={hover} />}
 
         {/* Keeper */}
         <motion.div
-          className="pointer-events-none absolute z-10"
+          className="pointer-events-none absolute z-[6]"
           style={{ x: '-50%', y: '-50%' }}
           initial={{ left: '50%', top: '38%', rotate: 0 }}
           animate={{ left: kt.left, top: kt.top, rotate: kt.rotate }}
@@ -263,11 +252,9 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
                     top: ['93%', bt.top, outcome.miss === 'bar' ? '36%' : '68%'],
                     scale: [1, bt.scale, 0.8],
                   }
-                : curved
-                  ? { left: ['50%', midLeft, bt.left], top: ['93%', midTop, bt.top], scale: [1, 0.8, bt.scale] }
-                  : { left: bt.left, top: bt.top, scale: bt.scale }
+                : { left: bt.left, top: bt.top, scale: bt.scale }
           }
-          transition={reduce ? { duration: 0 } : { duration: curved ? 0.75 : 0.55, ease: curved ? 'easeInOut' : [0.2, 0.7, 0.3, 1] }}
+          transition={reduce ? { duration: 0 } : { duration: 0.55, ease: [0.2, 0.7, 0.3, 1] }}
         >
           <div className="h-full w-full rounded-full bg-[radial-gradient(circle_at_35%_30%,#fff,#d4d4d8_55%,#52525b)] shadow-[0_6px_12px_rgba(0,0,0,0.7)]" />
           <svg viewBox="0 0 28 28" className="absolute inset-0" aria-hidden>
@@ -308,29 +295,6 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
       <div className="min-h-[76px]">
         {phase === 'aim' && (
           <div className="space-y-2 text-center">
-            {kind === 'freekick' && (
-              <div>
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t('Spin')}</div>
-                <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1">
-                  {CURLS.map(({ id, label, Icon }) => (
-                    <button
-                      key={id}
-                      onClick={() => {
-                        setCurl(id);
-                        haptic(8);
-                      }}
-                      aria-pressed={curl === id}
-                      className={cn(
-                        'flex h-9 items-center justify-center gap-1 rounded-xl text-xs font-bold transition-all',
-                        curl === id ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-zinc-950' : 'text-zinc-400',
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" /> {t(label)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             <p className="text-sm font-semibold text-zinc-200">{hover !== null ? t(ZONE_NAMES[hover]) : t('Tap a zone to take the shot')}</p>
             <p className="text-xs text-zinc-500">
               {t('★ Corners are harder to save — but easier to miss.')}
@@ -339,7 +303,7 @@ export function GoalTarget({ kind, finishing, composure, keeperLevel, pressure, 
             {kind === 'freekick' && (
               <p className="text-xs text-zinc-500">
                 {t(wall === 'left' ? 'The wall covers the left of the goal.' : wall === 'right' ? 'The wall covers the right of the goal.' : 'The wall covers the middle of the goal.')}{' '}
-                {t('Bend the ball toward the side you aim at to beat the wall and fool the keeper.')}
+                {t('The keeper is behind the wall: aim for the part of the goal it cannot hide.')}
               </p>
             )}
           </div>
@@ -460,13 +424,12 @@ function Wall({ side, color, phase, result }: { side: WallSide; color: string; p
 }
 
 /** Dashed preview of the ball's path to the zone under the cursor, bent by the chosen spin. */
-function TrajectoryPreview({ zone, curl }: { zone: number; curl: Curl }) {
+function TrajectoryPreview({ zone }: { zone: number }) {
   const c = zoneCenter(zone);
   const sx = 50;
   const sy = 93;
-  const bend = curl === 'left' ? 20 : curl === 'right' ? -20 : 0;
-  // control point: halfway up, pushed sideways opposite to the final curl direction
-  const cx = (sx + c.x) / 2 + bend;
+  // a gentle arc for readability
+  const cx = (sx + c.x) / 2;
   const cy = (sy + c.y) / 2 + 6;
   return (
     <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 z-[6] h-full w-full">

@@ -28,6 +28,7 @@ export function ShopScreen() {
   const grantLives = useGameStore((s) => s.grantLives);
   const { bolts, msToNext } = useEnergy();
   const [busy, setBusy] = useState<string | null>(null);
+  const [tab, setTab] = useState<'lives' | 'boosts' | 'upgrades'>('lives');
   if (!player) return null;
 
   const wage = player.contract?.wage ?? 4;
@@ -63,7 +64,28 @@ export function ShopScreen() {
         <p className="max-w-[150px] text-right text-[11px] leading-snug text-zinc-400">{t('You earn money every match. Spend it on lasting upgrades.')}</p>
       </Card>
 
-      {/* Lives */}
+      <div className="grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1" role="tablist">
+        {(
+          [
+            ['lives', '❤️', 'Lives'],
+            ['boosts', '⚡', 'Boosts'],
+            ['upgrades', '🏆', 'Upgrades'],
+          ] as const
+        ).map(([id, icon, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={cn('h-10 rounded-xl text-[13px] font-bold transition-colors', tab === id ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-zinc-950' : 'text-zinc-400')}
+          >
+            {icon} {t(label)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'lives' && (
+        <>
       <div>
         <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Lives')}</SectionTitle>
         <Card className="space-y-3 p-4">
@@ -106,7 +128,11 @@ export function ShopScreen() {
         </Card>
       </div>
 
-      {/* Match-day boosts */}
+        </>
+      )}
+
+      {tab === 'boosts' && (
+        <>
       <div>
         <SectionTitle>{t('Match-day boosts')}</SectionTitle>
         <Card className="divide-y divide-white/[0.06] p-0">
@@ -140,7 +166,11 @@ export function ShopScreen() {
         <p className="mt-2 px-1 text-[11px] text-zinc-500">{t('Use one before kick-off. Small edge, one per match.')}</p>
       </div>
 
-      {/* Upgrades */}
+        </>
+      )}
+
+      {tab === 'upgrades' && (
+        <>
       <div>
         <SectionTitle>{t('Upgrades')}</SectionTitle>
         <div className="space-y-3">
@@ -186,7 +216,11 @@ export function ShopScreen() {
         </div>
       </div>
 
-      {/* Gala */}
+        </>
+      )}
+
+      {tab === 'upgrades' && (
+        <>
       <Card className="flex items-center gap-3 p-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gold-400/15 text-gold-300">
           <Gift className="h-5 w-5" />
@@ -207,6 +241,8 @@ export function ShopScreen() {
           {galaDone ? <Sparkles className="h-4 w-4" /> : fmtMoneyK(gala)}
         </Button>
       </Card>
+        </>
+      )}
     </div>
   );
 }

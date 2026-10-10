@@ -8,11 +8,11 @@ import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality, tournamentFor, youthTournamentFor } from '@/lib/data/nationalities';
 import { CALL_UP_OVR, nationalLevel, nextNationalGoal, ovrOf, seasonLabel, U20_CALL_UP_OVR, U23_CALL_UP_OVR } from '@/lib/engine/player';
-import { seasonZones, sortTable } from '@/lib/engine/season';
+import { deriveEuroTable, seasonZones, sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
-import type { Fixture, SeasonState } from '@/lib/types';
+import type { Fixture, SeasonState, TableRow } from '@/lib/types';
 import { cn, crestShort } from '@/lib/utils';
 
 const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe, euro: Star };
@@ -153,6 +153,8 @@ function Fixtures({ season }: { season: SeasonState }) {
   const groupLeft = fixtures.some((x) => x.kind === 'euro' && x.status === 'upcoming' && x.drawn !== false);
   const visible = fixtures
     .map((f, i) => ({ f, i }))
+    // rounds you can no longer reach (knocked out) simply disappear
+    .filter(({ f }) => f.status !== 'skipped')
     // later knockout rounds stay hidden until you reach them (European knockouts also wait for the group stage)
     .filter(({ f }) => !(f.status === 'upcoming' && f.drawn === false && (firstOpen[f.kind] !== f.id || (f.kind === 'euro' && groupLeft))));
   return (
@@ -199,12 +201,14 @@ function Table() {
   const season = useGameStore((s) => s.season);
   const [view, setView] = useState<'league' | 'europe'>('league');
   if (!season) return null;
-  const hasEurope = !!season.europe && !!season.euroTable;
+  // saves from before the group table existed get one rebuilt from the matches already played
+  const euroTable = season.euroTable ?? deriveEuroTable(season);
+  const hasEurope = !!season.europe && !!euroTable;
   if (hasEurope && view === 'europe') {
     return (
       <div className="space-y-2.5">
         <ViewSwitch view={view} onChange={setView} europe={season.europe!} />
-        <EuropeTable season={season} />
+        <EuropeTable season={season} table={euroTable!} />
       </div>
     );
   }
@@ -292,9 +296,9 @@ function ViewSwitch({ view, onChange, europe }: { view: 'league' | 'europe'; onC
 }
 
 /** The European group (top two go through) and the knockout path. */
-function EuropeTable({ season }: { season: SeasonState }) {
+function EuropeTable({ season, table }: { season: SeasonState; table: TableRow[] }) {
   const t = useT();
-  const rows = sortTable(season.euroTable ?? []);
+  const rows = sortTable(table);
   const rounds = season.fixtures.filter((f) => f.kind === 'euro' && f.knockout);
   const groupDone = season.fixtures.filter((f) => f.kind === 'euro' && !f.knockout).every((f) => f.status !== 'upcoming');
   const myRank = rows.findIndex((r) => r.isMe);

@@ -14,7 +14,8 @@ import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
 import { LEVEL_STRENGTH, ovrOf, syncEnergy } from '@/lib/engine/player';
-import { currentFixture, leaguePosition } from '@/lib/engine/season';
+import { buildOtherGames, type OtherGame } from '@/lib/engine/livefeed';
+import { currentFixture, deriveEuroTable, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate } from '@/lib/dates';
 import { useT } from '@/lib/i18n';
@@ -50,6 +51,8 @@ export function MatchScreen() {
   const [expect, setExpect] = useState<ExpectationOutcome | null>(null);
   const [pressCtx, setPressCtx] = useState<PressContext | null>(null);
   const [seasonDone, setSeasonDone] = useState(false);
+  /** The other games played while yours is on (results are kept when the match is committed) */
+  const [others, setOthers] = useState<OtherGame[]>([]);
 
   useEffect(() => {
     setImmersive(stage === 'live' || stage === 'shootout' || stage === 'press');
@@ -151,6 +154,7 @@ export function MatchScreen() {
         fatigueRelief: p.upgrades?.nutrition ?? 0,
       }),
     );
+    setOthers(season ? buildOtherGames(season, fixture, Math.random) : []);
     setStage('live');
   };
 
@@ -159,7 +163,7 @@ export function MatchScreen() {
     const extra = shoot ? shoot.playerScored * 0.4 - shoot.playerMissed * 0.7 : 0;
     const res = buildResult(m, ctx, shoot ? { my: shoot.my, opp: shoot.opp } : null, extra, Math.random);
     const store = useGameStore.getState();
-    store.commitMatch(res);
+    store.commitMatch(res, others);
 
     const met = res.rating >= ctx.mods.ratingTarget;
     const eff = expectationEffect(ctx.mods.expectation, met);
@@ -190,6 +194,10 @@ export function MatchScreen() {
         .slice(-3)
         .map((f) => f.result!.outcome),
       mood: p.talks?.mood ?? 0,
+      kind: fixture.kind,
+      meHome: fixture.home,
+      myTeam: badges.me.name,
+      shootout: shoot ? { my: shoot.my, opp: shoot.opp } : undefined,
       benched: !!res.benched,
       subbedOff: !!res.subbedOff,
     });
@@ -234,12 +242,12 @@ export function MatchScreen() {
         />
       )}
       {stage === 'live' && ctx && (
-        <LiveMatch ctx={ctx} meHome={fixture.home} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
+        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label }} board={{ table: fixture.kind === 'league' ? season?.table ?? null : fixture.kind === 'euro' && !fixture.knockout ? season?.euroTable ?? (season ? deriveEuroTable(season) ?? null : null) : null, games: others, opponent: fixture.opponent }} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
       )}
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
-      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} recentQuestions={player.talks?.questions ?? []} recentStyles={player.talks?.press ?? []} onAnswer={onPress} onContinue={() => setStage('summary')} />}
+      {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} recentQuestions={player.talks?.questions ?? []} recentStyles={player.talks?.press ?? []} look={player.look} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
       {stage === 'summary' && result && snap && expect && (
         <MatchSummary
           fixture={fixture}

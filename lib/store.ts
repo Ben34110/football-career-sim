@@ -9,6 +9,7 @@ import type { Effect } from './data/controversies';
 import { BOOST_BY_ID, boostPrice } from './data/boosts';
 import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
 import { useUiStore } from './ui';
+import type { OtherGame } from './engine/livefeed';
 import { omissionReason, selectionChance, type SelectionInput } from './engine/selection';
 import { fixtureDate } from './dates';
 import { galaCost, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost, type UpgradeId } from './data/shop';
@@ -106,7 +107,7 @@ interface GameActions {
   drawFixture: (fixtureId: string, index: number) => void;
   applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
-  commitMatch: (result: FixtureResult) => void;
+  commitMatch: (result: FixtureResult, others?: OtherGame[]) => void;
   applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;
   /** Remembers what was said in the dressing room so the next talks can react to it. */
   recordTalk: (e: { stance?: string; speech?: string; instruction?: string }) => void;
@@ -230,13 +231,13 @@ export const useGameStore = create<GameStore>()(
         set({ player: { ...player, morale: clamp(player.morale + morale, 0, 100), rep: applyRep(player.rep, rep) } });
       },
 
-      commitMatch: (result) => {
+      commitMatch: (result, others) => {
         const { player, season, news } = get();
         if (!player || !season) return;
         const fixture = season.fixtures.find((f) => f.status === 'upcoming');
         if (!fixture) return;
 
-        let nextSeason = applyFixtureResult(season, result, Math.random);
+        let nextSeason = applyFixtureResult(season, result, Math.random, others);
         const xp = gainMatchXp(
           player,
           { rating: result.rating, goals: result.goals, assists: result.assists, clutchWins: result.clutchWins ?? 0, fullMatch: !result.subbedOff && !result.benched },

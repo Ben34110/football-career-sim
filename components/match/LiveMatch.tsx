@@ -8,10 +8,12 @@ import { Card } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { Sheet } from '@/components/ui/Sheet';
-import { applyKick, applyRally, createMatch, pressureFor, rallyChance, rallyKind, rallyOptions, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
+import { applyKick, applyRally, createMatch, MENTALITY, setMentality, pressureFor, rallyChance, rallyKind, rallyOptions, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
-import type { KickKind, MatchEvent, MiniKind, MiniQuality, MatchState } from '@/lib/types';
+import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
+import { sortTable } from '@/lib/engine/season';
+import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
@@ -23,8 +25,32 @@ export interface TeamBadge {
   color: string;
 }
 
+export interface LiveBoard {
+  /** The table being fought over (league, or the European group); null for knockouts */
+  table: TableRow[] | null;
+  games: OtherGame[];
+  opponent: string;
+}
+
+const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced: 'Normal', defend: 'Defend' };
+const MENTALITY_HINT: Record<Mentality, string> = {
+  attack: 'More chances for both sides',
+  balanced: 'A balanced shape',
+  defend: 'Harder to score against, fewer chances',
+};
+
+const COMPETITION_LABEL: Record<FixtureKind, string> = {
+  league: 'League',
+  cup: 'Domestic Cup',
+  intl: 'International',
+  tournament: 'Tournament',
+  euro: 'Europe',
+};
+
 interface Props {
   ctx: MatchCtx;
+  competition: { kind: FixtureKind; label: string };
+  board: LiveBoard;
   meHome: boolean;
   me: TeamBadge;
   opp: TeamBadge;
@@ -39,11 +65,12 @@ const EVENT_STYLE: Record<MatchEvent['side'], string> = {
   neutral: 'border-white/15',
 };
 
-export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinished }: Props) {
+export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing, composure, onFinished }: Props) {
   const t = useT();
   const [m, setM] = useState<MatchState>(() => createMatch(ctx, Math.random));
   const [mini, setMini] = useState<{ kind: MiniKind; optionId: string } | null>(null);
   const [rallyOpen, setRallyOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [fast, setFast] = useState(false);
   const [kick, setKick] = useState<KickKind | null>(null);
@@ -52,10 +79,10 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
 
   /* Game clock */
   useEffect(() => {
-    if (paused || rallyOpen || m.status !== 'playing') return;
+    if (paused || rallyOpen || boardOpen || m.status !== 'playing') return;
     const id = setInterval(() => setM((p) => tickMatch(p, ctx, Math.random)), fast ? 320 : 820);
     return () => clearInterval(id);
-  }, [paused, rallyOpen, fast, m.status, ctx]);
+  }, [paused, rallyOpen, boardOpen, fast, m.status, ctx]);
 
   /* Goal flashes + haptics */
   useEffect(() => {
@@ -118,6 +145,12 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
             />
           )}
         </AnimatePresence>
+        <div className="relative mb-3 flex items-center justify-center">
+          <span className="flex items-center gap-1.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-gold-300">
+            {competition.kind === 'euro' ? '⭐' : competition.kind === 'cup' ? '🏆' : competition.kind === 'league' ? '⚽' : '🌍'}
+            {competition.kind === 'euro' ? t(competition.label) : `${t(COMPETITION_LABEL[competition.kind])} · ${t(competition.label)}`}
+          </span>
+        </div>
         <div className="relative flex items-center justify-between">
           <TeamSide badge={meHome ? me : opp} you={meHome} />
           <div className="text-center">
@@ -162,6 +195,43 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
         </div>
       </Card>
 
+      {/* Team mentality: stays on for the whole match, change it whenever the game calls for it */}
+      {!finished && (
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-2">
+          <div className="mb-1.5 flex items-center justify-between px-1">
+            <span className="eyebrow">{t('Team mentality')}</span>
+            <span className="text-[10px] text-zinc-500">{t(MENTALITY_HINT[m.mentality ?? 'balanced'])}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {(['attack', 'balanced', 'defend'] as Mentality[]).map((mode) => {
+              const active = (m.mentality ?? 'balanced') === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    haptic(12);
+                    setM((prev) => setMentality(prev, ctx, mode));
+                  }}
+                  aria-pressed={active}
+                  className={cn(
+                    'flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
+                    active
+                      ? mode === 'attack'
+                        ? 'bg-gradient-to-b from-crimson-400 to-crimson-600 text-white shadow-crimson'
+                        : mode === 'defend'
+                          ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-zinc-950'
+                          : 'bg-gradient-to-b from-neon-400 to-neon-600 text-zinc-950 shadow-neon'
+                      : 'bg-white/[0.04] text-zinc-400',
+                  )}
+                >
+                  {mode === 'attack' ? '⚔️' : mode === 'defend' ? '🛡️' : '⚖️'} {t(MENTALITY_LABEL[mode])}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
@@ -170,6 +240,15 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
         </div>
         {!finished && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                haptic(10);
+                setBoardOpen(true);
+              }}
+              className="flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-bold text-zinc-200 active:scale-90"
+            >
+              📊 {t(board.table ? 'Live table' : 'Other matches')}
+            </button>
             {rally && (
               <motion.button
                 animate={{ scale: [1, 1.06, 1] }}
@@ -180,7 +259,7 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
                 }}
                 className="flex h-9 items-center gap-1.5 rounded-full border border-gold-400/60 bg-gold-400/15 px-3 text-xs font-bold text-gold-200"
               >
-                {rally === 'trailing' ? '📣' : '🌬️'} {t(rally === 'trailing' ? 'Rally' : 'Second wind')}
+                📣 {t('Rally')}
               </motion.button>
             )}
             <button
@@ -236,12 +315,20 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
 
       <ClutchSheet open={m.status === 'clutch' && !kick && !mini} moment={moment} match={m} ctx={ctx} onPick={pick} />
 
+      {/* Live standings and the other games being played right now */}
+      <Sheet open={boardOpen} dismissible onClose={() => setBoardOpen(false)} className="max-h-[88dvh] overflow-y-auto">
+        <LiveBoardView board={board} myScore={m.myScore} oppScore={m.oppScore} minute={m.minute} finished={finished} />
+        <Button block variant="ghost" className="mt-4" onClick={() => setBoardOpen(false)}>
+          {t('Back to the match')}
+        </Button>
+      </Sheet>
+
       {/* Team boost when you are losing or tired */}
       <Sheet open={rallyOpen && !!rally} dismissible onClose={() => setRallyOpen(false)}>
         {rally && (
           <div>
-            <div className="eyebrow text-gold-300">{t(rally === 'trailing' ? 'Time to react' : 'Running on empty')}</div>
-            <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(rally === 'trailing' ? 'Lift the team' : 'Dig deep')}</h3>
+            <div className="eyebrow text-gold-300">{t('Time to react')}</div>
+            <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t('Lift the team')}</h3>
             <p className="mt-1 text-sm text-zinc-400">{t('One chance per match. How do you react?')}</p>
             <div className="mt-4 space-y-2.5">
               {rallyOptions(rally).map((o) => {
@@ -332,6 +419,72 @@ function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
       <Crest short={badge.short} color={badge.color} size={48} />
       <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
       {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">{t('You')}</span>}
+    </div>
+  );
+}
+
+function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: LiveBoard; myScore: number; oppScore: number; minute: number; finished: boolean }) {
+  const t = useT();
+  const clock = finished ? t('FT') : `${minute}'`;
+  const live = board.table ? sortTable(liveTable(board.table, board.opponent, myScore, oppScore, board.games, minute)) : null;
+  const before = board.table ? sortTable(board.table) : null;
+  return (
+    <div className="space-y-4">
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(board.table ? 'Live table' : 'Other matches')}</h3>
+        <span className="font-num text-sm font-bold text-crimson-400">● {clock}</span>
+      </div>
+
+      {live && before && (
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08]">
+          <div className="grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 border-b border-white/[0.06] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            <span>#</span>
+            <span />
+            <span>{t('Club')}</span>
+            <span className="text-center">{t('P')}</span>
+            <span className="text-center">{t('GD')}</span>
+            <span className="text-right">{t('Pts')}</span>
+          </div>
+          {live.map((r, i) => {
+            const was = before.findIndex((x) => x.id === r.id);
+            const move = was - i;
+            return (
+              <div key={r.id} className={cn('grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 px-3 py-2 text-[13px]', r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300')}>
+                <span className="font-num text-zinc-500">{i + 1}</span>
+                <span className={cn('text-[10px] font-bold', move > 0 ? 'text-neon-400' : move < 0 ? 'text-crimson-400' : 'text-zinc-700')}>{move > 0 ? '▲' : move < 0 ? '▼' : '–'}</span>
+                <span className="truncate">{r.name}</span>
+                <span className="font-num text-center">{r.played}</span>
+                <span className="font-num text-center">
+                  {r.gf - r.ga > 0 ? '+' : ''}
+                  {r.gf - r.ga}
+                </span>
+                <span className="font-num text-right text-base font-extrabold">{r.pts}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {board.games.length > 0 && (
+        <div>
+          <div className="eyebrow mb-2">{t('Elsewhere right now')}</div>
+          <div className="space-y-1.5">
+            {board.games.map((g) => {
+              const [h, a] = scoreAt(g, minute);
+              return (
+                <div key={g.id} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[13px]">
+                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{g.home}</span>
+                  <span className="font-num min-w-[52px] rounded-md bg-black/40 px-2 py-0.5 text-center font-extrabold">
+                    {h} – {a}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{g.away}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {!live && board.games.length === 0 && <p className="text-sm text-zinc-500">{t('No other matches at the moment.')}</p>}
     </div>
   );
 }

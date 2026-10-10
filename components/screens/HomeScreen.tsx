@@ -88,8 +88,6 @@ export function HomeScreen() {
 
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
 
-      <SquadStatusCard compact />
-
       {/* Next fixture */}
       {fixture && (
         <div>
@@ -134,6 +132,9 @@ export function HomeScreen() {
           </Card>
         </div>
       )}
+
+      {/* your role in the squad, under the match button so it never pushes it down */}
+      <SquadStatusCard compact />
 
       {/* Recovery: money buys lives back; attributes only grow by playing well */}
       {season && phase === 'playing' && (

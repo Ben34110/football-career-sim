@@ -1,0 +1,162 @@
+import type { Look } from './data/look';
+import { loadAvatar, shareImage, type ShareResult } from './shareCard';
+
+export interface PaperImage {
+  outlet: string;
+  dateLine: string;
+  edition: number;
+  headline: string;
+  caption: string;
+  paragraph: string;
+  playerLine: string;
+  rating: string;
+  joy: boolean;
+  look?: Look;
+  footer: string;
+}
+
+const W = 1080;
+const H = 1350;
+const SANS = '900 {s}px Inter, "Helvetica Neue", Arial, sans-serif';
+
+function wrap(g: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    const next = line ? `${line} ${word}` : word;
+    if (g.measureText(next).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function glow(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha: number) {
+  const rg = g.createRadialGradient(x, y, 0, x, y, r);
+  rg.addColorStop(0, color.replace('A', String(alpha)));
+  rg.addColorStop(1, color.replace('A', '0'));
+  g.fillStyle = rg;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/** Draws the front page as a shareable portrait image. */
+export async function buildPaperImage(p: PaperImage): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const g = canvas.getContext('2d')!;
+  g.fillStyle = '#f2ead7';
+  g.fillRect(0, 0, W, H);
+
+  // masthead
+  g.textAlign = 'center';
+  g.fillStyle = '#18181b';
+  g.font = SANS.replace('{s}', '96');
+  g.fillText(p.outlet.toUpperCase(), W / 2, 130);
+  g.fillRect(60, 160, W - 120, 6);
+  g.fillRect(60, 174, W - 120, 2);
+  g.font = '700 26px Inter, Arial, sans-serif';
+  g.fillStyle = '#52525b';
+  g.textAlign = 'left';
+  g.fillText(`No. ${p.edition}`, 60, 214);
+  g.textAlign = 'right';
+  g.fillText(p.dateLine.toUpperCase(), W - 60, 214);
+
+  // headline
+  g.textAlign = 'left';
+  g.fillStyle = '#18181b';
+  let hs = 92;
+  let hl: string[] = [];
+  const head = p.headline.toUpperCase();
+  for (; hs >= 60; hs -= 4) {
+    g.font = SANS.replace('{s}', String(hs));
+    hl = wrap(g, head, W - 120);
+    if (hl.length <= 3) break;
+  }
+  let y = 240 + hs;
+  hl.forEach((l) => {
+    g.fillText(l, 60, y);
+    y += hs * 1.02;
+  });
+  y -= hs * 1.02;
+
+  // text blocks measured first so the photo takes what is left
+  g.font = 'italic 400 38px Georgia, "Times New Roman", serif';
+  const pl = wrap(g, p.paragraph, W - 120).slice(0, 4);
+  const textH = pl.length * 50;
+  const ratingH = 120;
+  const photoTop = y + 30;
+  const photoH = Math.max(300, H - photoTop - 36 - textH - ratingH - 90);
+
+  // photo
+  g.save();
+  g.beginPath();
+  g.roundRect(60, photoTop, W - 120, photoH, 8);
+  g.clip();
+  const bg = g.createRadialGradient(W / 2, photoTop, 10, W / 2, photoTop, photoH * 1.5);
+  if (p.joy) {
+    bg.addColorStop(0, '#fde68a');
+    bg.addColorStop(0.42, '#d97706');
+    bg.addColorStop(1, '#3b1a05');
+  } else {
+    bg.addColorStop(0, '#cbd5e1');
+    bg.addColorStop(0.42, '#64748b');
+    bg.addColorStop(1, '#0b1220');
+  }
+  g.fillStyle = bg;
+  g.fillRect(60, photoTop, W - 120, photoH);
+  [150, 330, 520, 700, 880].forEach((x, i) => glow(g, x + 20, photoTop + 40 + (i % 2) * 40, 90 + (i % 3) * 20, 'rgba(255,255,255,A)', 0.55));
+  for (let i = 0; i < 20; i++) glow(g, 80 + i * 50, photoTop + photoH - 60 + ((i * 7) % 5) * 6, 46, 'rgba(0,0,0,A)', 0.5);
+  const size = Math.min(photoH * 1.05, 560);
+  const img = await loadAvatar(p.look, Math.round(size));
+  if (img) g.drawImage(img, (W - size) / 2, photoTop + photoH - size + size * 0.12, size, size);
+  const vg = g.createRadialGradient(W / 2, photoTop + photoH / 2, photoH * 0.35, W / 2, photoTop + photoH / 2, W * 0.65);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  g.fillStyle = vg;
+  g.fillRect(60, photoTop, W - 120, photoH);
+  g.restore();
+  g.strokeStyle = 'rgba(24,24,27,0.5)';
+  g.lineWidth = 2;
+  g.strokeRect(60, photoTop, W - 120, photoH);
+
+  // caption + paragraph
+  let ty = photoTop + photoH + 32;
+  g.fillStyle = '#52525b';
+  g.font = 'italic 400 26px Georgia, serif';
+  g.fillText(p.caption, 60, ty);
+  ty += 56;
+  g.fillStyle = '#27272a';
+  g.font = '400 38px Georgia, "Times New Roman", serif';
+  pl.forEach((l) => {
+    g.fillText(l, 60, ty);
+    ty += 50;
+  });
+
+  // rating strip
+  const ry = H - 150;
+  g.fillStyle = '#18181b';
+  g.fillRect(60, ry, W - 120, 4);
+  g.fillRect(60, ry + 96, W - 120, 4);
+  g.font = '700 38px Georgia, serif';
+  g.fillText(p.playerLine, 60, ry + 64);
+  g.textAlign = 'right';
+  g.font = SANS.replace('{s}', '70');
+  g.fillText(p.rating, W - 60, ry + 72);
+  g.textAlign = 'center';
+  g.fillStyle = '#71717a';
+  g.font = '600 24px Inter, Arial, sans-serif';
+  g.fillText(p.footer, W / 2, H - 28);
+
+  return new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('png'))), 'image/png'));
+}
+
+export async function sharePaper(p: PaperImage, text: string): Promise<ShareResult> {
+  try {
+    return await shareImage(await buildPaperImage(p), 'pitch-legacy-front-page.png', text);
+  } catch {
+    return 'failed';
+  }
+}

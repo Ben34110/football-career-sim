@@ -50,7 +50,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
       <Card strong className="relative overflow-hidden p-4">
         <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-40" />
         {/* the pot */}
-        <div className="relative grid grid-cols-2 gap-3">
+        <div className={cn('relative grid gap-3', pool.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
           {pool.map((c, i) => {
             const isPicked = picked === i;
             const dim = picked !== null && !isPicked;
@@ -83,7 +83,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
                       <Crest short={crestShort(c.opponentShort)} color={c.opponentColor} size={44} />
                     </motion.span>
                   ) : (
-                    <motion.span key="num" exit={{ scale: 0 }} className="font-display text-5xl font-extrabold text-zinc-900/80">
+                    <motion.span key="num" exit={{ scale: 0 }} className={cn('font-display font-extrabold text-zinc-900/80', pool.length === 3 ? 'text-4xl' : 'text-5xl')}>
                       {i + 1}
                     </motion.span>
                   )}
@@ -114,23 +114,42 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
                 </div>
               </div>
             </Card>
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-              <div className="eyebrow mb-2 flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> {t('The other balls held')}
-              </div>
-              <div className="space-y-1">
-                {pool.map((c, i) =>
-                  i === picked ? null : (
-                    <div key={i} className="flex items-center justify-between text-xs text-zinc-400">
-                      <span className="truncate">
-                        {i + 1} · {t(c.opponent)}
-                      </span>
-                      <span className="font-num">{c.opponentStrength}</span>
+            {pool.length === 3 ? (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+                <div className="eyebrow mb-2 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> {t('The other semi-final')}
+                </div>
+                {(() => {
+                  const [a, b] = pool.filter((_, i) => i !== picked);
+                  return a && b ? (
+                    <div className="flex items-center justify-between text-sm font-semibold text-zinc-200">
+                      <span className="truncate">{t(a.opponent)}</span>
+                      <span className="px-2 text-xs text-zinc-500">{t('vs')}</span>
+                      <span className="truncate text-right">{t(b.opponent)}</span>
                     </div>
-                  ),
-                )}
+                  ) : null;
+                })()}
+                <p className="mt-1.5 text-[11px] text-zinc-500">{t('The winner will be your opponent in the final.')}</p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+                <div className="eyebrow mb-2 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> {t('The other balls held')}
+                </div>
+                <div className="space-y-1">
+                  {pool.map((c, i) =>
+                    i === picked ? null : (
+                      <div key={i} className="flex items-center justify-between text-xs text-zinc-400">
+                        <span className="truncate">
+                          {i + 1} · {t(c.opponent)}
+                        </span>
+                        <span className="font-num">{c.opponentStrength}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
             <FloatingAction>
               <Button block size="lg" onClick={() => picked !== null && onDraw(picked)}>
                 {t('To the match')}

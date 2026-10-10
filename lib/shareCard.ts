@@ -9,14 +9,14 @@ type T = (text: string, vars?: Record<string, string | number>) => string;
 const W = 1080;
 const H = 1350;
 
-async function loadAvatar(look: Player['look']): Promise<HTMLImageElement | null> {
+export async function loadAvatar(look: Player['look'], px = 420): Promise<HTMLImageElement | null> {
   try {
     const [{ renderToStaticMarkup }, React, { HeadAvatar }] = await Promise.all([
       import('react-dom/server'),
       import('react'),
       import('@/components/ui/HeadAvatar'),
     ]);
-    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: 420 })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const svg = renderToStaticMarkup(React.createElement(HeadAvatar, { look: look ?? DEFAULT_LOOK, size: px })).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const img = new Image();
     await new Promise<void>((res, rej) => {
@@ -141,11 +141,10 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
 
 export type ShareResult = 'shared' | 'downloaded' | 'cancelled' | 'failed';
 
-export async function sharePlayerCard(player: Player, t: T): Promise<ShareResult> {
+/** Opens the native share sheet with an image (phones), or saves it (desktop). */
+export async function shareImage(blob: Blob, filename: string, text: string): Promise<ShareResult> {
   try {
-    const blob = await buildCardImage(player, t);
-    const file = new File([blob], `${player.name.replace(/\W+/g, '-').toLowerCase() || 'player'}-card.png`, { type: 'image/png' });
-    const text = t('{name} — OVR {ovr} {pos}. Can you beat my career?', { name: player.name, ovr: ovrOf(player), pos: player.position });
+    const file = new File([blob], filename, { type: 'image/png' });
     if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'Pitch Legacy', text });
@@ -154,7 +153,6 @@ export async function sharePlayerCard(player: Player, t: T): Promise<ShareResult
         if ((e as Error).name === 'AbortError') return 'cancelled';
       }
     }
-    // Desktop browsers: save the image instead
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -164,6 +162,16 @@ export async function sharePlayerCard(player: Player, t: T): Promise<ShareResult
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     return 'downloaded';
+  } catch {
+    return 'failed';
+  }
+}
+
+export async function sharePlayerCard(player: Player, t: T): Promise<ShareResult> {
+  try {
+    const blob = await buildCardImage(player, t);
+    const text = t('{name} — OVR {ovr} {pos}. Can you beat my career?', { name: player.name, ovr: ovrOf(player), pos: player.position });
+    return await shareImage(blob, `${player.name.replace(/\W+/g, '-').toLowerCase() || 'player'}-card.png`, text);
   } catch {
     return 'failed';
   }

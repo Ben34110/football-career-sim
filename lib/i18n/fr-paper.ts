@@ -12,7 +12,15 @@ export const FR_PAPER: Record<string, string> = {
   '📋 {who} calls for calm: the team drops deeper and defends.': '📋 {who} réclame du calme : l’équipe recule et défend.',
   '📋 {who} steadies things: the team goes back to a balanced shape.': '📋 {who} stabilise les choses : l’équipe retrouve un bloc équilibré.',
 
+  // cup draw
+  'The other semi-final': 'L’autre demi-finale',
+  'The winner will be your opponent in the final.': 'Le vainqueur sera ton adversaire en finale.',
+
   // newspaper UI
+  'Share the front page': 'Partager la une',
+  '{name} made the front page! Can you beat my career?': '{name} fait la une ! Peux-tu battre ma carrière ?',
+  'Front page saved as an image.': 'La une est enregistrée en image.',
+  'Could not create the image.': 'Impossible de créer l’image.',
   'Player rating': 'Note du joueur',
   'Around the grounds': 'Autour des stades',
   'The paper wants your reaction': 'Le journal veut ta réaction',

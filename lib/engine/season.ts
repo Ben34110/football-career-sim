@@ -59,9 +59,11 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixtur
   const boost = comp === 'Champions League' ? 6 : 1;
   const foreign = shuffle(CLUBS.filter((c) => c.country !== club.country && c.tier <= 3), rng);
   const used = new Set<string>();
-  const next = (): Club => {
-    const c = foreign.find((x) => !used.has(x.id)) ?? foreign[0];
+  // never the same club twice in one round, even when the supply of fresh clubs runs out
+  const next = (round?: Set<string>): Club => {
+    const c = foreign.find((x) => !used.has(x.id)) ?? foreign.find((x) => !round?.has(x.id)) ?? foreign[0];
     used.add(c.id);
+    round?.add(c.id);
     return c;
   };
   const cand = (c: Club, str: number): DrawCandidate => ({
@@ -90,7 +92,9 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): Fixtur
   ];
   const knock: Fixture[] = rounds.map(([r, extra], i) => {
     const spread = shuffle([-5, -1, 2, 6], rng);
-    const pool = spread.map((sp) => cand(next(), club.strength + boost + extra + sp));
+    // last four: three possible opponents; the final's opponent comes from the other semi-final
+    const round = new Set<string>();
+    const pool = spread.slice(0, i === 2 ? 3 : i === 3 ? 1 : 4).map((sp) => cand(next(round), club.strength + boost + extra + sp));
     return {
       id: `${year}-E${i + 4}`,
       kind: 'euro' as const,
@@ -161,7 +165,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
   const cup: Fixture[] = cupLabels.map((label, i) => {
     const names: string[] = [];
     for (const n of cupSource) {
-      if (names.length === 4) break;
+      // quarter-final: four balls; semi-final: three clubs left; the final is decided by the other semi
+      if (names.length === (i === 1 ? 3 : i === 2 ? 1 : 4)) break;
       if (!usedCup.has(n)) names.push(n);
     }
     names.forEach((n) => usedCup.add(n));
@@ -322,13 +327,27 @@ function updateTable(table: TableRow[], fixture: Fixture, r: FixtureResult, rng:
 }
 
 /** The player picks a ball: the opponent of this round becomes known. */
-export function applyDraw(season: SeasonState, fixtureId: string, index: number): SeasonState {
+export function applyDraw(season: SeasonState, fixtureId: string, index: number, rng: Rng = Math.random): SeasonState {
+  const fx = season.fixtures.find((f) => f.id === fixtureId);
+  if (!fx?.pool) return season;
+  const at = Math.max(0, Math.min(fx.pool.length - 1, index));
+  const pick = fx.pool[at];
+
+  // Semi-final draw: the two clubs left play the other semi-final, and its winner is your finalist
+  let finalist: DrawCandidate | null = null;
+  if (/Semi-Final$/.test(fx.label)) {
+    const [a, b] = fx.pool.filter((_, i) => i !== at);
+    if (a && b) finalist = rng() < a.opponentStrength / (a.opponentStrength + b.opponentStrength) ? a : b;
+    else if (a) finalist = a;
+  }
+  const finalIdx = finalist ? season.fixtures.findIndex((f) => f.kind === fx.kind && /Final$/.test(f.label) && !/Semi|Quarter/.test(f.label) && f.status === 'upcoming' && f.drawn === false) : -1;
+
   return {
     ...season,
-    fixtures: season.fixtures.map((f) => {
-      if (f.id !== fixtureId || !f.pool) return f;
-      const pick = f.pool[Math.max(0, Math.min(f.pool.length - 1, index))];
-      return { ...f, ...pick, drawn: true };
+    fixtures: season.fixtures.map((f, i) => {
+      if (f.id === fixtureId) return { ...f, ...pick, drawn: true };
+      if (finalist && i === finalIdx) return { ...f, ...finalist, drawn: true, pool: [finalist] };
+      return f;
     }),
   };
 }
@@ -521,7 +540,7 @@ export function queueCallUps(season: SeasonState, ovr: number, nat: Nationality,
     const extra = stages.map(([label, boost, ko], i) => {
       // four possible opponents per stage, of different strength
       const spread = shuffle([-5, -1, 2, 6], rng);
-      const options = Array.from({ length: 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng, level));
+      const options = Array.from({ length: i === 2 ? 3 : i === 3 ? 1 : 4 }, (_, k) => nationOpponent(nat, boost + spread[k], label, `${next.year}-T${i + 1}`, 'tournament', ko, rng, level));
       const names = new Set<string>();
       const pool: DrawCandidate[] = options
         .filter((o) => !names.has(o.opponent) && names.add(o.opponent))

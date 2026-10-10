@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CLUBS, getClub } from '@/lib/data/clubs';
 import { surnamesFor } from '@/lib/data/surnames';
+import { pickMotm, type Motm } from '@/lib/data/motm';
 import { standingsFor } from '@/lib/engine/standing';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
@@ -75,6 +76,7 @@ export function MatchScreen() {
   const [result, setResult] = useState<FixtureResult | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [expect, setExpect] = useState<ExpectationOutcome | null>(null);
+  const [motm, setMotm] = useState<Motm | null>(null);
   const [pressCtx, setPressCtx] = useState<PressContext | null>(null);
   const [seasonDone, setSeasonDone] = useState(false);
   /** The other games played while yours is on (results are kept when the match is committed) */
@@ -207,6 +209,7 @@ export function MatchScreen() {
     const eff = expectationEffect(ctx.mods.expectation, met);
     store.adjust(eff.morale, eff.rep);
     setExpect({ expectation: ctx.mods.expectation, target: ctx.mods.ratingTarget, met, text: eff.text });
+    setMotm(pickMotm({ res, myNames: ctx.myNames ?? [], oppNames: ctx.oppNames ?? [], playerName: ctx.playerName }, Math.random));
     setResult(res);
     setSeasonDone(useGameStore.getState().phase === 'season-end');
 
@@ -294,7 +297,7 @@ export function MatchScreen() {
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />
       )}
       {stage === 'press' && pressCtx && <PressZone context={pressCtx} playerName={player.name} look={player.look} kit={badges.me.color} date={season ? new Date(fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))).getTime() + 86_400_000) : new Date()} roundup={others.map((g) => ({ home: g.home, away: g.away, h: g.final[0], a: g.final[1] }))} edition={(season?.stats.apps ?? 0) + 1} onAnswer={onPress} onContinue={() => setStage('summary')} />}
-      {stage === 'summary' && result && snap && expect && (
+      {stage === 'summary' && result && snap && expect && motm && (
         <MatchSummary
           fixture={fixture}
           result={result}
@@ -302,6 +305,7 @@ export function MatchScreen() {
           opp={badges.opp}
           snap={snap}
           expectation={expect}
+          motm={motm}
           clutch={{ wins: finalMatch?.clutchWins ?? 0, total: finalMatch?.clutchTotal ?? 0 }}
           seasonDone={seasonDone}
           onContinue={() => router.push('/home')}

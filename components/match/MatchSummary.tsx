@@ -1,12 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, Coins, Star, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowRight, Coins, Star, Trophy } from 'lucide-react';
+import { useMemo } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
+import { HeadAvatar } from '@/components/ui/HeadAvatar';
+import { DEFAULT_LOOK, randomLook } from '@/lib/data/look';
+import type { Motm } from '@/lib/data/motm';
 import { fmtMoneyK, ovrOf } from '@/lib/engine/player';
 import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
@@ -34,7 +38,7 @@ export function MatchSummary({
   me,
   opp,
   snap,
-  expectation,
+  motm,
   clutch,
   seasonDone,
   onContinue,
@@ -44,13 +48,21 @@ export function MatchSummary({
   me: TeamBadge;
   opp: TeamBadge;
   snap: Snapshot;
-  expectation: ExpectationOutcome;
+  /** Kept for the reputation effects; no longer shown */
+  expectation?: ExpectationOutcome;
+  motm: Motm;
   clutch: { wins: number; total: number };
   seasonDone: boolean;
   onContinue: () => void;
 }) {
   const t = useT();
   const player = useGameStore((s) => s.player);
+  // a teammate or a rival gets a face of his own, the same every time this screen draws
+  const motmLook = useMemo(() => {
+    if (motm.you) return player?.look ?? DEFAULT_LOOK;
+    let seed = [...motm.name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    return randomLook(() => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296));
+  }, [motm.name, motm.you, player?.look]);
   if (!player) return null;
 
   const repDelta = Object.fromEntries(
@@ -126,20 +138,21 @@ export function MatchSummary({
         </div>
       </Card>
 
-      {/* Expectation */}
-      <Card className={cn('flex items-start gap-3 p-4', expectation.met ? 'border-neon-400/30' : 'border-crimson-500/30')}>
-        <div className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full', expectation.met ? 'bg-neon-400/15 text-neon-300' : 'bg-crimson-500/15 text-crimson-400')}>
-          {expectation.met ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+      {/* Man of the match */}
+      <Card className={cn('flex items-center gap-3.5 overflow-hidden p-3.5', motm.you ? 'border-gold-300/50 bg-gradient-to-r from-gold-400/20 to-transparent' : 'border-white/10')}>
+        <div className="relative shrink-0">
+          <HeadAvatar look={motmLook} kit={motm.team === 'me' ? me.color : opp.color} size={64} framed expression={motm.you || motm.team === 'me' ? 'cheer' : 'neutral'} />
+          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-gold-400 text-zinc-950 shadow-gold"><Trophy className="h-3.5 w-3.5" /></span>
         </div>
-        <div>
-          <div className="text-sm font-bold">
-            {t(expectation.met ? '{e} expectation met' : '{e} expectation missed', { e: t(expectation.expectation) })}
+        <div className="min-w-0 flex-1">
+          <div className="eyebrow text-gold-300">{t('Man of the match')}</div>
+          <div className="truncate font-display text-2xl font-extrabold uppercase leading-none">{motm.name}</div>
+          <div className="mt-0.5 truncate text-xs text-zinc-400">
+            {motm.team === 'me' ? me.name : opp.name}
+            {motm.you ? ` · ${t('That’s you!')}` : ''}
           </div>
-          <p className="text-xs text-zinc-400">{t(expectation.text)}</p>
-          <p className="mt-1 text-[11px] text-zinc-500">
-            {t('Needed {a} · you scored {b}', { a: expectation.target.toFixed(1), b: result.rating.toFixed(1) })}
-          </p>
         </div>
+        <div className="font-num text-3xl font-extrabold text-gold-300">{motm.rating.toFixed(1)}</div>
       </Card>
 
       <div>

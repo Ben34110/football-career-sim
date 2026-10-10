@@ -269,6 +269,8 @@ export const FR_PAPER: Record<string, string> = {
   'You are one of the three overage players picked: a sign of how highly the coach rates you.': 'Tu es l’un des trois joueurs surcotés retenus : le signe que le sélectionneur compte sur toi.',
   'The coach used his three overage places on other players.': 'Le sélectionneur a donné ses trois places de joueurs surcotés à d’autres.',
   '🌍 You’re heading to the {name} as one of the three overage players!': '🌍 Tu pars aux {name} comme l’un des trois joueurs surcotés !',
+  'Man of the match': 'Homme du match',
+  'That’s you!': 'C’est toi !',
   'Shuffling the balls…': 'Les boules sont mélangées…',
   'Pick a ball': 'Choisis une boule',
   LEFT: 'GAUCHE',

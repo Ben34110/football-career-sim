@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Route } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { WAVES, caught, dribbleQuality, glide, makeDribble, planEnd, waveArrive, waveDepth, type Lane } from '@/lib/engine/minigames/dribble';
+import { WAVES, caught, dribbleQuality, glide, makeDribble, planEnd, waveArrive, type Lane } from '@/lib/engine/minigames/dribble';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,12 @@ const YP = 198;
 const SKINS = ['#c68642', '#8d5524', '#e0ac69', '#f1c27d'];
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
+/** You run up the pitch at V metres a second; everything else stands in the world, and gets closer. */
+const V = 9;
+const K = 8;
+/** Distance ahead of you (metres) → depth on the screen (0 far … 1 at your feet, more once passed) */
+const zOf = (d: number) => 1 / (1 + d / K);
+
 /** Depth 0 (the far end) … 1 (your line) → screen row, size, and the width of a lane */
 const rowAt = (z: number) => HOR + (YP - HOR) * Math.pow(Math.max(0, z), 1.7);
 const sizeAt = (z: number) => 0.2 + 1.25 * Math.pow(Math.max(0, z), 1.2);
@@ -29,10 +35,12 @@ const xAt = (lane: number, z: number) => CX + lane * laneW(z);
 /* ───────────────────────── the pitch, running at goal ───────────────────────── */
 
 function Pitch({ scroll, zg, speed, keeperLean, keeperKit }: { scroll: number; zg: number; speed: number; keeperLean: number; keeperKit: string }) {
-  const N = 10;
-  const f = scroll - Math.floor(scroll);
-  const shift = Math.floor(scroll);
-  const bands = Array.from({ length: N + 1 }, (_, k) => (k + f) / N);
+  // the mown stripes are fixed in the world: they come towards you as you run
+  const L = 7;
+  const N = 16;
+  const m = scroll % L;
+  const idx0 = Math.floor(scroll / L);
+  const bands = Array.from({ length: N + 1 }, (_, n) => zOf(n * L - m));
   const gy = rowAt(zg);
   const gw = 1.25 * laneW(zg);
   const gh = Math.max(6, 0.62 * laneW(zg));
@@ -61,7 +69,7 @@ function Pitch({ scroll, zg, speed, keeperLean, keeperKit }: { scroll: number; z
       <rect y={HOR - 4} width={W} height="2" fill="#10e08a" opacity=".5" />
       <rect y={HOR + 1} width={W} height={H - HOR} fill="url(#dr-grass)" />
       {/* the mown stripes run towards you */}
-      {bands.slice(0, -1).map((z0, k) => ((k + shift) % 2 === 0 ? <rect key={k} y={rowAt(z0)} width={W} height={Math.max(0, rowAt(bands[k + 1]) - rowAt(z0))} fill="#fff" opacity=".04" /> : null))}
+      {bands.slice(0, -1).map((zNear, n) => ((n + idx0) % 2 === 0 ? <rect key={n} y={rowAt(bands[n + 1])} width={W} height={Math.max(0, rowAt(zNear) - rowAt(bands[n + 1]))} fill="#fff" opacity=".04" /> : null))}
       {/* touchlines */}
       {[-1, 1].map((sd) => (
         <path key={sd} d={`M${xAt(sd * 2.05, 0)} ${rowAt(0)}L${xAt(sd * 2.05, 1.2)} ${rowAt(1.2)}`} stroke="#fff" strokeWidth="1.6" opacity=".35" fill="none" />
@@ -117,9 +125,7 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
       const next = glide(pos.current, target.current, dt);
       vel.current = (next - pos.current) / dt;
       pos.current = next;
-      const sinceHit = hitAt.current.length ? clock - hitAt.current[hitAt.current.length - 1] : 99;
-      const slow = 1 - 0.55 * Math.exp(-sinceHit * 3.2);
-      scroll.current += dt * 2.6 * slow;
+      scroll.current += dt * V;
       lastClock.current = clock;
     }
   }
@@ -153,8 +159,9 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
   }, [clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ───── the picture ───── */
-  const progress = playing ? clamp01(clock / planEnd(plan)) : 0;
-  const zg = 0.04 + 0.42 * progress;
+  // the goal stands at the far end of the pitch; you run towards it
+  const goalAt = V * planEnd(plan) + 42;
+  const zg = zOf(goalAt - (playing ? scroll.current : 0));
   const hits = outcome.filter(Boolean).length;
   const sinceHit = hitAt.current.length && playing ? clock - hitAt.current[hitAt.current.length - 1] : 99;
   const hitPulse = Math.exp(-sinceHit * 4);
@@ -176,23 +183,23 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
       ),
     [plan],
   );
-  const drawn = playing
-    ? defenders
-        .map((d) => ({ ...d, p: waveDepth(plan, d.i, clock) }))
-        .filter((d) => d.p > 0.01 && d.p < 1.25)
-        .sort((a, b) => a.p - b.p)
-    : [];
-  const behind = drawn.filter((d) => d.p <= 1);
-  const past = drawn.filter((d) => d.p > 1);
+  // they are on the pitch before you start: you can see what is waiting for you
+  const tw = playing ? clock : 0;
+  const drawn = defenders
+    .map((d) => ({ ...d, dist: V * (waveArrive(plan, d.i) - tw) }))
+    .filter((d) => d.dist > -1.6)
+    .sort((a, b) => b.dist - a.dist);
+  const behind = drawn.filter((d) => d.dist > 0);
+  const past = drawn.filter((d) => d.dist <= 0);
 
   const drawDefender = (d: (typeof drawn)[number]) => {
-    const z = Math.min(1.25, d.p);
+    const z = Math.min(1.25, zOf(d.dist));
     const track = Math.max(-1, Math.min(1, pos.current - d.l));
-    const hit = outRef.current[d.i] && d.p >= 1 && caught(plan.waves[d.i], pos.current, plan.reach) ? 1 : 0;
-    // closing down: he shuffles towards you; a defender who got you throws himself in
-    const lunge = hit ? clamp01((d.p - 1) * 6) : 0;
+    const hit = outRef.current[d.i] && d.dist <= 0 && caught(plan.waves[d.i], pos.current, plan.reach) ? 1 : 0;
+    // he holds his ground and shuffles across to you; a defender who got you throws himself in
+    const lunge = hit ? clamp01(-d.dist * 0.7) : 0;
     const x = xAt(d.l, z) + track * 9 * z + (hit ? -track * 10 * lunge : 0);
-    return <FrontPlayer key={`${d.i}-${d.l}`} x={x} y={rowAt(z)} s={sizeAt(z) * (1 + 0.08 * lunge)} kit={oppKit} skin={d.skin} hair="#18120c" lean={track * 0.7} kick={0} arms="balance" stride={d.seed + clock * (9 + 3 * z)} />;
+    return <FrontPlayer key={`${d.i}-${d.l}`} x={x} y={rowAt(z)} s={sizeAt(z) * (1 + 0.08 * lunge)} kit={oppKit} skin={d.skin} hair="#18120c" lean={track * 0.7} kick={0} arms="balance" stride={d.seed + clock * 3.2} />;
   };
 
   const done6 = outcome.length >= WAVES;
@@ -217,7 +224,7 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
 
       <div className="relative select-none overflow-hidden rounded-3xl border border-white/10 bg-black/40">
         <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" style={{ transform: hitPulse > 0.05 ? `translate(${Math.sin(sinceHit * 70) * 3 * hitPulse}px, ${Math.cos(sinceHit * 60) * 2 * hitPulse}px)` : undefined }}>
-          <Pitch scroll={scroll.current} zg={zg} speed={playing ? 1 - 0.55 * hitPulse : 0} keeperLean={keeperLean} keeperKit="#f59e0b" />
+          <Pitch scroll={scroll.current} zg={zg} speed={playing ? 1 : 0} keeperLean={keeperLean} keeperKit="#f59e0b" />
           {behind.map(drawDefender)}
           {/* you, from behind, with the ball at your feet */}
           <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={stride} tilt={tilt} stretch={0} dir={1} run={playing ? 2.4 : 0.6} />

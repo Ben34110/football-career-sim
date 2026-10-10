@@ -22,7 +22,7 @@ import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { useUiStore } from '@/lib/ui';
 import { toast } from '@/lib/toast';
-import { cn, crestFace, fmtCountdown } from '@/lib/utils';
+import { cn, crestFace, fmtCountdown, roundLabel } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
 import { SeasonEnd } from './SeasonEnd';
 import { GameIcon } from '@/components/ui/GameIcon';
@@ -95,7 +95,7 @@ export function HomeScreen() {
           <Card strong className="overflow-hidden p-4">
             <div className="flex items-center justify-between">
               <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'euro' ? 'Europe' : 'International')}</Chip>
-              <span className="eyebrow">{t(fixture.label)}{season && fixtureIdx >= 0 ? ` · ${fmtShortDate(fixtureDate(season, fixtureIdx), lang)}` : ''}</span>
+              <span className="eyebrow">{t(roundLabel(fixture.kind, fixture.label))}{season && fixtureIdx >= 0 ? ` · ${fmtShortDate(fixtureDate(season, fixtureIdx), lang)}` : ''}</span>
             </div>
             <div className="mt-4 flex items-center gap-4">
               {club && <Crest short={club.short} color={club.color} size={44} />}

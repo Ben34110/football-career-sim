@@ -39,3 +39,6 @@ export function abbrevClub(name: string, max = 13): string {
   n = n.replace(/\s+(du|de|des|de la|di|del|da|do|von|van)\s+/i, ' ');
   return n.trim();
 }
+
+/** Next to the competition name ("Domestic Cup"), a cup round needs no "Cup" of its own: "Cup Quarter-Final" → "Quarter-Final". */
+export const roundLabel = (kind: string, label: string) => (kind === 'cup' ? label.replace(/^Cup /, '') : label);

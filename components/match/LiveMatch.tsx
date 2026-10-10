@@ -15,7 +15,7 @@ import { useT } from '@/lib/i18n';
 import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
 import { sortTable } from '@/lib/engine/season';
 import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniExtra, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
-import { cn, flagOnly } from '@/lib/utils';
+import { cn, flagOnly, roundLabel } from '@/lib/utils';
 import { GameIcon, SoccerBall } from '@/components/ui/GameIcon';
 import { ArrowLeftRight, CircleX, Crosshair, Flag as FlagIcon, Flame, Hand, Play as PlayIcon, Timer, Whistle } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -182,7 +182,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
         <div className="relative mb-3 flex items-center justify-center">
           <span className="flex items-center gap-1.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-gold-300">
             <GameIcon e={competition.kind === 'euro' ? '⭐' : competition.kind === 'cup' ? '🏆' : competition.kind === 'league' ? '⚽' : '🌍'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />
-            {competition.kind === 'euro' ? t(competition.label) : `${competition.name ?? t(COMPETITION_LABEL[competition.kind])} · ${t(competition.label)}`}
+            {competition.kind === 'euro' ? t(competition.label) : `${competition.name ?? t(COMPETITION_LABEL[competition.kind])} · ${t(roundLabel(competition.kind, competition.label))}`}
           </span>
         </div>
         <div className="relative flex items-center justify-between">

@@ -15,7 +15,7 @@ import { repetition } from '@/lib/data/talks';
 import { REP_LABEL } from '@/lib/engine/player';
 import { fmtShortDate } from '@/lib/dates';
 import { useLang, useT } from '@/lib/i18n';
-import { fmtCountdown, cn } from '@/lib/utils';
+import { fmtCountdown, cn, roundLabel } from '@/lib/utils';
 import type { Fixture, RepKey, TalkMemory } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
 import { GameIcon } from '@/components/ui/GameIcon';
@@ -82,7 +82,7 @@ export function PreMatch({
       <Card strong gold className="overflow-hidden p-4">
         <div className="mb-4 flex items-center justify-between">
           <Chip tone="gold">{competitionName ?? t(KIND_LABEL[fixture.kind])}</Chip>
-          <span className="eyebrow">{t(fixture.label)} · {fmtShortDate(date, lang)}</span>
+          <span className="eyebrow">{t(roundLabel(fixture.kind, fixture.label))} · {fmtShortDate(date, lang)}</span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">

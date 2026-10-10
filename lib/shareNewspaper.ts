@@ -1,3 +1,4 @@
+import { crowdFor } from './data/crowd';
 import type { Look } from './data/look';
 import { loadAvatar, shareImage, type ShareResult } from './shareCard';
 
@@ -32,6 +33,12 @@ function wrap(g: CanvasRenderingContext2D, text: string, maxW: number): string[]
   }
   if (line) lines.push(line);
   return lines;
+}
+
+/** '#rrggbb' → 'rgba(r,g,b,A)' for glow() */
+function hexA(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},A)`;
 }
 
 function glow(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha: number) {
@@ -108,11 +115,23 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
   }
   g.fillStyle = bg;
   g.fillRect(60, photoTop, W - 120, photoH);
-  [150, 330, 520, 700, 880].forEach((x, i) => glow(g, x + 20, photoTop + 40 + (i % 2) * 40, 90 + (i % 3) * 20, 'rgba(255,255,255,A)', 0.55));
-  for (let i = 0; i < 20; i++) glow(g, 80 + i * 50, photoTop + photoH - 60 + ((i * 7) % 5) * 6, 46, 'rgba(0,0,0,A)', 0.5);
+  // floodlights and a packed stand, out of focus (soft radial blobs instead of hard shapes)
+  [140, 380, 640, 900].forEach((x, i) => glow(g, x, photoTop + 30 + (i % 2) * 20, 120, 'rgba(255,255,255,A)', 0.6));
+  const kit = p.kit ?? '#10b981';
+  const fans = crowdFor(W - 120, photoH, kit, p.joy);
+  const scale = 1.35;
+  fans.forEach((f) => {
+    const cx = 60 + f.x;
+    const cy = photoTop + f.y;
+    const r = f.r * scale * 1.5;
+    glow(g, cx, cy + r * 2.4, r * 2.1, `${hexA(f.shirt)}`, 0.95);
+    glow(g, cx, cy, r * 1.15, `${hexA(f.skin)}`, 0.95);
+  });
+  g.fillStyle = 'rgba(0,0,0,0.28)';
+  g.fillRect(60, photoTop, W - 120, photoH);
   const size = Math.min(photoH * 1.05, 560);
   const img = await loadAvatar(p.look, Math.round(size), p.kit);
-  if (img) g.drawImage(img, (W - size) / 2, photoTop + photoH - size + size * 0.12, size, size);
+  if (img) g.drawImage(img, (W - size) / 2, photoTop + photoH - size + size * 0.04, size, size);
   const vg = g.createRadialGradient(W / 2, photoTop + photoH / 2, photoH * 0.35, W / 2, photoTop + photoH / 2, W * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,0.5)');

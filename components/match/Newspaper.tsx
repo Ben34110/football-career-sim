@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Loader2, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { HeadAvatar } from "@/components/ui/HeadAvatar";
+import { Crowd } from "./Crowd";
 import type { Look } from "@/lib/data/look";
 import { buildFrontPage, type PaperCtx } from "@/lib/data/newspaper";
 import { fmtGameDate } from "@/lib/dates";
@@ -106,51 +107,12 @@ export function Newspaper({
                   : "radial-gradient(ellipse at 50% 0%, #cbd5e1 0%, #64748b 42%, #0b1220 100%)",
               }}
             >
-              {/* floodlights and the crowd, out of focus */}
-              <svg
-                className="absolute inset-0 h-full w-full"
-                viewBox="0 0 100 60"
-                preserveAspectRatio="none"
-                aria-hidden
-              >
-                <defs>
-                  <filter
-                    id="np-blur"
-                    x="-50%"
-                    y="-50%"
-                    width="200%"
-                    height="200%"
-                  >
-                    <feGaussianBlur stdDeviation="1.6" />
-                  </filter>
-                </defs>
-                <g filter="url(#np-blur)" fill="#fff">
-                  {[8, 24, 42, 60, 78, 92].map((x, i) => (
-                    <circle
-                      key={x}
-                      cx={x}
-                      cy={5 + (i % 2) * 4}
-                      r={3 + (i % 3)}
-                      opacity={0.55 - (i % 3) * 0.1}
-                    />
-                  ))}
-                </g>
-                <g filter="url(#np-blur)" fill="#000" opacity=".5">
-                  {Array.from({ length: 22 }, (_, i) => (
-                    <circle
-                      key={i}
-                      cx={2 + i * 4.6}
-                      cy={48 + ((i * 7) % 5)}
-                      r={2.4}
-                    />
-                  ))}
-                </g>
-              </svg>
-              <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 [filter:grayscale(0.2)_contrast(1.08)_sepia(0.18)_drop-shadow(0_8px_10px_rgba(0,0,0,0.5))]">
+              {/* supporters in the stands, out of focus */}
+              <Crowd kit={kit} joy={joy} />
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 [filter:grayscale(0.2)_contrast(1.08)_sepia(0.18)_drop-shadow(0_8px_10px_rgba(0,0,0,0.5))]">
                 <HeadAvatar look={look} size={168} kit={kit} />
               </div>
-              {/* print grain and vignette */}
-              <div className="pointer-events-none absolute inset-0 mix-blend-multiply [background-image:radial-gradient(rgba(0,0,0,0.28)_0.9px,transparent_1.1px)] [background-size:3.5px_3.5px]" />
+              {/* soft vignette */}
               <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_36px_rgba(0,0,0,0.55)]" />
             </div>
             <figcaption className="mt-0.5 text-[9px] italic text-zinc-600">

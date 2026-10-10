@@ -56,20 +56,20 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   let headline: string;
   let mood: FrontPage['mood'] = win ? 'joy' : c.outcome === 'L' ? 'sad' : 'neutral';
 
-  if (c.shootout && win) headline = pick(['{club} SURVIVE THE LOTTERY', 'NERVES OF STEEL: {club} WIN ON PENALTIES', '{club} THROUGH AFTER A PENALTY THRILLER'], rng);
-  else if (c.shootout) headline = pick(['PENALTY HEARTBREAK FOR {club}', 'SHOOTOUT AGONY: {opp} KNOCK OUT {club}'], rng);
-  else if (win && final) headline = pick(['CHAMPIONS! {club} WIN IT ALL', '{name} AND {club} WRITE HISTORY', 'GLORY NIGHT: {club} TAKE THE TROPHY'], rng);
-  else if (c.goals >= 3) headline = pick(['HAT-TRICK HERO {name}!', '{name} DEMOLISHES {opp} SINGLE-HANDEDLY', 'THREE-GOAL {name} STEALS THE SHOW'], rng);
-  else if (c.goals === 2) headline = pick(['DOUBLE TROUBLE FOR {opp}', '{name} STRIKES TWICE', 'TWICE IS NICE: {name} DECIDES IT'], rng);
-  else if (c.goals === 1 && win && diff === 1) headline = pick(['{name} THE MATCH-WINNER', 'SUPER {name} SPARKS {club} VICTORY', 'ONE GOAL, THREE POINTS: THANKS {name}'], rng);
-  else if (c.assists >= 1 && win) headline = pick(['{name} PULLS THE STRINGS', 'THE ARCHITECT: {name} CREATES THE WINNER'], rng);
-  else if (c.benched && (c.goals > 0 || c.assists > 0)) headline = pick(['SUPER-SUB {name} CHANGES THE GAME', 'FROM THE BENCH TO THE HEADLINES: {name}'], rng);
-  else if (win && diff >= 3) headline = pick(['{club} TEAR {opp} APART', 'ROUT! {club} RUN RIOT AGAINST {opp}'], rng);
-  else if (win) headline = pick(['{club} GRIND OUT THE WIN', 'THREE POINTS FOR {club}', '{club} DO THE JOB AGAINST {opp}'], rng);
-  else if (c.outcome === 'D') headline = pick(['HONOURS EVEN: {club} AND {opp} SHARE THE POINTS', 'STALEMATE: {my}–{their}', 'NO WINNER AS {club} HELD BY {opp}'], rng);
-  else if (c.missedKick) headline = pick(['THE KICK THAT HAUNTS {name}', '{name} FLUFFS THE BIG MOMENT AS {club} FALL'], rng);
-  else if (c.subbedOff) headline = pick(['{name} HAULED OFF IN {club} DEFEAT', 'DISASTER: {club} LOSE AND {name} IS SUBSTITUTED'], rng);
-  else if (c.rating < 5.8) headline = pick(['MISSING IN ACTION: {name} FAILS TO SHINE', '{opp} STUN {club} AS {name} STRUGGLES'], rng);
+  if (c.shootout && win) headline = pick(['{club} SURVIVE THE LOTTERY', 'NERVES OF STEEL: {club} WIN ON PENALTIES', '{club} THROUGH AFTER A PENALTY THRILLER', 'NERVES? WHAT NERVES? {club} WIN ON PENS'], rng);
+  else if (c.shootout) headline = pick(['PENALTY HEARTBREAK FOR {club}', 'SHOOTOUT AGONY: {opp} KNOCK OUT {club}', 'THE PENALTY LOTTERY BITES {club}'], rng);
+  else if (win && final) headline = pick(['CHAMPIONS! {club} WIN IT ALL', '{name} AND {club} WRITE HISTORY', 'GLORY NIGHT: {club} TAKE THE TROPHY', 'WE ARE THE CHAMPIONS! {club} LIFT THE TROPHY', 'PARTY TIME: {club} WIN IT ALL'], rng);
+  else if (c.goals >= 3) headline = pick(['HAT-TRICK HERO {name}!', '{name} DEMOLISHES {opp} SINGLE-HANDEDLY', 'THREE-GOAL {name} STEALS THE SHOW', '{name} TAKES THE MATCH BALL HOME', 'WHO NEEDS A TEAM? {name} SCORES THREE'], rng);
+  else if (c.goals === 2) headline = pick(['DOUBLE TROUBLE FOR {opp}', '{name} STRIKES TWICE', 'TWICE IS NICE: {name} DECIDES IT', 'NOT HAPPY? HERE IS A BRACE FROM {name}!', '{name} MAKES IT TWO AND ASKS FOR MORE'], rng);
+  else if (c.goals === 1 && win && diff === 1) headline = pick(['{name} THE MATCH-WINNER', 'SUPER {name} SPARKS {club} VICTORY', 'ONE GOAL, THREE POINTS: THANKS {name}', 'WHO IS THE BOSS? {name}!', '{name}: ONE SHOT, ONE GOAL, ZERO REGRETS'], rng);
+  else if (c.assists >= 1 && win) headline = pick(['{name} PULLS THE STRINGS', 'THE ARCHITECT: {name} CREATES THE WINNER', '{name} WITH THE PASS OF THE DAY'], rng);
+  else if (c.benched && (c.goals > 0 || c.assists > 0)) headline = pick(['SUPER-SUB {name} CHANGES THE GAME', 'FROM THE BENCH TO THE HEADLINES: {name}', 'SUPER-SUB {name}: THE BENCH STRIKES BACK'], rng);
+  else if (win && diff >= 3) headline = pick(['{club} TEAR {opp} APART', 'ROUT! {club} RUN RIOT AGAINST {opp}', '{opp} GET THE POWER-WASH TREATMENT', '{club} PUT THE BEST CHINA ON THE TABLE'], rng);
+  else if (win) headline = pick(['{club} GRIND OUT THE WIN', 'THREE POINTS FOR {club}', '{club} DO THE JOB AGAINST {opp}', 'NOTHING TO SEE HERE: {club} WIN', 'ANOTHER DAY, ANOTHER THREE POINTS'], rng);
+  else if (c.outcome === 'D') headline = pick(['HONOURS EVEN: {club} AND {opp} SHARE THE POINTS', 'STALEMATE: {my}–{their}', 'NO WINNER AS {club} HELD BY {opp}', 'TAKE THE POINT AND GO HOME: {my}–{their}', 'NEITHER HOT NOR COLD: {my}–{their}'], rng);
+  else if (c.missedKick) headline = pick(['THE KICK THAT HAUNTS {name}', '{name} FLUFFS THE BIG MOMENT AS {club} FALL', '{name}\'S PENALTY ORBITS THE MOON', '12 YARDS, ONE GOAL, ONE BIG MISS: {name}'], rng);
+  else if (c.subbedOff) headline = pick(['{name} HAULED OFF IN {club} DEFEAT', 'DISASTER: {club} LOSE AND {name} IS SUBSTITUTED', '{name} IS OFF BEFORE DESSERT', 'THE COACH PULLS THE PLUG ON {name}'], rng);
+  else if (c.rating < 5.8) headline = pick(['MISSING IN ACTION: {name} FAILS TO SHINE', '{opp} STUN {club} AS {name} STRUGGLES', 'WHERE WAS {name}? NOBODY KNOWS', 'IT IS THE REF’S FAULT AGAIN: {club} FALL', 'BACK TO THE DRAWING BOARD FOR {club}', '{opp} SEND {club} HOME TO MUM'], rng);
   else headline = pick(['{opp} STUN {club}', '{club} FALL SHORT AGAINST {opp}', 'BEATEN: {club} LOSE {their}–{my}'], rng);
 
   // the second line: what the player did
@@ -98,7 +98,13 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   if (streak === 'W') paragraphs.push('That is three wins on the bounce — the confidence around the club is sky-high.');
   if (streak === 'L') paragraphs.push('Three defeats in a row: the pressure is now building around the club.');
 
-  const caption = c.goals >= 1 ? '{name} celebrates in front of the fans.' : c.outcome === 'L' ? '{name} leaves the pitch dejected.' : c.outcome === 'D' ? '{name} shares a word with the opposition.' : '{name} salutes the supporters.';
+  const caption = c.goals >= 1
+    ? pick(['{name} celebrates in front of the fans.', '{name} unveils the celebration rehearsed in the mirror.'], rng)
+    : c.outcome === 'L'
+      ? pick(['{name} leaves the pitch dejected.', '{name} blames the pitch. Obviously.', '{name} looks for the exit.'], rng)
+      : c.outcome === 'D'
+        ? pick(['{name} shares a word with the opposition.', '{name} checks the scoreboard twice.'], rng)
+        : pick(['{name} salutes the supporters.', '{name} promises to buy the next round.'], rng);
   if (c.goals >= 1) mood = 'joy';
 
   const compName = c.kind === 'league' ? 'league' : c.kind === 'cup' ? 'cup' : c.kind === 'euro' ? 'European' : 'international';

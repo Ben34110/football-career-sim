@@ -224,6 +224,8 @@ export const useGameStore = create<GameStore>()(
         const { player, news } = get();
         if (!player) return;
         set({ phase: 'retired', news: addNews(news, mkNews(tr('{name} hangs up the boots.', { name: player.name }), 'gold')) });
+        // a finished career is in the hall of fame from the moment it ends
+        archiveCurrent(get());
       },
 
       beginMatch: () => {
@@ -740,6 +742,7 @@ export const useGameStore = create<GameStore>()(
         if (!player) return;
         if (player.age >= RETIRE_AGE) {
           set({ phase: 'retired', news: addNews(news, mkNews(tr('{name} retires at {age}.', { name: player.name, age: player.age }), 'gold')) });
+          archiveCurrent(get());
           return;
         }
         const nextYear = year + 1;
@@ -812,6 +815,8 @@ export const useGameStore = create<GameStore>()(
       skipHydration: true,
       onRehydrateStorage: () => (state) => {
         if (state?.season?.year) setClubYear(state.season.year);
+        // a career that ended before the archive existed is filed the first time the save loads
+        if (state?.phase === 'retired') archiveCurrent(state);
       },
     },
   ),

@@ -143,6 +143,9 @@ export const FR_PAPER: Record<string, string> = {
 
   '🌍 {club} qualified for the {comp} last season: European nights ahead!': '🌍 {club} s’est qualifié pour la {comp} la saison dernière : des soirées européennes en perspective !',
 
+  'Agent’s office': 'Bureau de l’agent',
+  '{n} offers on the table': '{n} offres sur la table',
+
   // rounds
   '{club} ARE IN THE FINAL!': '{club} EST EN FINALE !',
   'FINAL BOUND: {club} SEE OFF {opp}': 'DIRECTION LA FINALE : {club} ÉLIMINE {opp}',

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ChevronRight, HeartPulse, Newspaper, Play, Trophy, Zap } from 'lucide-react';
+import { Briefcase, ChevronRight, HeartPulse, Newspaper, Play, Trophy, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
 import { Bolts } from '@/components/ui/Bolts';
@@ -13,6 +13,7 @@ import { PlayerCard } from '@/components/ui/PlayerCard';
 import { getClub } from '@/lib/data/clubs';
 import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
 import { currentFixture, leaguePosition, leagueZone } from '@/lib/engine/season';
+import { transferWindow } from '@/lib/engine/transfers';
 import { useEnergy } from '@/lib/hooks';
 import { fixtureDate, fmtGameDate, fmtShortDate, gameDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
@@ -33,6 +34,7 @@ export function HomeScreen() {
   const year = useGameStore((s) => s.year);
   const news = useGameStore((s) => s.news);
   const physio = useGameStore((s) => s.physio);
+  const offers = useGameStore((s) => s.offers);
   const { bolts, msToNext } = useEnergy();
   if (!player) return null;
 
@@ -43,6 +45,7 @@ export function HomeScreen() {
   const pos = season ? leaguePosition(season) : 0;
   const avg = season && season.stats.apps ? season.stats.ratingSum / season.stats.apps : 0;
 
+  const win = transferWindow(season, phase, year);
   const fixtureIdx = season && fixture ? season.fixtures.findIndex((f) => f.id === fixture.id) : -1;
 
   return (
@@ -50,9 +53,6 @@ export function HomeScreen() {
       <div className="-mb-2 flex items-center justify-between px-1">
         <span className="eyebrow capitalize">{fmtGameDate(gameDate(season, year), lang)}</span>
         <div className="flex items-center gap-2">
-          <Link href="/profile" className="flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 text-[11px] font-bold text-zinc-300 active:scale-95">
-            👤 {t('Profile')}
-          </Link>
           <LangToggle />
         </div>
       </div>
@@ -203,6 +203,24 @@ export function HomeScreen() {
           </Card>
         </div>
       )}
+
+      {/* the agent's office: offers, negotiations and the transfer window */}
+      <Link href="/transfers" className="block active:scale-[0.99]">
+        <Card gold className="flex items-center gap-3 p-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-400/15 text-gold-300">
+            <Briefcase className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold">{t('Agent’s office')}</div>
+            <div className="truncate text-xs text-zinc-400">
+              {t(win.label)}
+              {offers.length > 0 ? ` · ${t('{n} offers on the table', { n: offers.length })}` : ''}
+            </div>
+          </div>
+          {offers.length > 0 && <Chip tone="gold">{offers.length}</Chip>}
+          <ChevronRight className="h-4 w-4 text-zinc-500" />
+        </Card>
+      </Link>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { Flag } from '@/components/ui/Flag';
-import { RotateCcw, Scale, Trophy } from 'lucide-react';
+import { RotateCcw, Scale } from 'lucide-react';
+import { Honours } from '@/components/ui/Honours';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
@@ -20,6 +21,7 @@ import { useGameStore } from '@/lib/store';
 export function ProfileScreen() {
   const t = useT();
   const player = useGameStore((s) => s.player);
+  const history = useGameStore((s) => s.history);
   const reset = useGameStore((s) => s.resetCareer);
   const retire = useGameStore((s) => s.retireNow);
   const router = useRouter();
@@ -102,13 +104,7 @@ export function ProfileScreen() {
         {player.trophies.length === 0 ? (
           <Card className="p-5 text-center text-sm text-zinc-500">{t('Empty for now. Win a cup final or the league to fill it.')}</Card>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {player.trophies.map((tr, i) => (
-              <Chip key={`${tr}-${i}`} tone={tr.startsWith('Ballon') ? 'good' : 'gold'}>
-                <Trophy className="h-3 w-3" /> {t(tr)}
-              </Chip>
-            ))}
-          </div>
+          <Honours trophies={player.trophies} history={history} clubId={player.clubId} />
         )}
       </div>
 

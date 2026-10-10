@@ -1,10 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Trophy } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Clapperboard } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Card, Chip, SectionTitle } from '@/components/ui/Card';
+import { Card, SectionTitle } from '@/components/ui/Card';
+import { Honours } from '@/components/ui/Honours';
+import { CareerFilm } from './CareerFilm';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { ShareCardButton } from '@/components/ui/ShareCardButton';
 import { seasonLabel } from '@/lib/engine/player';
@@ -17,9 +20,24 @@ export function CareerEnd() {
   const history = useGameStore((s) => s.history);
   const reset = useGameStore((s) => s.resetCareer);
   const router = useRouter();
+  // the film of the career plays the first time you retire; you can watch it again from here
+  const [film, setFilm] = useState(false);
+  useEffect(() => {
+    if (!player) return;
+    const key = `fcs-film-${player.name}-${history.length}`;
+    try {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, '1');
+        setFilm(true);
+      }
+    } catch {
+      setFilm(true);
+    }
+  }, [player, history.length]);
   if (!player) return null;
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+      <AnimatePresence>{film && <CareerFilm player={player} history={history} onClose={() => setFilm(false)} />}</AnimatePresence>
       <div className="text-center">
         <div className="eyebrow text-gold-300">{t('Hall of fame')}</div>
         <h1 className="font-display text-5xl font-extrabold uppercase leading-none">{t('A Career Complete')}</h1>
@@ -28,6 +46,10 @@ export function CareerEnd() {
         </p>
       </div>
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
+      <Button variant="gold" block onClick={() => setFilm(true)}>
+        <Clapperboard className="h-4 w-4" /> {t('Watch my career film')}
+      </Button>
+      <ShareCardButton player={player} career={history} />
       <ShareCardButton player={player} />
       <div className="grid grid-cols-4 gap-2 text-center">
         {[
@@ -44,14 +66,7 @@ export function CareerEnd() {
       </div>
       <div>
         <SectionTitle>{t('Honours')}</SectionTitle>
-        <div className="flex flex-wrap gap-2">
-          {player.trophies.length === 0 && <span className="text-sm text-zinc-500">{t('No silverware — but plenty of memories.')}</span>}
-          {player.trophies.map((tr, i) => (
-            <Chip key={`${tr}-${i}`} tone="gold">
-              <Trophy className="h-3 w-3" /> {t(tr)}
-            </Chip>
-          ))}
-        </div>
+        {player.trophies.length === 0 ? <span className="text-sm text-zinc-500">{t('No silverware — but plenty of memories.')}</span> : <Honours trophies={player.trophies} history={history} clubId={player.clubId} />}
       </div>
       <p className="text-center text-xs text-zinc-600">{t('Last season')}: {history.length ? seasonLabel(history[history.length - 1].year) : '—'}</p>
       <Button

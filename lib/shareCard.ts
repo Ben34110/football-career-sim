@@ -4,7 +4,8 @@ import { flagUrl } from './flags';
 import { getNationality } from './data/nationalities';
 import { DEFAULT_LOOK } from './data/look';
 import { ovrOf, POSITION_LABEL } from './engine/player';
-import type { Player } from './types';
+import { groupHonours } from './engine/honours';
+import type { Player, SeasonRecord } from './types';
 
 type T = (text: string, vars?: Record<string, string | number>) => string;
 
@@ -203,6 +204,144 @@ export async function sharePlayerCard(player: Player, t: T): Promise<ShareResult
     const blob = await buildCardImage(player, t);
     const text = t('{name} — OVR {ovr} {pos}. Can you beat my career?', { name: player.name, ovr: ovrOf(player), pos: player.position });
     return await shareImage(blob, `${player.name.replace(/\W+/g, '-').toLowerCase() || 'player'}-card.png`, text);
+  } catch {
+    return 'failed';
+  }
+}
+
+/** The retirement card: the whole career on one picture, with the honours and the flags they were won under. */
+export async function buildCareerCardImage(player: Player, history: SeasonRecord[], t: T): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const g = canvas.getContext('2d')!;
+  const nat = getNationality(player.nationality);
+  const last = history[history.length - 1];
+  const club = getClub(last?.clubId ?? player.clubId);
+
+  const bg = g.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#1a1608');
+  bg.addColorStop(0.5, '#111113');
+  bg.addColorStop(1, '#09090b');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W / 2, 260, 10, W / 2, 260, 620);
+  glow.addColorStop(0, 'rgba(242,193,78,0.38)');
+  glow.addColorStop(1, 'rgba(242,193,78,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(242,193,78,0.55)';
+  g.lineWidth = 5;
+  g.beginPath();
+  g.roundRect(40, 40, W - 80, H - 80, 64);
+  g.stroke();
+
+  g.textBaseline = 'alphabetic';
+  g.textAlign = 'center';
+  g.fillStyle = '#f2c14e';
+  g.font = '800 32px Inter, system-ui, sans-serif';
+  g.fillText(`PITCH LEGACY · ${t('A Career Complete').toUpperCase()}`, W / 2, 112);
+
+  const img = await loadAvatar(player.look, 340, club?.color, 'cheer');
+  if (img) g.drawImage(img, W / 2 - 170, 140, 340, 340);
+
+  g.fillStyle = '#fafafa';
+  let size = 96;
+  g.font = `800 ${size}px Inter, system-ui, sans-serif`;
+  const name = player.name.toUpperCase();
+  while (g.measureText(name).width > W - 200 && size > 48) {
+    size -= 4;
+    g.font = `800 ${size}px Inter, system-ui, sans-serif`;
+  }
+  g.fillText(name, W / 2, 570);
+  const years = history.length ? `${history[0].year}–${last.year + 1}` : '';
+  g.fillStyle = '#a1a1aa';
+  g.font = '500 38px Inter, system-ui, sans-serif';
+  g.fillText(`${t(nat.name)} · ${t(POSITION_LABEL[player.position])} · ${years}`, W / 2, 628);
+
+  const boxes: [string, string | number][] = [
+    [t('Peak OVR'), player.peakOvr],
+    [t('Apps'), player.totals.apps],
+    [t('Goals'), player.totals.goals],
+    [t('Assists'), player.totals.assists],
+  ];
+  const boxW = 210;
+  const gap = 28;
+  const startX = (W - (boxW * 4 + gap * 3)) / 2;
+  boxes.forEach(([label, v], i) => {
+    const x = startX + i * (boxW + gap);
+    g.fillStyle = 'rgba(0,0,0,0.4)';
+    g.beginPath();
+    g.roundRect(x, 670, boxW, 170, 34);
+    g.fill();
+    g.strokeStyle = i === 0 ? 'rgba(242,193,78,0.6)' : 'rgba(255,255,255,0.1)';
+    g.lineWidth = 2;
+    g.stroke();
+    g.fillStyle = i === 0 ? '#fbe7a1' : '#fafafa';
+    g.font = '800 84px Inter, system-ui, sans-serif';
+    g.fillText(String(v), x + boxW / 2, 765);
+    g.fillStyle = '#f2c14e';
+    g.font = '700 28px Inter, system-ui, sans-serif';
+    g.fillText(label.toUpperCase(), x + boxW / 2, 812);
+  });
+
+  // the cabinet, one line per title with its flag and its count
+  const groups = groupHonours(player.trophies, history, player.clubId);
+  g.fillStyle = '#f2c14e';
+  g.font = '800 30px Inter, system-ui, sans-serif';
+  g.fillText(`🏆 ${t('Honours').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
+  const rows = groups.length <= 6 ? groups : groups.slice(0, 5);
+  for (let i = 0; i < rows.length; i++) {
+    const gr = rows[i];
+    const label = gr.count === 1 ? t(gr.labels[0]) : t(gr.title);
+    const flag = gr.flag ? await loadFlag(gr.flag) : null;
+    const y = 968 + i * 50;
+    g.font = '700 40px Inter, system-ui, sans-serif';
+    const tw = g.measureText(label).width;
+    const extra = (flag ? 62 : 0) + (gr.count > 1 ? 86 : 0);
+    let x = W / 2 - (tw + extra) / 2;
+    g.textAlign = 'left';
+    g.fillStyle = gr.title.startsWith('Ballon') ? '#86efac' : '#fafafa';
+    g.fillText(label, x, y);
+    x += tw + 18;
+    if (flag) {
+      g.save();
+      g.beginPath();
+      g.roundRect(x, y - 34, 50, 38, 6);
+      g.clip();
+      g.drawImage(flag, x, y - 34, 50, 38);
+      g.restore();
+      x += 62;
+    }
+    if (gr.count > 1) {
+      g.fillStyle = '#f2c14e';
+      g.font = '800 40px Inter, system-ui, sans-serif';
+      g.fillText(`×${gr.count}`, x, y);
+    }
+    g.textAlign = 'center';
+  }
+  if (groups.length > rows.length) {
+    g.fillStyle = '#a1a1aa';
+    g.font = '500 30px Inter, system-ui, sans-serif';
+    g.fillText(`+${groups.length - rows.length}`, W / 2, 968 + rows.length * 50);
+  }
+  if (groups.length === 0) {
+    g.fillStyle = '#a1a1aa';
+    g.font = '500 36px Inter, system-ui, sans-serif';
+    g.fillText(t('No silverware — but plenty of memories.'), W / 2, 980);
+  }
+
+  g.fillStyle = '#52525b';
+  g.font = '500 28px Inter, system-ui, sans-serif';
+  g.fillText(t('Built in Pitch Legacy'), W / 2, 1290);
+  return new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('png'))), 'image/png'));
+}
+
+export async function shareCareerCard(player: Player, history: SeasonRecord[], t: T): Promise<ShareResult> {
+  try {
+    const blob = await buildCareerCardImage(player, history, t);
+    const text = t('{name}: {n} seasons, {g} goals, {tr} trophies. Can you beat my career?', { name: player.name, n: history.length, g: player.totals.goals, tr: player.trophies.length });
+    return await shareImage(blob, `${player.name.replace(/\W+/g, '-').toLowerCase() || 'player'}-career.png`, text);
   } catch {
     return 'failed';
   }

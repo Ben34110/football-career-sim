@@ -3,72 +3,187 @@ import { HeadAvatar, shade, type Expression } from '@/components/ui/HeadAvatar';
 import { DEFAULT_LOOK, SKINS, type Look } from '@/lib/data/look';
 import type { Pose } from '@/lib/data/newspaper';
 
-type P = [number, number];
-type ArmPts = [P, P, P];
+type V = [number, number];
+type Hand = 'fist' | 'open' | 'point';
+interface Arm {
+  /** shoulder, elbow, wrist */
+  pts: [V, V, V];
+  hand: Hand;
+}
 
 /** Head tilt (degrees) that goes with each pose */
 const TILT: Record<Pose, number> = { trophy: 0, ball: 4, arms: -6, fist: 4, point: -3, shrug: 8, headhands: 0, facepalm: 8, crossed: -3, idle: 0 };
 
-const mirror = (a: ArmPts): ArmPts => a.map(([x, y]) => [200 - x, y] as P) as ArmPts;
+const flip = (a: Arm): Arm => ({ ...a, pts: a.pts.map(([x, y]) => [200 - x, y] as V) as Arm['pts'] });
+const both = (a: Arm): Arm[] => [a, flip(a)];
 
-/** Where the arms go for each pose (left arm; the right one is mirrored unless given) */
-const ARMS: Record<Pose, { left?: ArmPts; right?: ArmPts }> = {
-  trophy: { left: [[66, 116], [42, 88], [73, 47]], right: mirror([[66, 116], [42, 88], [73, 47]]) },
-  ball: { left: [[66, 116], [38, 92], [30, 54]], right: [[134, 116], [158, 92], [158, 58]] },
-  arms: { left: [[66, 116], [38, 92], [30, 54]], right: mirror([[66, 116], [38, 92], [30, 54]]) },
-  fist: { right: [[134, 116], [158, 102], [150, 70]] },
-  point: { right: [[134, 116], [156, 96], [150, 64]] },
-  shrug: { left: [[66, 116], [40, 132], [26, 114]], right: mirror([[66, 116], [40, 132], [26, 114]]) },
-  headhands: { left: [[66, 116], [30, 98], [54, 66]], right: mirror([[66, 116], [30, 98], [54, 66]]) },
-  facepalm: { right: [[134, 116], [152, 94], [116, 82]] },
-  crossed: { left: [[66, 116], [88, 138], [138, 130]], right: [[134, 116], [112, 138], [62, 130]] },
-  idle: {},
+const ARMS: Record<Pose, Arm[]> = {
+  trophy: both({ pts: [[66, 118], [38, 96], [84, 52]], hand: 'fist' }),
+  ball: [{ pts: [[66, 118], [40, 98], [32, 56]], hand: 'fist' }, { pts: [[134, 118], [160, 98], [158, 62]], hand: 'open' }],
+  arms: both({ pts: [[66, 118], [40, 98], [32, 56]], hand: 'fist' }),
+  fist: [{ pts: [[134, 118], [160, 104], [152, 72]], hand: 'fist' }],
+  point: [{ pts: [[134, 118], [158, 98], [150, 68]], hand: 'point' }],
+  shrug: both({ pts: [[66, 118], [40, 134], [26, 114]], hand: 'open' }),
+  headhands: both({ pts: [[66, 118], [32, 100], [56, 68]], hand: 'open' }),
+  facepalm: [{ pts: [[134, 118], [156, 98], [124, 86]], hand: 'open' }],
+  crossed: [{ pts: [[66, 118], [92, 142], [136, 130]], hand: 'fist' }, { pts: [[134, 118], [108, 142], [64, 130]], hand: 'fist' }],
+  idle: [],
 };
 
-let seedBase = 11;
+/* ───────── smooth limbs ───────── */
+
+/** Catmull-Rom through the points, sampled evenly. */
+function spline(pts: V[], per = 14): V[] {
+  const p = [pts[0], ...pts, pts[pts.length - 1]];
+  const out: V[] = [];
+  for (let i = 1; i < p.length - 2; i++) {
+    for (let k = 0; k < per; k++) {
+      const t = k / per;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const f = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push([f(p[i - 1][0], p[i][0], p[i + 1][0], p[i + 2][0]), f(p[i - 1][1], p[i][1], p[i + 1][1], p[i + 2][1])]);
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
+const fmt = (v: V) => `${v[0].toFixed(1)} ${v[1].toFixed(1)}`;
+
+/** One closed outline around a centre line whose width follows `w(t)`; round or flat ends. */
+function ribbon(c: V[], w: (t: number) => number, t0 = 0, t1 = 1, roundEnd = true, grow = 0): string {
+  const n = c.length - 1;
+  const idx = c.map((_, i) => i).filter((i) => i / n >= t0 - 1e-6 && i / n <= t1 + 1e-6);
+  const L: V[] = [];
+  const R: V[] = [];
+  for (const i of idx) {
+    const a = c[Math.max(0, i - 1)];
+    const b = c[Math.min(n, i + 1)];
+    let dx = b[0] - a[0];
+    let dy = b[1] - a[1];
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d;
+    dy /= d;
+    const half = (w(i / n) + grow) / 2;
+    L.push([c[i][0] - dy * half, c[i][1] + dx * half]);
+    R.push([c[i][0] + dy * half, c[i][1] - dx * half]);
+  }
+  const rs = (w(idx[0] / n) + grow) / 2;
+  const re = (w(idx[idx.length - 1] / n) + grow) / 2;
+  let d = `M${fmt(L[0])}`;
+  for (let i = 1; i < L.length; i++) d += `L${fmt(L[i])}`;
+  d += roundEnd ? `A${re.toFixed(1)} ${re.toFixed(1)} 0 0 0 ${fmt(R[R.length - 1])}` : `L${fmt(R[R.length - 1])}`;
+  for (let i = R.length - 2; i >= 0; i--) d += `L${fmt(R[i])}`;
+  d += `A${rs.toFixed(1)} ${rs.toFixed(1)} 0 0 0 ${fmt(L[0])}Z`;
+  return d;
+}
+
+const width = (t: number) => (t < 0.5 ? 17 - 7 * t : 13.5 - 7 * (t - 0.5));
+
+/* ───────── hands (drawn pointing along +x from the wrist) ───────── */
+
+function HandShape({ kind, fill, line }: { kind: Hand; fill: string; line: string }) {
+  const fist = 'M-1 -6.2C4 -8.4 11 -8 14.2 -4C16.6 -0.8 15.8 4.6 11.4 6.8C6.6 8.6 1.6 7.6 -1 6Z';
+  if (kind === 'open') {
+    const fingers = [
+      [-4.8, 10],
+      [-1.6, 12],
+      [1.6, 11.4],
+      [4.8, 9],
+    ];
+    return (
+      <g>
+        {[true, false].map((outline) => (
+          <g key={String(outline)} fill={outline ? line : fill} stroke={outline ? line : 'none'} strokeWidth={outline ? 2.2 : 0} strokeLinejoin="round">
+            {fingers.map(([cy, len], i) => (
+              <rect key={i} x="9" y={cy - 1.7} width={len} height="3.4" rx="1.7" />
+            ))}
+            <rect x="-0.5" y="-7.8" width="9" height="3.4" rx="1.7" transform="rotate(-48 0.5 -6)" />
+            <path d="M-1.5 -6.6C3 -7.6 8 -7.2 11 -6.6L11 6.6C8 7.2 3 7.6 -1.5 6.6Z" />
+          </g>
+        ))}
+      </g>
+    );
+  }
+  return (
+    <g>
+      {[true, false].map((outline) => (
+        <g key={String(outline)} fill={outline ? line : fill} stroke={outline ? line : 'none'} strokeWidth={outline ? 2.2 : 0} strokeLinejoin="round">
+          {kind === 'point' && <rect x="9" y="-5.2" width="16" height="3.8" rx="1.9" />}
+          <path d={fist} />
+        </g>
+      ))}
+      <path d="M5.600 -7.200C6.800 -3 6.800 3 5.800 7.400M9.600 -7.500C10.800 -3 10.800 3 9.800 7" fill="none" stroke={line} strokeWidth=".7" opacity=".7" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function Limb({ arm, kit, skin, line, ids }: { arm: Arm; kit: string; skin: string; line: string; ids: { s: string; k: string } }) {
+  const c = spline(arm.pts);
+  const body = ribbon(c, width, 0, 1, true);
+  const sleeve = ribbon(c, width, 0, 0.5, false, 3.4);
+  const hem = ribbon(c, width, 0.43, 0.5, false, 3.8);
+  const w = arm.pts[2];
+  const e = arm.pts[1];
+  const angle = (Math.atan2(w[1] - e[1], w[0] - e[0]) * 180) / Math.PI;
+  return (
+    <g>
+      {/* one outline behind everything, so the arm reads as a single shape */}
+      <g fill={line} stroke={line} strokeWidth="2.200" strokeLinejoin="round">
+        <path d={body} />
+        <path d={sleeve} />
+      </g>
+      <g transform={`translate(${w[0]} ${w[1]}) rotate(${angle})`}>
+        <HandShape kind={arm.hand} fill={skin} line={line} />
+      </g>
+      <path d={body} fill={`url(#${ids.s})`} />
+      <path d={sleeve} fill={`url(#${ids.k})`} />
+      <path d={hem} fill="#fff" opacity=".12" />
+    </g>
+  );
+}
+
+/* ───────── staging ───────── */
+
 const rng = (seed: number) => {
-  let s = seed + seedBase;
+  let s = seed;
   return () => {
     s = (s * 16807) % 2147483647;
     return s / 2147483647;
   };
 };
 
-function Limb({ pts, sleeve, skin, outline }: { pts: ArmPts; sleeve: string; skin: string; outline: string }) {
-  const [s, e, w] = pts;
-  return (
-    <g strokeLinecap="round" fill="none">
-      <line x1={s[0]} y1={s[1]} x2={e[0]} y2={e[1]} stroke={shade(sleeve, -0.45)} strokeWidth="17" />
-      <line x1={e[0]} y1={e[1]} x2={w[0]} y2={w[1]} stroke={outline} strokeWidth="12.5" />
-      <line x1={s[0]} y1={s[1]} x2={e[0]} y2={e[1]} stroke={sleeve} strokeWidth="15" />
-      <line x1={e[0]} y1={e[1]} x2={w[0]} y2={w[1]} stroke={skin} strokeWidth="10.5" />
-      <circle cx={w[0]} cy={w[1]} r="7" fill={skin} stroke={outline} strokeWidth=".9" />
-    </g>
-  );
-}
-
 function Confetti({ kit }: { kit: string }) {
-  const r = rng(3);
+  const r = rng(5);
   const colours = [kit, '#fbbf24', '#f4f4f5', '#ef4444', '#38bdf8', '#a3e635'];
   return (
     <g>
-      {Array.from({ length: 30 }, (_, i) => {
-        const x = r() * 200;
-        const y = r() * 120;
-        return <rect key={i} x={x} y={y} width="3" height="6" fill={colours[i % colours.length]} opacity=".9" transform={`rotate(${Math.round(r() * 180)} ${x} ${y})`} />;
-      })}
+      {[0, 1, 2].map((layer) => (
+        <g key={layer}>
+          <animateTransform attributeName="transform" type="translate" values={`0 ${-24 + layer * 4};0 ${44 + layer * 6}`} dur={`${2.6 + layer * 0.7}s`} repeatCount="indefinite" />
+          {Array.from({ length: 10 }, (_, i) => {
+            const x = r() * 200;
+            const y = r() * 70;
+            return <rect key={i} x={x} y={y} width="3.4" height="6.5" rx=".8" fill={colours[(i + layer) % colours.length]} opacity=".92" transform={`rotate(${Math.round(r() * 180)} ${x} ${y})`} />;
+          })}
+        </g>
+      ))}
     </g>
   );
 }
 
 function Rays() {
   return (
-    <g fill="#fff" opacity=".13">
-      {Array.from({ length: 14 }, (_, i) => {
-        const a = (i / 14) * Math.PI * 2;
-        const b = a + 0.1;
-        return <polygon key={i} points={`100,92 ${100 + 150 * Math.cos(a)},${92 + 150 * Math.sin(a)} ${100 + 150 * Math.cos(b)},${92 + 150 * Math.sin(b)}`} />;
-      })}
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0 100 96" to="360 100 96" dur="40s" repeatCount="indefinite" />
+      <g fill="#fff" opacity=".12">
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i / 12) * Math.PI * 2;
+          const b = a + 0.14;
+          return <polygon key={i} points={`100,96 ${100 + 170 * Math.cos(a)},${96 + 170 * Math.sin(a)} ${100 + 170 * Math.cos(b)},${96 + 170 * Math.sin(b)}`} />;
+        })}
+      </g>
     </g>
   );
 }
@@ -76,9 +191,10 @@ function Rays() {
 function Rain() {
   const r = rng(9);
   return (
-    <g stroke="#fff" strokeWidth=".8" opacity=".25" strokeLinecap="round">
-      {Array.from({ length: 24 }, (_, i) => {
-        const x = r() * 210;
+    <g stroke="#fff" strokeWidth=".9" opacity=".28" strokeLinecap="round">
+      <animateTransform attributeName="transform" type="translate" values="0 -14;-6 22" dur="0.9s" repeatCount="indefinite" />
+      {Array.from({ length: 26 }, (_, i) => {
+        const x = r() * 220;
         const y = r() * 150;
         return <line key={i} x1={x} y1={y} x2={x - 4} y2={y + 11} />;
       })}
@@ -86,24 +202,26 @@ function Rain() {
   );
 }
 
-function Trophy() {
+function Trophy({ id }: { id: string }) {
   return (
-    <g transform="translate(100 21) scale(1.2)">
-      <path d="M-12 -12C-22 -12 -22 2 -11 3M12 -12C22 -12 22 2 11 3" fill="none" stroke="#d99a1a" strokeWidth="3" strokeLinecap="round" />
-      <path d="M-12 -15H12V-3C12 8 6 11 0 11C-6 11 -12 8 -12 -3Z" fill="#fbbf24" stroke="#b97708" strokeWidth=".8" />
-      <rect x="-2.500" y="11" width="5" height="7" fill="#e5a419" />
-      <rect x="-9" y="17" width="18" height="5" rx="1.500" fill="#b97708" />
-      <path d="M-7 -11C-8 -4 -6 3 -3 6" stroke="#fff" strokeWidth="1.600" fill="none" opacity=".7" strokeLinecap="round" />
+    <g transform="translate(100 22) scale(1.18)">
+      <path d="M-12 -10C-23 -12 -22 3 -11 3.500M12 -10C23 -12 22 3 11 3.500" fill="none" stroke="#a96a0a" strokeWidth="3.600" strokeLinecap="round" />
+      <path d="M-12 -10C-23 -12 -22 3 -11 3.500M12 -10C23 -12 22 3 11 3.500" fill="none" stroke={`url(#${id})`} strokeWidth="2" strokeLinecap="round" />
+      <path d="M-12.500 -16H12.500V-4C12.500 7.500 6.500 11.500 0 11.500C-6.500 11.500 -12.500 7.500 -12.500 -4Z" fill={`url(#${id})`} stroke="#a96a0a" strokeWidth=".9" strokeLinejoin="round" />
+      <path d="M-2.500 11H2.500L3.500 19H-3.500Z" fill={`url(#${id})`} stroke="#a96a0a" strokeWidth=".7" />
+      <rect x="-10" y="18.500" width="20" height="5.500" rx="1.800" fill="#c98a12" stroke="#8a5606" strokeWidth=".7" />
+      <path d="M-8 -12C-9.500 -4 -7.500 3.500 -3.500 7" stroke="#fff" strokeWidth="1.800" fill="none" opacity=".75" strokeLinecap="round" />
     </g>
   );
 }
 
 function MatchBall() {
   return (
-    <g transform="translate(158 44)">
-      <circle r="14" fill="#f8f8f6" stroke="#27272a" strokeWidth="1.200" />
-      <polygon points="0,-6 5.700,-1.800 3.500,4.900 -3.500,4.900 -5.700,-1.800" fill="#27272a" />
-      <path d="M0 -6L0 -14M5.700 -1.800L13 -4.500M3.500 4.900L8 11.500M-3.500 4.900L-8 11.500M-5.700 -1.800L-13 -4.500" stroke="#27272a" strokeWidth="1" />
+    <g transform="translate(158 40)">
+      <circle r="14.500" fill="#f8f8f6" stroke="#27272a" strokeWidth="1.200" />
+      <polygon points="0,-6.500 6.200,-2 3.800,5.300 -3.800,5.300 -6.200,-2" fill="#27272a" />
+      <path d="M0 -6.500V-14M6.200 -2L13.800 -4.500M3.800 5.300L8.500 12M-3.800 5.300L-8.500 12M-6.200 -2L-13.800 -4.500" stroke="#27272a" strokeWidth="1" />
+      <path d="M-9 -8C-5 -12 1 -13.500 5 -12.500" stroke="#fff" strokeWidth="1.800" fill="none" opacity=".8" strokeLinecap="round" />
     </g>
   );
 }
@@ -112,17 +230,32 @@ function MatchBall() {
 export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expression, height = 178 }: { look?: Look; kit?: string; pose: Pose; expression: Expression; height?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const skin = SKINS[look.skin] ?? SKINS[2];
-  const outline = shade(skin, -0.42);
+  const line = shade(skin, -0.62);
+  const kitLine = shade(kit, -0.62);
   const arms = ARMS[pose];
   const tilt = TILT[pose];
   const celebrating = pose === 'arms' || pose === 'ball' || pose === 'trophy';
+  const ids = { s: `skin${uid}`, k: `kit${uid}`, g: `gold${uid}`, t: `torso${uid}` };
 
   return (
     <svg viewBox="0 0 200 170" height={height} width={(height * 200) / 170} role="img" aria-hidden className="shrink-0">
       <defs>
-        <linearGradient id={`torso${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={shade(kit, -0.3)} />
-          <stop offset="1" stopColor={shade(kit, -0.55)} />
+        <linearGradient id={ids.s} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={shade(skin, 0.1)} />
+          <stop offset="1" stopColor={shade(skin, -0.22)} />
+        </linearGradient>
+        <linearGradient id={ids.k} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={shade(kit, 0.14)} />
+          <stop offset="1" stopColor={shade(kit, -0.32)} />
+        </linearGradient>
+        <linearGradient id={ids.t} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={shade(kit, -0.28)} />
+          <stop offset="1" stopColor={shade(kit, -0.52)} />
+        </linearGradient>
+        <linearGradient id={ids.g} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fde68a" />
+          <stop offset=".5" stopColor="#fbbf24" />
+          <stop offset="1" stopColor="#d99a1a" />
         </linearGradient>
       </defs>
 
@@ -130,8 +263,9 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
       {pose === 'facepalm' && <Rain />}
       {celebrating && <Confetti kit={kit} />}
 
-      {/* shoulders and chest */}
-      <path d="M66 104L134 104L141 126L152 170L48 170L59 126Z" fill={`url(#torso${uid})`} />
+      {/* shoulders and chest: one shape that flows into the sleeves */}
+      <path d="M48 170L56 134C58 120 72 110 90 106L110 106C128 110 142 120 144 134L152 170Z" fill={kitLine} stroke={kitLine} strokeWidth="2.200" strokeLinejoin="round" />
+      <path d="M48 170L56 134C58 120 72 110 90 106L110 106C128 110 142 120 144 134L152 170Z" fill={`url(#${ids.t})`} />
 
       {/* the head, tilted from the neck */}
       <g transform={`rotate(${tilt} 100 112)`}>
@@ -140,19 +274,14 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
         </g>
       </g>
 
-      {arms.left && <Limb pts={arms.left} sleeve={kit} skin={skin} outline={outline} />}
-      {arms.right && <Limb pts={arms.right} sleeve={kit} skin={skin} outline={outline} />}
+      {arms.map((a, i) => (
+        <Limb key={i} arm={a} kit={kit} skin={skin} line={line} ids={ids} />
+      ))}
 
       {/* props and effects */}
-      {pose === 'trophy' && <Trophy />}
+      {pose === 'trophy' && <Trophy id={ids.g} />}
       {pose === 'ball' && <MatchBall />}
-      {pose === 'point' && (
-        <g>
-          <line x1="150" y1="60" x2="150" y2="42" stroke={outline} strokeWidth="6.500" strokeLinecap="round" />
-          <line x1="150" y1="60" x2="150" y2="42" stroke={skin} strokeWidth="4.500" strokeLinecap="round" />
-          <path d="M162 34L164 28L166 34L172 36L166 38L164 44L162 38L156 36Z" fill="#fde68a" />
-        </g>
-      )}
+      {pose === 'point' && <path d="M163 30L165 24L167 30L173 32L167 34L165 40L163 34L157 32Z" fill="#fde68a" />}
       {pose === 'shrug' && (
         <text x="146" y="40" fontSize="30" fontWeight="800" fill="#fff" opacity=".55" fontFamily="Georgia, serif">
           ?
@@ -166,7 +295,7 @@ export function MomentScene({ look = DEFAULT_LOOK, kit = '#0f9d6c', pose, expres
         </g>
       )}
       {pose === 'crossed' && (
-        <g transform="translate(140 52)" stroke="#ef4444" strokeWidth="2.600" strokeLinecap="round" fill="none">
+        <g transform="translate(142 52)" stroke="#ef4444" strokeWidth="2.600" strokeLinecap="round" fill="none">
           <path d="M-7 -2Q-2 -2 -2 -7M7 -2Q2 -2 2 -7M-7 2Q-2 2 -2 7M7 2Q2 2 2 7" />
         </g>
       )}

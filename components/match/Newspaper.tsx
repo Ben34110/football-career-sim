@@ -6,12 +6,27 @@ import { useMemo, useState } from "react";
 import { Crowd } from "./Crowd";
 import { MomentScene } from "./MomentScene";
 import type { Look } from "@/lib/data/look";
-import { buildFrontPage, type PaperCtx } from "@/lib/data/newspaper";
+import { buildFrontPage, type PaperCtx, type Pose } from "@/lib/data/newspaper";
 import { fmtGameDate } from "@/lib/dates";
 import { useLang, useT } from "@/lib/i18n";
 import { sharePaper } from "@/lib/shareNewspaper";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+
+/** A small looping movement per pose: the moment never stands completely still */
+const SCENE_MOTION: Record<Pose, Record<string, number>> = {
+  trophy: { y: -4, scale: 1.015 },
+  ball: { y: -4 },
+  arms: { y: -5 },
+  fist: { y: -2, rotate: 1.2 },
+  point: { y: -2, rotate: -1 },
+  shrug: { rotate: 1.8 },
+  headhands: { scale: 1.025 },
+  facepalm: { y: 2, rotate: 0.8 },
+  crossed: { x: 1.4 },
+  idle: {},
+};
+const SCENE_SPEED: Record<Pose, number> = { trophy: 0.7, ball: 0.55, arms: 0.5, fist: 0.8, point: 0.9, shrug: 1.4, headhands: 0.35, facepalm: 2.2, crossed: 0.12, idle: 1 };
 
 export interface RoundupLine {
   home: string;
@@ -111,9 +126,13 @@ export function Newspaper({
             >
               {/* supporters in the stands, out of focus */}
               <Crowd kit={kit} joy={joy} />
-              <div className="absolute inset-x-0 bottom-0 flex justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]">
+              <motion.div
+                className="absolute inset-x-0 bottom-0 flex origin-bottom justify-center [filter:drop-shadow(0_6px_8px_rgba(0,0,0,0.45))]"
+                animate={SCENE_MOTION[page.pose]}
+                transition={{ repeat: Infinity, repeatType: "mirror", ease: "easeInOut", duration: SCENE_SPEED[page.pose] }}
+              >
                 <MomentScene look={look} kit={kit} pose={page.pose} expression={page.emotion} height={178} />
-              </div>
+              </motion.div>
               {/* soft vignette */}
               <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_36px_rgba(0,0,0,0.55)]" />
             </div>

@@ -23,6 +23,8 @@ export interface TeamBadge {
   name: string;
   short: string;
   color: string;
+  /** Where the side stands, shown above the crest ("#3 · 21 pts") */
+  rank?: string;
 }
 
 export interface LiveBoard {
@@ -410,6 +412,9 @@ function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
   const t = useT();
   return (
     <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
+      {badge.rank && (
+        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
+      )}
       <Crest short={badge.short} color={badge.color} size={48} />
       <span className="line-clamp-2 text-[11px] font-bold leading-tight text-zinc-300">{badge.name}</span>
       {you && <span className="-mt-0.5 text-[9px] font-bold uppercase tracking-widest text-gold-300">{t('You')}</span>}

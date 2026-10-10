@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CLUBS, getClub } from '@/lib/data/clubs';
 import { surnamesFor } from '@/lib/data/surnames';
+import { standingsFor } from '@/lib/engine/standing';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
@@ -75,8 +76,13 @@ export function MatchScreen() {
       : { name: club?.name ?? t('Free agent'), short: club?.short ?? 'FA', color: club?.color ?? '#a1a1aa' };
     const opp: TeamBadge = { name: t(fixture.opponent), short: crestShort(fixture.opponentShort), color: fixture.opponentColor };
     const strength = national ? nat.strength + LEVEL_STRENGTH[fixture.level ?? 'A'] : club?.strength ?? 55;
+    // who we are facing: the standing in the table that counts, or the team's level when there is none
+    const st = standingsFor(season, fixture);
+    const pts = t('Pts').toLowerCase();
+    me.rank = st.me ? `#${st.me.rank} · ${st.me.pts} ${pts}` : `${t('Squad')} ${Math.round(strength)}`;
+    opp.rank = st.opp ? `#${st.opp.rank} · ${st.opp.pts} ${pts}` : `${t('Squad')} ${fixture.opponentStrength}`;
     return { me, opp, strength };
-  }, [player, fixture, t]);
+  }, [player, fixture, season, t]);
 
   /** One pre-match moment per fixture: a different format every time */
   const ritual = useMemo<Ritual | null>(() => {

@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Shield, ShieldOff } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
@@ -64,7 +65,7 @@ function Card({ event, onClose }: { event: CallUpEvent; onClose: () => void }) {
         )}
       >
         <div className={cn('flex items-center gap-3 px-5 py-4', called ? 'bg-gradient-to-r from-gold-400/30 to-transparent' : 'bg-white/[0.05]')}>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-3xl">{nat.flag}</div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40"><Flag emoji={nat.flag} size={26} className="rounded-[3px]" /></div>
           <div className="min-w-0">
             <div className={cn('text-[11px] font-bold uppercase tracking-[0.2em]', called ? 'text-gold-300' : 'text-zinc-400')}>{t('National team')}</div>
             <div className="truncate font-display text-2xl font-extrabold uppercase leading-none">{team}</div>

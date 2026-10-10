@@ -1,7 +1,8 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { motion } from 'framer-motion';
-import { Check, CircleDot, Flag, Globe, Lock, Minus, Star, Trophy, X } from 'lucide-react';
+import { Check, CircleDot, Flag as FlagIcon, Globe, Lock, Minus, Star, Trophy, X } from 'lucide-react';
 import { useState } from 'react';
 import { TournamentView } from './TournamentView';
 import { Card, Chip } from '@/components/ui/Card';
@@ -16,7 +17,7 @@ import { useGameStore } from '@/lib/store';
 import type { Fixture, SeasonState, TableRow } from '@/lib/types';
 import { cn, crestFace } from '@/lib/utils';
 
-const KIND_ICON = { league: CircleDot, cup: Trophy, intl: Flag, tournament: Globe, euro: Star };
+const KIND_ICON = { league: CircleDot, cup: Trophy, intl: FlagIcon, tournament: Globe, euro: Star };
 const TABS = ['Fixtures', 'Table', 'History'] as const;
 
 export function CalendarScreen() {
@@ -50,7 +51,7 @@ export function CalendarScreen() {
       {/* National team status */}
       <Card gold={!!level} className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-2xl">{nat.flag}</div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06]"><Flag emoji={nat.flag} size={22} className="rounded-[3px]" /></div>
           <div className="flex-1">
             <div className="text-sm font-bold">{level ? t('{team} national team', { team: teamName }) : t('National team call-ups')}</div>
             {level ? (

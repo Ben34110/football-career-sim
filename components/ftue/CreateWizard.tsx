@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Check, ChevronRight, Dices, Footprints, Minus, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -451,7 +452,7 @@ export function CreateWizard() {
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[15px] font-bold">{c.name}</div>
                           <div className="text-xs text-zinc-500">
-                            {c.flag} {t(c.league)}
+                            <Flag emoji={c.flag} size={11} /> {t(c.league)}
                           </div>
                           <div className="mt-1.5 flex gap-1.5">
                             <Chip tone={c.tier === 4 ? 'gold' : 'neutral'}>{t(tierLabel(c.tier))}</Chip>

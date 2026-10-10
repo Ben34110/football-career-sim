@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +13,7 @@ import type { TournamentState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const POT_NAME = ['Top seeds', 'Contenders', 'Challengers', 'Outsiders'];
-const flagOf = (short: string) => short.split(' ')[0];
+const flagOf = (short: string) => <Flag emoji={short.split(' ')[0]} size={11} />;
 
 /** The tournament group draw: one ball from each of the three pots makes your group of four. */
 export function GroupDraw({ tourney, tournament, onDraw }: { tourney: TournamentState; tournament: string; onDraw: (picks: number[]) => void }) {
@@ -92,7 +93,7 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
             const team = chosen[i];
             return (
               <div key={i} className={cn('flex items-center justify-between rounded-xl px-3 py-2 text-[13px]', team ? 'bg-white/[0.06] font-semibold' : 'border border-dashed border-white/15 text-zinc-600')}>
-                <span>{team ? `${flagOf(team.short)} ${t(team.name)}` : `${t('Pot {n}', { n: drawPots[i] + 1 })} · ${t(POT_NAME[drawPots[i]])}`}</span>
+                <span>{team ? <>{flagOf(team.short)} {t(team.name)}</> : `${t('Pot {n}', { n: drawPots[i] + 1 })} · ${t(POT_NAME[drawPots[i]])}`}</span>
                 {team && <span className="font-num text-zinc-400">{team.strength}</span>}
               </div>
             );
@@ -126,7 +127,7 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
                   <AnimatePresence mode="wait">
                     {isPicked && opened ? (
                       <motion.span key="open" initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-3xl">
-                        {flagOf(tourney.teams[n].short)}
+                        <Flag emoji={tourney.teams[n].short.split(' ')[0]} size={30} className="rounded-[3px]" />
                       </motion.span>
                     ) : (
                       <motion.span key="num" exit={{ scale: 0 }} className="font-display text-3xl font-extrabold text-zinc-900/80">

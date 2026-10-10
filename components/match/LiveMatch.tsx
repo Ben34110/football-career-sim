@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FastForward, Pause, Play, Radio } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -190,9 +191,9 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
             <span className="absolute inset-y-0 left-1/2 w-px bg-white/30" />
           </div>
           <div className="mt-1 grid grid-cols-3 text-[10px] font-bold uppercase tracking-[0.16em]">
-            <span className={cn('text-left', leftHot ? (meHome ? 'text-neon-300' : 'text-crimson-400') : 'text-zinc-600')}>{homeBadge.short}</span>
+            <span className={cn('text-left', leftHot ? (meHome ? 'text-neon-300' : 'text-crimson-400') : 'text-zinc-600')}><Short value={homeBadge.short} /></span>
             <span className="text-center text-zinc-500">{t('Momentum')}</span>
-            <span className={cn('text-right', rightHot ? (meHome ? 'text-crimson-400' : 'text-neon-300') : 'text-zinc-600')}>{awayBadge.short}</span>
+            <span className={cn('text-right', rightHot ? (meHome ? 'text-crimson-400' : 'text-neon-300') : 'text-zinc-600')}><Short value={awayBadge.short} /></span>
           </div>
         </div>
       </Card>
@@ -411,6 +412,11 @@ function miniSkill(kind: MiniKind, ctx: MatchCtx) {
   }
 }
 
+/** Initials, or the flag for a national side */
+function Short({ value }: { value: string }) {
+  return flagOnly(value) ? <Flag emoji={flagOnly(value)} size={11} /> : <>{value}</>;
+}
+
 function TeamSide({ badge, you }: { badge: TeamBadge; you?: boolean }) {
   const t = useT();
   return (
@@ -457,7 +463,7 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
               <div key={r.id} className={cn('grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 px-3 py-2 text-[13px]', r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300')}>
                 <span className="font-num text-zinc-500">{i + 1}</span>
                 <span className={cn('text-[10px] font-bold', move > 0 ? 'text-neon-400' : move < 0 ? 'text-crimson-400' : 'text-zinc-700')}>{move > 0 ? '▲' : move < 0 ? '▼' : '–'}</span>
-                <span className="truncate">{flagOnly(r.short) ? `${flagOnly(r.short)} ` : ''}{t(r.name)}</span>
+                <span className="truncate">{flagOnly(r.short) ? <Flag emoji={flagOnly(r.short)} size={11} /> : null} {t(r.name)}</span>
                 <span className="font-num text-center">{r.played}</span>
                 <span className="font-num text-center">
                   {r.gf - r.ga > 0 ? '+' : ''}
@@ -478,11 +484,11 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
               const [h, a] = scoreAt(g, minute);
               return (
                 <div key={g.id} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[13px]">
-                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{t(g.home)} {flagOnly(g.homeShort)}</span>
+                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{t(g.home)} {flagOnly(g.homeShort) ? <Flag emoji={flagOnly(g.homeShort)} size={11} /> : null}</span>
                   <span className="font-num min-w-[52px] rounded-md bg-black/40 px-2 py-0.5 text-center font-extrabold">
                     {h} – {a}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-semibold">{flagOnly(g.awayShort)} {t(g.away)}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{flagOnly(g.awayShort) ? <Flag emoji={flagOnly(g.awayShort)} size={11} /> : null} {t(g.away)}</span>
                 </div>
               );
             })}

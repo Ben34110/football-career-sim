@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { getClub } from '@/lib/data/clubs';
@@ -81,7 +82,7 @@ export function PlayerCard({ name, nationality, position, attrs, xp, age, clubId
             {ovr}
           </motion.span>
           <span className="font-display text-lg font-bold tracking-[0.2em] text-gold-300">{position}</span>
-          <span className="mt-1 text-xl leading-none" aria-label={t(nat.name)}>{nat.flag}</span>
+          <span className="mt-1.5 leading-none" aria-label={t(nat.name)}><Flag emoji={nat.flag} size={20} /></span>
         </div>
         <HeadAvatar look={look} size={compact ? 84 : 104} kit={club?.color} className="mt-3 drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" />
         <div className="flex min-w-0 flex-col items-end justify-self-end text-right">

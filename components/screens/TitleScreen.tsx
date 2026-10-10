@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { motion } from 'framer-motion';
 import { ChevronRight, Play, Plus, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -68,7 +69,7 @@ export function TitleScreen() {
             <div className="min-w-0 flex-1">
               <div className="eyebrow">{t('Continue career')}</div>
               <div className="truncate text-sm font-bold">
-                {getNationality(player.nationality).flag} {player.name} · {player.position}
+                <Flag emoji={getNationality(player.nationality).flag} size={12} /> {player.name} · {player.position}
               </div>
               <div className="truncate text-xs text-zinc-500">
                 {club?.name ?? t('Free agent')} · {seasonLabel(year)}

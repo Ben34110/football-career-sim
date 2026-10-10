@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { rankGroup } from '@/lib/engine/tournament';
@@ -23,7 +24,7 @@ export function TournamentView({ tourney, name }: { tourney: TournamentState; na
   const groups = tourney.groups.map((_, g) => g);
   // your group first
   const order = [tourney.myGroup, ...groups.filter((g) => g !== tourney.myGroup)];
-  const teamLabel = (n: string) => (n ? `${tourney.teams[n]?.short.split(' ')[0] ?? ''} ${t(n)}` : '—');
+  const teamLabel = (n: string) => (n ? <><Flag emoji={tourney.teams[n]?.short.split(' ')[0] ?? ''} size={11} /> {t(n)}</> : <>—</>);
   return (
     <div className="space-y-3">
       <div className="px-1">
@@ -96,7 +97,7 @@ export function TournamentView({ tourney, name }: { tourney: TournamentState; na
   );
 }
 
-function TieRow({ x, me, label }: { x: TournamentTie; me: string; label: (n: string) => string }) {
+function TieRow({ x, me, label }: { x: TournamentTie; me: string; label: (n: string) => React.ReactNode }) {
   const played = x.winner !== undefined;
   const mine = x.a === me || x.b === me;
   return (

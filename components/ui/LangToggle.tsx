@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { useLang } from '@/lib/i18n';
 import type { Lang } from '@/lib/i18n/lang';
 import { haptic } from '@/lib/haptics';
@@ -28,7 +29,7 @@ export function LangToggle({ className }: { className?: string }) {
             lang === o.id ? 'bg-gradient-to-b from-neon-400 to-neon-600 text-zinc-950 shadow-neon' : 'text-zinc-400',
           )}
         >
-          <span aria-hidden>{o.flag}</span>
+          <Flag emoji={o.flag} size={11} />
           {o.label}
         </button>
       ))}

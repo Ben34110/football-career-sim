@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { flagUrl } from '@/lib/flags';
 import { cn } from '@/lib/utils';
 
 const IS_FLAG = /^(\p{Regional_Indicator}{2}|\u{1F3F4})/u;
@@ -9,7 +10,8 @@ export function Crest({ short, color, size = 40, className }: { short: string; c
   const flag = IS_FLAG.test(short);
 
   if (flag) {
-    // a national side: the shield is filled with its flag (a blurred copy fills the corners, a sharp one sits in the middle)
+    // a national side: the shield is filled with its real flag
+    const url = flagUrl(short);
     return (
       <div className={cn('relative flex shrink-0 items-center justify-center', className)} style={{ width: size, height: size }} aria-hidden>
         <svg viewBox="0 0 40 46" className="absolute inset-0 h-full w-full drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
@@ -17,20 +19,10 @@ export function Crest({ short, color, size = 40, className }: { short: string; c
             <clipPath id={`c${uid}`}>
               <path d={SHIELD} />
             </clipPath>
-            <filter id={`b${uid}`} x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="5" />
-            </filter>
           </defs>
           <g clipPath={`url(#c${uid})`}>
             <rect width="40" height="46" fill="#3f3f46" />
-            <text x="20" y="42" fontSize="84" textAnchor="middle" filter={`url(#b${uid})`}>
-              {short}
-            </text>
-            <g transform="translate(20 23.500) scale(1 1.28) translate(-20 -23.500)">
-              <text x="20" y="43" fontSize="52" textAnchor="middle">
-                {short}
-              </text>
-            </g>
+            {url && <image href={url} x="-10.670" y="0" width="61.330" height="46" preserveAspectRatio="none" />}
             <path d="M20 1.5 37 7v6H3V7z" fill="rgba(255,255,255,0.14)" />
           </g>
           <path d={SHIELD} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5" />

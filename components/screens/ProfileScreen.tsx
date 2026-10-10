@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { RotateCcw, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -31,7 +32,7 @@ export function ProfileScreen() {
       <ShareCardButton player={player} />
 
       <div className="flex flex-wrap gap-2">
-        <Chip>{nat.flag} {t(nat.name)}</Chip>
+        <Chip><Flag emoji={nat.flag} size={12} /> {t(nat.name)}</Chip>
         <Chip>{t(POSITION_LABEL[player.position])}</Chip>
         <Chip>{t(player.foot === 'Both' ? 'Both feet' : `${player.foot} foot`)}</Chip>
         <Chip tone="gold">{t('Peak OVR')} {player.peakOvr}</Chip>
@@ -54,7 +55,7 @@ export function ProfileScreen() {
       </div>
 
       <Card className="flex items-center gap-4 p-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.06] text-3xl">{nat.flag}</div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.06]"><Flag emoji={nat.flag} size={26} className="rounded-[3px]" /></div>
         <div className="flex-1">
           <div className="text-sm font-bold">{t('{team} national team', { team: t(nat.name) })}</div>
           <div className="text-xs text-zinc-500">{t('International record')}</div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { Check, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { NATIONALITIES, REGIONS } from '@/lib/data/nationalities';
@@ -70,7 +71,7 @@ export function CountryPicker({ value, onPick, label }: { value: string; onPick:
                   active ? 'border-neon-400/60 bg-neon-400/10 text-neon-300' : 'border-transparent bg-white/[0.03] text-zinc-300',
                 )}
               >
-                <span className="text-lg leading-none">{n.flag}</span>
+                <Flag emoji={n.flag} size={18} />
                 <span className="min-w-0 flex-1 truncate">{t(n.name)}</span>
                 {active && <Check className="h-3.5 w-3.5 shrink-0" />}
               </button>

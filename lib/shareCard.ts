@@ -1,5 +1,6 @@
 import type { Expression } from '@/components/ui/HeadAvatar';
 import { getClub } from './data/clubs';
+import { flagUrl } from './flags';
 import { getNationality } from './data/nationalities';
 import { DEFAULT_LOOK } from './data/look';
 import { ovrOf, POSITION_LABEL } from './engine/player';
@@ -9,6 +10,23 @@ type T = (text: string, vars?: Record<string, string | number>) => string;
 
 const W = 1080;
 const H = 1350;
+
+/** A flag as an image (same-origin SVG), or null */
+async function loadFlag(emoji: string): Promise<HTMLImageElement | null> {
+  const url = flagUrl(emoji);
+  if (!url) return null;
+  try {
+    const img = new Image();
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error('flag'));
+      img.src = url;
+    });
+    return img;
+  } catch {
+    return null;
+  }
+}
 
 export async function loadAvatar(look: Player['look'], px = 420, kit?: string, expression?: Expression): Promise<HTMLImageElement | null> {
   try {
@@ -74,8 +92,20 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   g.fillStyle = '#f2c14e';
   g.font = '800 70px Inter, system-ui, sans-serif';
   g.fillText(player.position, 108, 500);
-  g.font = '80px system-ui, "Apple Color Emoji", sans-serif';
-  g.fillText(nat.flag, 108, 600);
+  const flagImg = await loadFlag(nat.flag);
+  if (flagImg) {
+    g.save();
+    g.beginPath();
+    g.roundRect(108, 530, 112, 84, 10);
+    g.clip();
+    g.drawImage(flagImg, 108, 530, 112, 84);
+    g.restore();
+    g.strokeStyle = 'rgba(255,255,255,0.35)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.roundRect(108, 530, 112, 84, 10);
+    g.stroke();
+  }
 
   // head
   const img = await loadAvatar(player.look, 420, club?.color);
@@ -131,7 +161,7 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   if (player.national && player.national.caps > 0) {
     g.fillStyle = '#a1a1aa';
     g.font = '500 36px Inter, system-ui, sans-serif';
-    g.fillText(`${nat.flag} ${player.national.caps} ${t('Caps')} · ${player.national.goals} ${t('Goals')}`, W / 2, 1200);
+    g.fillText(`${player.national.caps} ${t('Caps')} · ${player.national.goals} ${t('Goals')}`, W / 2, 1200);
   }
   g.fillStyle = '#52525b';
   g.font = '500 30px Inter, system-ui, sans-serif';

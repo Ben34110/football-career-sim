@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Ban, Check, FileSignature, Handshake, Megaphone, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -134,7 +135,7 @@ export function TransfersScreen() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-bold">{c.name}</div>
                   <div className="text-[11px] text-zinc-500">
-                    {c.flag} {t(c.league)} · {t(TIER_LABEL[c.tier])} · {c.strength}
+                    <Flag emoji={c.flag} size={11} /> {t(c.league)} · {t(TIER_LABEL[c.tier])} · {c.strength}
                   </div>
                 </div>
                 <Chip tone={label[1] as 'good' | 'gold' | 'bad'}>{t(label[0])}</Chip>
@@ -192,7 +193,7 @@ function OfferCard({ offer, open, immediate, onRun }: { offer: Offer; open: bool
           <div className="min-w-0 flex-1">
             <div className="truncate text-[15px] font-bold">{c.name}</div>
             <div className="text-xs text-zinc-500">
-              {c.flag} {t(c.league)} · {t(TIER_LABEL[c.tier])}
+              <Flag emoji={c.flag} size={11} /> {t(c.league)} · {t(TIER_LABEL[c.tier])}
             </div>
           </div>
           <Chip tone={offer.source === 'renewal' ? 'info' : offer.source === 'approach' ? 'gold' : 'neutral'}>

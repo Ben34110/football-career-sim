@@ -18,10 +18,10 @@ const flip = (a: Arm): Arm => ({ ...a, pts: a.pts.map(([x, y]) => [200 - x, y] a
 const both = (a: Arm): Arm[] => [a, flip(a)];
 
 const ARMS: Record<Pose, Arm[]> = {
-  trophy: both({ pts: [[66, 118], [38, 96], [84, 52]], hand: 'fist' }),
-  ball: [{ pts: [[66, 118], [40, 98], [32, 56]], hand: 'fist' }, { pts: [[134, 118], [160, 98], [158, 62]], hand: 'open' }],
-  arms: both({ pts: [[66, 118], [40, 98], [32, 56]], hand: 'fist' }),
-  fist: [{ pts: [[134, 118], [160, 104], [152, 72]], hand: 'fist' }],
+  trophy: both({ pts: [[66, 118], [38, 96], [84, 52]], hand: 'open' }),
+  ball: [{ pts: [[66, 118], [40, 98], [32, 56]], hand: 'open' }, { pts: [[134, 118], [160, 98], [158, 62]], hand: 'open' }],
+  arms: both({ pts: [[66, 118], [40, 98], [32, 56]], hand: 'open' }),
+  fist: [{ pts: [[134, 118], [160, 104], [152, 72]], hand: 'open' }],
   point: [{ pts: [[134, 118], [158, 98], [150, 68]], hand: 'point' }],
   shrug: both({ pts: [[66, 118], [40, 134], [26, 114]], hand: 'open' }),
   headhands: both({ pts: [[66, 118], [32, 100], [56, 68]], hand: 'open' }),
@@ -86,23 +86,25 @@ const width = (t: number) => (t < 0.5 ? 17 - 7 * t : 13.5 - 7 * (t - 0.5));
 function HandShape({ kind, fill, line }: { kind: Hand; fill: string; line: string }) {
   const fist = 'M-1 -6.2C4 -8.4 11 -8 14.2 -4C16.6 -0.8 15.8 4.6 11.4 6.8C6.6 8.6 1.6 7.6 -1 6Z';
   if (kind === 'open') {
-    const fingers = [
-      [-4.8, 10],
-      [-1.6, 12],
-      [1.6, 11.4],
-      [4.8, 9],
+    // a real hand: palm, four fanned fingers (index to little finger) and a thumb
+    const fingers: [number, number, number][] = [
+      [-4.8, 9.5, -17],
+      [-1.6, 12, -6],
+      [1.6, 11.2, 6],
+      [4.8, 8.4, 17],
     ];
     return (
       <g>
         {[true, false].map((outline) => (
           <g key={String(outline)} fill={outline ? line : fill} stroke={outline ? line : 'none'} strokeWidth={outline ? 2.2 : 0} strokeLinejoin="round">
-            {fingers.map(([cy, len], i) => (
-              <rect key={i} x="9" y={cy - 1.7} width={len} height="3.4" rx="1.7" />
+            {fingers.map(([cy, len, rot], i) => (
+              <rect key={i} x="9" y={cy - 1.7} width={len} height="3.4" rx="1.7" transform={`rotate(${rot} 9.500 ${cy})`} />
             ))}
-            <rect x="-0.5" y="-7.8" width="9" height="3.4" rx="1.7" transform="rotate(-48 0.5 -6)" />
-            <path d="M-1.5 -6.6C3 -7.6 8 -7.2 11 -6.6L11 6.6C8 7.2 3 7.6 -1.5 6.6Z" />
+            <rect x="-1.500" y="-7.600" width="9.500" height="3.600" rx="1.800" transform="rotate(-52 0 -5.800)" />
+            <path d="M-1.500 -6.600C3 -7.600 8 -7.200 11 -6.600L11 6.600C8 7.200 3 7.600 -1.500 6.600Z" />
           </g>
         ))}
+        <path d="M2 -3C4 -2 4.500 2 2.500 3.500" fill="none" stroke={line} strokeWidth=".6" opacity=".45" strokeLinecap="round" />
       </g>
     );
   }

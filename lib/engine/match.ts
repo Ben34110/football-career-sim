@@ -306,7 +306,7 @@ export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): 
   // Better opposition makes every decision harder
   const opposition = (ctx.oppStr - ctx.myStr) / 140;
   return clamp(
-    ctx.clutchBonus + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
+    ctx.clutchBonus + (m.clutchBoost ?? 0) + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
     0.05,
     0.86,
   );
@@ -456,6 +456,70 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
   };
   s = { ...s, missedKick: true, rating: s.rating - 0.5, momentum: clamp(s.momentum - 18, -100, 100) };
   return push(s, s.minute, 'miss', 'me', text[result as Exclude<KickResult, 'goal'>], true);
+}
+
+/* ───────────── In-match team boosts ───────────── */
+
+export interface RallyOption {
+  id: string;
+  emoji: string;
+  label: string;
+  hint: string;
+  /** Base chance it works, before the dressing room's mood */
+  base: number;
+  swing: number;
+  clutch: number;
+  /** Failing costs rating / momentum */
+  risk: number;
+}
+
+const TRAILING: RallyOption[] = [
+  { id: 'rally', emoji: '📣', label: 'Rally the lads', hint: 'A big lift — if the dressing room backs you.', base: 0.5, swing: 26, clutch: 0.02, risk: 8 },
+  { id: 'calm', emoji: '🧘', label: 'Calm everyone down', hint: 'A smaller but safer reaction.', base: 0.72, swing: 12, clutch: 0.02, risk: 3 },
+  { id: 'self', emoji: '🔥', label: 'Take it on yourself', hint: 'Your decisions get easier, the team follows less.', base: 0.58, swing: 6, clutch: 0.07, risk: 10 },
+];
+const TIRED: RallyOption[] = [
+  { id: 'breath', emoji: '🌬️', label: 'Find a second wind', hint: 'Slow your breathing and reset.', base: 0.8, swing: 5, clutch: 0.04, risk: 2 },
+  { id: 'push', emoji: '💪', label: 'Push through the pain', hint: 'Higher reward, but your legs may give.', base: 0.5, swing: 8, clutch: 0.09, risk: 8 },
+];
+
+/** When the game offers a boost: you are losing, or running on empty late on. */
+export function rallyKind(m: MatchState, ctx: MatchCtx): 'trailing' | 'tired' | null {
+  if (m.status !== 'playing' || m.rallyUsed || m.subbedOffAt !== undefined) return null;
+  if (m.minute < 25 || m.minute > 82 || m.minute <= m.startMinute) return null;
+  if (m.myScore < m.oppScore) return 'trailing';
+  const fatigue = Math.max(0, 5 - ctx.boltsBefore);
+  if (fatigue >= 1 && m.minute >= 55) return 'tired';
+  return null;
+}
+
+export const rallyOptions = (kind: 'trailing' | 'tired') => (kind === 'trailing' ? TRAILING : TIRED);
+
+export function rallyChance(o: RallyOption, ctx: MatchCtx): number {
+  const mood = o.id === 'self' ? (ctx.attrs.composure - 70) / 160 : (ctx.rep.lockerRoom - 50) / 180;
+  return clamp(o.base + mood + (ctx.morale - 50) / 400, 0.2, 0.9);
+}
+
+const RALLY_TEXT: Record<string, [string, string]> = {
+  rally: ['📣 {who} rallies the lads — the whole team lifts!', '📣 {who} shouts at the lads, but the words fall flat.'],
+  calm: ['🧘 {who} calms everyone down — the team settles.', '🧘 {who} tries to calm things, but the nerves remain.'],
+  self: ['🔥 {who} grabs the game by the scruff of the neck.', '🔥 {who} tries to do too much and the team loses its shape.'],
+  breath: ['🌬️ {who} finds a second wind!', '🌬️ {who} takes a deep breath, but the legs are still heavy.'],
+  push: ['💪 {who} ignores the pain and keeps running.', '💪 {who} pushes too hard — the legs give out for a moment.'],
+};
+
+export function applyRally(m: MatchState, ctx: MatchCtx, kind: 'trailing' | 'tired', optionId: string, rng: Rng): MatchState {
+  const o = rallyOptions(kind).find((x) => x.id === optionId) ?? rallyOptions(kind)[0];
+  const who = surname(ctx.playerName);
+  const ok = rng() < rallyChance(o, ctx);
+  const [good, bad] = RALLY_TEXT[o.id];
+  let s: MatchState = { ...m, rallyUsed: true };
+  if (ok) {
+    s = { ...s, momentum: clamp(s.momentum + o.swing, -100, 100), clutchBoost: (s.clutchBoost ?? 0) + o.clutch, rating: s.rating + 0.15 };
+    return push(s, s.minute, 'clutch', 'me', tr(good, { who }), true);
+  }
+  s = { ...s, momentum: clamp(s.momentum - o.risk * 0.5, -100, 100), rating: s.rating - 0.1 };
+  return push(s, s.minute, 'miss', 'me', tr(bad, { who }), true);
 }
 
 /* ───────────── Pressure & results ───────────── */

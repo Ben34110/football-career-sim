@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
+import { BOOSTS, boostPrice } from '@/lib/data/boosts';
 import { galaCost, levelOf, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost } from '@/lib/data/shop';
 import { fmtMoneyK } from '@/lib/engine/player';
 import { useEnergy } from '@/lib/hooks';
@@ -21,6 +22,7 @@ export function ShopScreen() {
   const player = useGameStore((s) => s.player);
   const year = useGameStore((s) => s.year);
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
+  const buyBoost = useGameStore((s) => s.buyBoost);
   const donate = useGameStore((s) => s.donate);
   const physio = useGameStore((s) => s.physio);
   const grantLives = useGameStore((s) => s.grantLives);
@@ -102,6 +104,40 @@ export function ShopScreen() {
             <HeartPulse className="h-4 w-4 text-crimson-400" /> {t('Recovery clinic · +2 lives')} ({fmtMoneyK(wage * 3)})
           </Button>
         </Card>
+      </div>
+
+      {/* Match-day boosts */}
+      <div>
+        <SectionTitle>{t('Match-day boosts')}</SectionTitle>
+        <Card className="divide-y divide-white/[0.06] p-0">
+          {BOOSTS.map((b) => {
+            const price = boostPrice(b, wage);
+            const owned = player.boosts?.[b.id] ?? 0;
+            return (
+              <div key={b.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="text-2xl">{b.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-bold">
+                    {t(b.name)} {owned > 0 && <span className="ml-1 rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-300">×{owned}</span>}
+                  </div>
+                  <div className="text-xs text-zinc-400">{t(b.desc)}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant={player.money >= price ? 'gold' : 'ghost'}
+                  disabled={player.money < price}
+                  onClick={() => {
+                    const r = buyBoost(b.id);
+                    toast(r.msg, r.ok ? 'good' : 'bad');
+                  }}
+                >
+                  {fmtMoneyK(price)}
+                </Button>
+              </div>
+            );
+          })}
+        </Card>
+        <p className="mt-2 px-1 text-[11px] text-zinc-500">{t('Use one before kick-off. Small edge, one per match.')}</p>
       </div>
 
       {/* Upgrades */}

@@ -19,6 +19,16 @@ const locale = (lang: Lang) => (lang === 'fr' ? 'fr-FR' : 'en-GB');
 export const fmtShortDate = (d: Date, lang: Lang) =>
   new Intl.DateTimeFormat(locale(lang), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d);
 
-/** Real-world "today", e.g. "jeudi 9 octobre 2026" */
-export const fmtToday = (lang: Lang) =>
-  new Intl.DateTimeFormat(locale(lang), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+/**
+ * The date inside the game: the day of your next match (or the start of the season / the summer break).
+ * It has nothing to do with the real calendar.
+ */
+export function gameDate(season: { year: number; fixtures: Fixture[] } | null | undefined, year: number): Date {
+  if (!season) return new Date(Date.UTC(year, 6, 1));
+  const idx = season.fixtures.findIndex((f) => f.status === 'upcoming');
+  if (idx === -1) return new Date(Date.UTC(season.year + 1, 5, 25));
+  return fixtureDate(season, idx);
+}
+
+export const fmtGameDate = (d: Date, lang: Lang) =>
+  new Intl.DateTimeFormat(locale(lang), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);

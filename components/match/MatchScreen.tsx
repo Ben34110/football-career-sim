@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
+import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
 import { pickRitual, type Ritual, type RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
@@ -110,7 +111,7 @@ export function MatchScreen() {
 
   /* ───── Handlers ───── */
 
-  const kickoff = (rawStance: RitualOption, usedRitual: Ritual) => {
+  const kickoff = (rawStance: RitualOption, usedRitual: Ritual, boostId: string | null) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
     const boltsBefore = syncEnergy(p0.energy, Date.now()).bolts;
@@ -121,7 +122,9 @@ export function MatchScreen() {
     // the same talk week after week loses its effect
     const stance = scaleStance(rawStance, repetition(p0.talks?.stances ?? [], rawStance.id).factor);
     setSnap({ rep: p0.rep, attrs: p0.attrs, money: p0.money, ovr: ovrOf(p0) });
-    store.applyStance(stance);
+    const boost = boostId ? BOOST_BY_ID[boostId] : undefined;
+    store.applyStance({ morale: stance.morale + (boost?.morale ?? 0), rep: stance.rep });
+    if (boost) store.consumeBoost(boost.id);
     store.recordTalk({ stance: rawStance.id, speech: usedRitual.id });
     const p = useGameStore.getState().player!;
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
@@ -142,7 +145,7 @@ export function MatchScreen() {
         home: national ? false : fixture.home,
         knockout: fixture.knockout,
         kind: fixture.kind,
-        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (stance.brief?.target ?? 0), brief: stance.brief },
+        mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (stance.brief?.target ?? 0), brief: mergeBrief(stance.brief, boost?.effect) },
         benched: startsOnBench(p0.rep.coachTrust, p0.form, fixture.kind),
         meHome: fixture.home,
         fatigueRelief: p.upgrades?.nutrition ?? 0,
@@ -219,6 +222,7 @@ export function MatchScreen() {
           fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
           talks={player.talks}
+          boosts={player.boosts}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)
               ? player.rep.coachTrust < 25

@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { Sheet } from '@/components/ui/Sheet';
-import { applyKick, createMatch, pressureFor, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
+import { applyKick, applyRally, createMatch, pressureFor, rallyChance, rallyKind, rallyOptions, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import type { KickKind, MatchEvent, MiniKind, MiniQuality, MatchState } from '@/lib/types';
@@ -43,6 +43,7 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
   const t = useT();
   const [m, setM] = useState<MatchState>(() => createMatch(ctx, Math.random));
   const [mini, setMini] = useState<{ kind: MiniKind; optionId: string } | null>(null);
+  const [rallyOpen, setRallyOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [fast, setFast] = useState(false);
   const [kick, setKick] = useState<KickKind | null>(null);
@@ -51,10 +52,10 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
 
   /* Game clock */
   useEffect(() => {
-    if (paused || m.status !== 'playing') return;
+    if (paused || rallyOpen || m.status !== 'playing') return;
     const id = setInterval(() => setM((p) => tickMatch(p, ctx, Math.random)), fast ? 320 : 820);
     return () => clearInterval(id);
-  }, [paused, fast, m.status, ctx]);
+  }, [paused, rallyOpen, fast, m.status, ctx]);
 
   /* Goal flashes + haptics */
   useEffect(() => {
@@ -97,6 +98,8 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
   const momentumFill = towardLeft
     ? cn('right-1/2 rounded-l-full bg-gradient-to-l', mineOnTop ? 'from-neon-600 to-neon-300' : 'from-crimson-600 to-crimson-400')
     : cn('left-1/2 rounded-r-full bg-gradient-to-r', mineOnTop ? 'from-neon-600 to-neon-300' : 'from-crimson-600 to-crimson-400');
+
+  const rally = rallyKind(m, ctx);
 
   const events = useMemo(() => [...m.events].reverse().slice(0, 40), [m.events]);
 
@@ -166,7 +169,20 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
           {!m.isStarter && <span className="ml-1 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] text-gold-300">{t('SUB')}</span>}
         </div>
         {!finished && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {rally && (
+              <motion.button
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                onClick={() => {
+                  haptic(15);
+                  setRallyOpen(true);
+                }}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-gold-400/60 bg-gold-400/15 px-3 text-xs font-bold text-gold-200"
+              >
+                {rally === 'trailing' ? '📣' : '🌬️'} {t(rally === 'trailing' ? 'Rally' : 'Second wind')}
+              </motion.button>
+            )}
             <button
               onClick={() => setPaused((p) => !p)}
               aria-label={paused ? t('Resume') : t('Pause')}
@@ -219,6 +235,41 @@ export function LiveMatch({ ctx, meHome, me, opp, finishing, composure, onFinish
       )}
 
       <ClutchSheet open={m.status === 'clutch' && !kick && !mini} moment={moment} match={m} ctx={ctx} onPick={pick} />
+
+      {/* Team boost when you are losing or tired */}
+      <Sheet open={rallyOpen && !!rally} dismissible onClose={() => setRallyOpen(false)}>
+        {rally && (
+          <div>
+            <div className="eyebrow text-gold-300">{t(rally === 'trailing' ? 'Time to react' : 'Running on empty')}</div>
+            <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(rally === 'trailing' ? 'Lift the team' : 'Dig deep')}</h3>
+            <p className="mt-1 text-sm text-zinc-400">{t('One chance per match. How do you react?')}</p>
+            <div className="mt-4 space-y-2.5">
+              {rallyOptions(rally).map((o) => {
+                const chance = rallyChance(o, ctx);
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => {
+                      setM((prev) => applyRally(prev, ctx, rally, o.id, Math.random));
+                      setRallyOpen(false);
+                    }}
+                    className="gloss-edge glass flex w-full items-center gap-3 p-3.5 text-left active:scale-[0.98]"
+                  >
+                    <span className="text-2xl">{o.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-bold">{t(o.label)}</span>
+                      <span className="block text-xs text-zinc-400">{t(o.hint)}</span>
+                      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/10">
+                        <span className={cn('block h-full rounded-full', chance > 0.6 ? 'bg-neon-400' : chance > 0.4 ? 'bg-gold-400' : 'bg-crimson-500')} style={{ width: `${Math.round(chance * 100)}%` }} />
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Sheet>
 
       {/* Skill mini-games */}
       <Sheet open={!!mini} className="max-h-[94dvh] overflow-y-auto">

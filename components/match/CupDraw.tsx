@@ -31,6 +31,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
     window.setTimeout(() => {
       setOpened(true);
       haptic([40, 40, 90]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 1100);
   };
 
@@ -44,6 +45,8 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
         </p>
       </div>
 
+      {/* the pot leaves the stage once the ball is open, so the fixture sits right under the title */}
+      {!opened && (
       <Card strong className="relative overflow-hidden p-4">
         <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-40" />
         {/* the pot */}
@@ -90,21 +93,22 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
           })}
         </div>
       </Card>
+      )}
 
       <AnimatePresence>
         {result && opened && (
           <motion.div initial={{ y: 20, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 220, damping: 18 }} className="space-y-3">
             <Card gold className="p-4">
               <div className="flex items-center gap-3">
-                <Crest short={me.short} color={me.color} size={44} />
+                <Crest short={me.short} color={me.color} size={56} />
                 <div className="flex-1 text-center">
                   <div className="font-display text-2xl font-extrabold text-zinc-500">VS</div>
                   <Chip tone={tag.tone}>{t(tag.t)}</Chip>
                 </div>
-                <Crest short={crestShort(result.opponentShort)} color={result.opponentColor} size={44} />
+                <Crest short={crestShort(result.opponentShort)} color={result.opponentColor} size={56} />
               </div>
               <div className="mt-3 text-center">
-                <div className="font-display text-3xl font-extrabold uppercase leading-none">{t(result.opponent)}</div>
+                <div className="font-display text-4xl font-extrabold uppercase leading-none">{t(result.opponent)}</div>
                 <div className="mt-1 text-xs text-zinc-400">
                   {t('Squad')} <b className="font-num text-sm text-zinc-100">{Math.round(myStrength)}</b> {t('vs')} <b className="font-num text-sm text-zinc-100">{result.opponentStrength}</b>
                 </div>

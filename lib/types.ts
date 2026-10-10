@@ -214,6 +214,8 @@ export interface Player {
   national?: { caps: number; goals: number; youthCaps?: number };
   /** Recent dressing-room and press choices */
   talks?: TalkMemory;
+  /** Match-day boosts owned (id → quantity) */
+  boosts?: Record<string, number>;
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
   /** Permanent upgrades bought with money */
@@ -403,6 +405,10 @@ export interface MatchState {
   isStarter: boolean;
   /** The player failed to convert a penalty / free kick */
   missedKick: boolean;
+  /** The in-match team boost has been used */
+  rallyUsed?: boolean;
+  /** Added to every decision for the rest of the match (rally, second wind) */
+  clutchBoost?: number;
   /** Minute the coach took the player off, if it happened */
   subbedOffAt?: number;
 }

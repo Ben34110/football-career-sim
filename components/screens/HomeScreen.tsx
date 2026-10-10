@@ -14,7 +14,7 @@ import { getClub } from '@/lib/data/clubs';
 import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
 import { currentFixture, leaguePosition, leagueZone } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
-import { fixtureDate, fmtShortDate, fmtToday } from '@/lib/dates';
+import { fixtureDate, fmtGameDate, fmtShortDate, gameDate } from '@/lib/dates';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
@@ -30,6 +30,7 @@ export function HomeScreen() {
   const player = useGameStore((s) => s.player);
   const season = useGameStore((s) => s.season);
   const phase = useGameStore((s) => s.phase);
+  const year = useGameStore((s) => s.year);
   const news = useGameStore((s) => s.news);
   const physio = useGameStore((s) => s.physio);
   const { bolts, msToNext } = useEnergy();
@@ -47,7 +48,7 @@ export function HomeScreen() {
   return (
     <div className="space-y-5">
       <div className="-mb-2 flex items-center justify-between px-1">
-        <span className="eyebrow capitalize">{fmtToday(lang)}</span>
+        <span className="eyebrow capitalize">{fmtGameDate(gameDate(season, year), lang)}</span>
         <LangToggle />
       </div>
       {phase === 'season-end' && <SeasonEnd />}

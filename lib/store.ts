@@ -6,6 +6,7 @@ import { getClub } from './data/clubs';
 import { getNationality } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
+import { BOOST_BY_ID, boostPrice } from './data/boosts';
 import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
 import { useUiStore } from './ui';
 import { omissionReason, selectionChance, type SelectionInput } from './engine/selection';
@@ -115,6 +116,9 @@ interface GameActions {
   stirMedia: () => void;
   physio: () => Result;
   buyUpgrade: (id: UpgradeId) => Result;
+  buyBoost: (id: string) => Result;
+  /** Uses one boost at the start of a match */
+  consumeBoost: (id: string) => void;
   /** Charity gala: once a season, money for goodwill */
   donate: () => Result;
   /** Adds lives after a successful purchase */
@@ -469,6 +473,24 @@ export const useGameStore = create<GameStore>()(
         const upgrades = { coach: 0, pr: 0, agent: 0, nutrition: 0, ...player.upgrades, [id]: level + 1 };
         set({ player: { ...player, money: player.money - cost, upgrades } });
         return { ok: true, msg: tr('{name} upgraded to level {n}!', { name: tr(def.name), n: level + 1 }) };
+      },
+
+      buyBoost: (id) => {
+        const { player } = get();
+        const def = BOOST_BY_ID[id];
+        if (!player || !def) return { ok: false, msg: tr('No active career.') };
+        const cost = boostPrice(def, player.contract?.wage ?? 4);
+        if (player.money < cost) return { ok: false, msg: tr('You need {cost} for this boost.', { cost: fmtMoneyK(cost) }) };
+        const have = player.boosts?.[id] ?? 0;
+        if (have >= 9) return { ok: false, msg: tr('You can only carry 9 of each boost.') };
+        set({ player: { ...player, money: player.money - cost, boosts: { ...player.boosts, [id]: have + 1 } } });
+        return { ok: true, msg: tr('{name} added to your bag.', { name: tr(def.name) }) };
+      },
+
+      consumeBoost: (id) => {
+        const { player } = get();
+        if (!player || !(player.boosts?.[id] ?? 0)) return;
+        set({ player: { ...player, boosts: { ...player.boosts, [id]: (player.boosts?.[id] ?? 1) - 1 } } });
       },
 
       donate: () => {

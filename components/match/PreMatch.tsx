@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
+import { BOOSTS } from '@/lib/data/boosts';
 import type { Ritual, RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET } from '@/lib/data/speeches';
 import { repetition } from '@/lib/data/talks';
@@ -38,6 +39,7 @@ export function PreMatch({
   benchWhy,
   date,
   talks,
+  boosts,
   onKickoff,
 }: {
   fixture: Fixture;
@@ -52,11 +54,15 @@ export function PreMatch({
   date: Date;
   /** What the player said lately (repetition, reactions) */
   talks?: TalkMemory;
-  onKickoff: (o: RitualOption, ritual: Ritual) => void;
+  /** Boosts in the bag (id → quantity) */
+  boosts?: Record<string, number>;
+  onKickoff: (o: RitualOption, ritual: Ritual, boostId: string | null) => void;
 }) {
   const t = useT();
   const { lang } = useLang();
   const [picked, setPicked] = useState<RitualOption | null>(null);
+  const [boostId, setBoostId] = useState<string | null>(null);
+  const owned = BOOSTS.filter((b) => (boosts?.[b.id] ?? 0) > 0);
   // repeating the same choice week after week weakens it
   const rpt = picked ? repetition(talks?.stances ?? [], picked.id) : { count: 0, factor: 1 };
   const diff = myStrength - fixture.opponentStrength;
@@ -181,8 +187,47 @@ export function PreMatch({
         </AnimatePresence>
       </div>
 
+      {/* Optional boost: one per match, bought with money */}
+      <div>
+        <div className="mb-2 flex items-center justify-between px-0.5">
+          <h2 className="eyebrow">{t('Boost')}</h2>
+          {owned.length === 0 && (
+            <Link href="/shop" className="text-[11px] font-semibold text-neon-400">
+              {t('Get boosts in the shop')}
+            </Link>
+          )}
+        </div>
+        {owned.length > 0 && (
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+            <button
+              onClick={() => setBoostId(null)}
+              aria-pressed={boostId === null}
+              className={cn('shrink-0 rounded-2xl border px-3.5 py-2.5 text-[13px] font-bold', boostId === null ? 'border-neon-400/60 bg-neon-400/10 text-neon-300' : 'border-white/[0.08] bg-white/[0.04] text-zinc-400')}
+            >
+              {t('None')}
+            </button>
+            {owned.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setBoostId(b.id)}
+                aria-pressed={boostId === b.id}
+                className={cn('flex shrink-0 items-center gap-2 rounded-2xl border px-3.5 py-2.5 text-left', boostId === b.id ? 'border-gold-400/60 bg-gold-400/10 shadow-gold' : 'border-white/[0.08] bg-white/[0.04]')}
+              >
+                <span className="text-xl">{b.emoji}</span>
+                <span>
+                  <span className="block text-[13px] font-bold leading-tight">
+                    {t(b.name)} <span className="text-gold-300">×{boosts?.[b.id]}</span>
+                  </span>
+                  <span className="block max-w-[170px] truncate text-[10px] text-zinc-400">{t(b.desc)}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <FloatingAction>
-        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ritual)}>
+        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ritual, boostId)}>
           {exhausted ? (
             <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (

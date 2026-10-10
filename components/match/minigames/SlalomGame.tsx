@@ -183,11 +183,13 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
       ),
     [plan],
   );
-  // they are on the pitch before you start: you can see what is waiting for you
+  // the defenders are only made out when you are close enough: they come out of the dark just before the contact
+  const reveal = V * plan.travel * 0.85 + 1;
   const tw = playing ? clock : 0;
-  const drawn = defenders
+  const drawn = (playing ? defenders : [])
     .map((d) => ({ ...d, dist: V * (waveArrive(plan, d.i) - tw) }))
-    .filter((d) => d.dist > -1.6)
+    .map((d) => ({ ...d, alpha: clamp01((reveal - d.dist) / 2.2) }))
+    .filter((d) => d.dist > -1.6 && d.alpha > 0.01)
     .sort((a, b) => b.dist - a.dist);
   const behind = drawn.filter((d) => d.dist > 0);
   const past = drawn.filter((d) => d.dist <= 0);
@@ -199,7 +201,11 @@ export function SlalomGame({ bonus, pressure, difficulty, locked, kit, oppKit, s
     // he holds his ground and shuffles across to you; a defender who got you throws himself in
     const lunge = hit ? clamp01(-d.dist * 0.7) : 0;
     const x = xAt(d.l, z) + track * 9 * z + (hit ? -track * 10 * lunge : 0);
-    return <FrontPlayer key={`${d.i}-${d.l}`} x={x} y={rowAt(z)} s={sizeAt(z) * (1 + 0.08 * lunge)} kit={oppKit} skin={d.skin} hair="#18120c" lean={track * 0.7} kick={0} arms="balance" stride={d.seed + clock * 3.2} />;
+    return (
+      <g key={`${d.i}-${d.l}`} opacity={d.alpha}>
+        <FrontPlayer x={x} y={rowAt(z)} s={sizeAt(z) * (1 + 0.08 * lunge)} kit={oppKit} skin={d.skin} hair="#18120c" lean={track * 0.7} kick={0} arms="balance" stride={d.seed + clock * 3.2} />
+      </g>
+    );
   };
 
   const done6 = outcome.length >= WAVES;

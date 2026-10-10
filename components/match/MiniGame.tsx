@@ -116,8 +116,8 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
   rebound: {
     title: 'Poacher',
-    how: ['The ball ricochets around the six-yard box.', 'Tap it before the defenders clear.'],
-    tip: 'Only the real ball counts.',
+    how: ['A shot is saved and the ball ricochets around the six-yard box.', 'Read where it will drop, step LEFT or RIGHT to that lane, and POUNCE before a defender clears it.'],
+    tip: 'Pounce too early and the ball is still in the air; too late and it is gone.',
     icon: Zap,
   },
   charge: {
@@ -144,7 +144,7 @@ const HINT: Record<MiniKind, string> = {
   block: 'Slide to the lane he is aiming at.',
   volley: 'Swing as the ball drops into your boot.',
   oneonone: 'Wait for the keeper to commit, then pick your side.',
-  rebound: 'Tap the real ball before it is cleared.',
+  rebound: 'Step to the lane where it drops, then pounce.',
 };
 
 const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {

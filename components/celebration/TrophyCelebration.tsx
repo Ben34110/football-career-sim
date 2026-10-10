@@ -191,7 +191,7 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
       </AnimatePresence>
 
       {/* headline */}
-      <div className="pointer-events-none absolute inset-x-0 top-[7%] px-5 text-center">
+      <div className="pointer-events-none absolute inset-x-0 top-[14%] px-5 text-center">
         <AnimatePresence>
           {phase >= 3 && (
             <motion.div initial={{ opacity: 0, scale: 1.6, y: -10 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}>

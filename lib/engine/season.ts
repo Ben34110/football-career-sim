@@ -73,9 +73,13 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   setClubYear(year);
   // every club is as strong as it really is this season (give or take a point of form), not as strong as you are
   const abroad = CLUBS.filter((c) => c.country !== club.country).sort((a, b) => b.strength - a.strength);
-  // the Champions League draws on the best clubs, the Europa League on the next ones down
-  const top = comp === 'Champions League' ? abroad.slice(0, 24) : abroad.slice(6, 34);
-  const foreign = [...shuffle(top, rng), ...abroad.filter((c) => !top.includes(c))];
+  // who is in the competition: the Champions League is mostly the biggest clubs (the elite are almost always there),
+  // the Europa League the middle of the table; a weak club rarely gets in. A weighted draw, strongest favoured.
+  const weight = (c: Club) => (comp === 'Champions League' ? Math.exp((c.strength - 76) / 5) : Math.exp(-Math.pow((c.strength - 73) / 8, 2) / 2));
+  const foreign = abroad
+    .map((c) => ({ c, k: -Math.log(Math.max(1e-9, rng())) / Math.max(1e-6, weight(c)) }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.c);
   const used = new Set<string>();
   const form = () => rand(-2, 2, rng);
   // never the same club twice in one round, even when the supply of fresh clubs runs out

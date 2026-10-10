@@ -25,6 +25,7 @@ import { toast } from '@/lib/toast';
 import { cn, crestFace, fmtCountdown } from '@/lib/utils';
 import { CareerEnd } from './CareerEnd';
 import { SeasonEnd } from './SeasonEnd';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 const TONE: Record<string, string> = { good: 'bg-neon-400', bad: 'bg-crimson-500', gold: 'bg-gold-400', neutral: 'bg-zinc-500' };
 
@@ -69,7 +70,7 @@ export function HomeScreen() {
       {phase === 'free-agent' && (
         <Card gold className="p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gold-400/15 text-xl">✍️</div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gold-400/15 text-xl"><GameIcon e="✍" className="h-5 w-5 text-gold-300" /></div>
             <div className="flex-1">
               <div className="text-sm font-bold">{t('You’re a free agent')}</div>
               <div className="text-xs text-zinc-400">{t('Choose your next club to start the season.')}</div>
@@ -106,7 +107,7 @@ export function HomeScreen() {
                     <div className="text-sm font-bold leading-tight">{t('Opponent to be drawn')}</div>
                     <div className="text-[11px] text-zinc-500">{t('You take part in the draw')}</div>
                   </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-xl">🎱</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-xl"><GameIcon e="🎱" className="h-5 w-5 text-gold-300" /></div>
                 </div>
               ) : (
               <div className="text-right">
@@ -163,7 +164,7 @@ export function HomeScreen() {
             const label = z === 'champions' ? 'Champions League place' : z === 'europa' ? 'Europa League place' : z === 'promoted' ? 'Promotion place' : z === 'relegated' ? 'Relegation zone' : null;
             return label ? (
               <p className={cn('mt-2.5 rounded-xl px-3 py-2 text-xs font-semibold', z === 'relegated' ? 'bg-crimson-500/10 text-crimson-400' : z === 'promoted' ? 'bg-neon-400/10 text-neon-300' : 'bg-sky-400/10 text-sky-300')}>
-                {z === 'relegated' ? '⬇️' : z === 'promoted' ? '⬆️' : '⭐'} {t(label)}
+                <GameIcon e={z === 'relegated' ? '⬇' : z === 'promoted' ? '⬆' : '⭐'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(label)}
               </p>
             ) : null;
           })()}

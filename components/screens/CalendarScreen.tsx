@@ -16,6 +16,7 @@ import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import type { Fixture, SeasonState, TableRow } from '@/lib/types';
 import { cn, crestFace } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 const KIND_ICON = { league: CircleDot, cup: Trophy, intl: FlagIcon, tournament: Globe, euro: Star };
 const TABS = ['Fixtures', 'Table', 'History'] as const;
@@ -95,7 +96,7 @@ export function CalendarScreen() {
             <div className="flex flex-wrap gap-1.5">
               {upcoming.map((u) => (
                 <Chip key={`${u.name}-${u.y}`} tone={u.name.includes('World Cup') ? 'gold' : 'neutral'}>
-                  🏆 {t(u.name)} {u.y}
+                  <GameIcon e="🏆" className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(u.name)} {u.y}
                 </Chip>
               ))}
             </div>
@@ -133,7 +134,7 @@ export function CalendarScreen() {
                   <div className="text-xs text-zinc-500">
                     {r.apps} {t('apps')} · {r.goals}G {r.assists}A · {t('avg')} {r.avgRating || '–'} · {ordinalOf(r.leaguePos, lang)}
                   </div>
-                  {r.trophies.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{r.trophies.map((tr) => <Chip key={tr} tone="gold">🏆 {t(tr)}</Chip>)}</div>}
+                  {r.trophies.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{r.trophies.map((tr) => <Chip key={tr} tone="gold"><GameIcon e="🏆" className="h-3 w-3" /> {t(tr)}</Chip>)}</div>}
                 </div>
                 <div className="font-num text-2xl font-extrabold text-gold-300">{r.ovr}</div>
               </Card>
@@ -171,7 +172,7 @@ function Fixtures({ season }: { season: SeasonState }) {
             <div className={cn('relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border', next ? 'border-neon-400/60 bg-zinc-950 text-neon-300' : 'border-white/10 bg-zinc-900 text-zinc-500')}>
               <Icon className="h-4 w-4" />
             </div>
-            {pending ? <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-sm">🎱</span> : <Crest short={crestFace(f.opponentShort)} color={f.opponentColor} size={30} />}
+            {pending ? <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-gold-400/40 bg-gold-400/10 text-sm"><GameIcon e="🎱" className="h-4 w-4 text-gold-300" /></span> : <Crest short={crestFace(f.opponentShort)} color={f.opponentColor} size={30} />}
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-bold">{pending ? t('Opponent to be drawn') : t(f.opponent)}</div>
               <div className="text-[11px] text-zinc-500">

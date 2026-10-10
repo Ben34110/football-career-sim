@@ -158,7 +158,7 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   const trophies = player.trophies.length;
   g.fillStyle = '#d4d4d8';
   g.font = '600 42px Inter, system-ui, sans-serif';
-  g.fillText(`${player.totals.apps} ${t('Apps')} · ${player.totals.goals} ${t('Goals')} · ${player.totals.assists} ${t('Assists')} · 🏆 ${trophies}`, W / 2, 1140);
+  g.fillText(`${player.totals.apps} ${t('Apps')} · ${player.totals.goals} ${t('Goals')} · ${player.totals.assists} ${t('Assists')} · ${trophies} ${t('Honours')}`, W / 2, 1140);
   if (player.national && player.national.caps > 0) {
     g.fillStyle = '#a1a1aa';
     g.font = '500 36px Inter, system-ui, sans-serif';
@@ -289,7 +289,7 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
   const groups = groupHonours(player.trophies, history, player.clubId);
   g.fillStyle = '#f2c14e';
   g.font = '800 30px Inter, system-ui, sans-serif';
-  g.fillText(`🏆 ${t('Honours').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
+  g.fillText(`${t('Honours').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
   const rows = groups.length <= 6 ? groups : groups.slice(0, 5);
   for (let i = 0; i < rows.length; i++) {
     const gr = rows[i];

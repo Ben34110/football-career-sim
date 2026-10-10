@@ -35,6 +35,7 @@ import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSum
 import { PreMatch } from './PreMatch';
 import { PressZone, type AnswerInfo } from './PressZone';
 import { Shootout, type ShootoutResult } from './Shootout';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 type Stage = 'brief' | 'live' | 'shootout' | 'press' | 'summary';
 
@@ -137,7 +138,7 @@ export function MatchScreen() {
   if (stage === 'brief' && (gamePhase !== 'playing' || !fixture)) {
     return (
       <Card className="mt-6 p-8 text-center">
-        <div className="text-4xl">{gamePhase === 'playing' ? '🏁' : '📋'}</div>
+        <GameIcon e={gamePhase === 'playing' ? '🏁' : '📋'} className="mx-auto h-10 w-10 text-zinc-300" />
         <h2 className="mt-3 font-display text-3xl font-extrabold uppercase">{gamePhase === 'playing' ? t('Nothing left to play') : t('Season complete')}</h2>
         <p className="mt-1 text-sm text-zinc-400">
           {gamePhase === 'free-agent' ? t('You’re a free agent — find a club first.') : t('Head back to the hub to review your season and move on.')}

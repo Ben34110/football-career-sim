@@ -16,6 +16,8 @@ import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
 import { sortTable } from '@/lib/engine/season';
 import type { FixtureKind, KickKind, Mentality, MatchEvent, MiniExtra, MiniKind, MiniQuality, MatchState, TableRow } from '@/lib/types';
 import { cn, flagOnly } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
+import { stripEmoji } from '@/lib/emoji';
 import { ClutchSheet } from './ClutchSheet';
 import { GoalTarget } from './GoalTarget';
 import { MiniGame } from './MiniGame';
@@ -39,7 +41,18 @@ export interface LiveBoard {
 }
 
 const MENTALITY_LABEL: Record<Mentality, string> = { attack: 'Attack', balanced: 'Normal', defend: 'Defend' };
-const MENTALITY_ICON: Record<Mentality, string> = { attack: '⚔️', balanced: '⚖️', defend: '🛡️' };
+const MENTALITY_ICON: Record<Mentality, string> = { attack: '⚔', balanced: '⚖', defend: '🛡' };
+
+/** The little icon in front of each line of the live feed. */
+function EventMark({ type, text }: { type: MatchEvent['type']; text: string }) {
+  if (type === 'card') {
+    const red = /red card|sent off|sending|rouge|expuls/i.test(text);
+    return <span aria-hidden className={cn('mt-0.5 h-3.5 w-2.5 shrink-0 rounded-[2px]', red ? 'bg-red-500' : 'bg-yellow-400')} />;
+  }
+  const icon: Partial<Record<MatchEvent['type'], string>> = { goal: '⚽', save: '🧤', miss: '😱', foul: '🚩', sub: '🔁', clutch: '⚡', chance: '🎯', halftime: '🏁', fulltime: '🏁', kickoff: '⚽' };
+  const tone: Partial<Record<MatchEvent['type'], string>> = { goal: 'text-neon-300', save: 'text-sky-300', miss: 'text-crimson-400', foul: 'text-amber-300', clutch: 'text-gold-300', chance: 'text-zinc-400' };
+  return <GameIcon e={icon[type] ?? '⚽'} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', tone[type] ?? 'text-zinc-500')} />;
+}
 
 const COMPETITION_LABEL: Record<FixtureKind, string> = {
   league: 'League',
@@ -150,7 +163,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
         </AnimatePresence>
         <div className="relative mb-3 flex items-center justify-center">
           <span className="flex items-center gap-1.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-gold-300">
-            {competition.kind === 'euro' ? '⭐' : competition.kind === 'cup' ? '🏆' : competition.kind === 'league' ? '⚽' : '🌍'}
+            <GameIcon e={competition.kind === 'euro' ? '⭐' : competition.kind === 'cup' ? '🏆' : competition.kind === 'league' ? '⚽' : '🌍'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />
             {competition.kind === 'euro' ? t(competition.label) : `${competition.name ?? t(COMPETITION_LABEL[competition.kind])} · ${t(competition.label)}`}
           </span>
         </div>
@@ -211,7 +224,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                 aria-label={t('Team mentality')}
                 className="flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-[11px] font-bold text-zinc-300 active:scale-95"
               >
-                {MENTALITY_ICON[m.mentality ?? 'balanced']} {t(MENTALITY_LABEL[m.mentality ?? 'balanced'])}
+                <GameIcon e={MENTALITY_ICON[m.mentality ?? 'balanced']} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(MENTALITY_LABEL[m.mentality ?? 'balanced'])}
               </button>
               {menOpen && (
                 <>
@@ -227,7 +240,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                         }}
                         className={cn('flex h-9 items-center gap-1 rounded-xl px-2.5 text-[12px] font-bold', (m.mentality ?? 'balanced') === mode ? 'bg-white/15 text-zinc-50' : 'text-zinc-400')}
                       >
-                        {MENTALITY_ICON[mode]} {t(MENTALITY_LABEL[mode])}
+                        <GameIcon e={MENTALITY_ICON[mode]} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(MENTALITY_LABEL[mode])}
                       </button>
                     ))}
                   </div>
@@ -246,7 +259,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
               aria-label={t(board.table ? 'Live table' : 'Other matches')}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-base active:scale-90"
             >
-              📊
+              <GameIcon e="📊" className="h-4 w-4" />
             </button>
             {rally && (
               <motion.button
@@ -259,7 +272,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                 aria-label={t('Rally')}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-400/60 bg-gold-400/15 text-base"
               >
-                📣
+                <GameIcon e="📣" className="h-4 w-4" />
               </motion.button>
             )}
             <button
@@ -299,7 +312,8 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
               )}
             >
               <span className="font-num w-7 shrink-0 text-sm font-bold text-zinc-500">{e.minute}&apos;</span>
-              <span className="text-zinc-200">{e.text}</span>
+              <EventMark type={e.type} text={e.text} />
+              <span className="text-zinc-200">{stripEmoji(e.text)}</span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -342,7 +356,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
                     }}
                     className="gloss-edge glass flex w-full items-center gap-3 p-3.5 text-left active:scale-[0.98]"
                   >
-                    <span className="text-2xl">{o.emoji}</span>
+                    <GameIcon e={o.emoji} className="h-6 w-6 text-gold-300" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-bold">{t(o.label)}</span>
                       <span className="block text-xs text-zinc-400">{t(o.hint)}</span>

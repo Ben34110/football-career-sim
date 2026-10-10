@@ -12,6 +12,7 @@ import { seasonLabel } from '@/lib/engine/player';
 import { ordinalOf, useLang, useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 export function SeasonEnd() {
   const t = useT();
@@ -55,7 +56,7 @@ export function SeasonEnd() {
             summary.zone === 'relegated' ? 'border-crimson-500/40 bg-crimson-500/[0.07]' : summary.zone === 'promoted' ? 'border-neon-400/40 bg-neon-400/[0.07]' : 'border-sky-400/40 bg-sky-400/[0.07]',
           )}
         >
-          <div className="text-3xl">{summary.zone === 'relegated' ? '⬇️' : summary.zone === 'promoted' ? '⬆️' : '⭐'}</div>
+          <GameIcon e={summary.zone === 'relegated' ? '⬇' : summary.zone === 'promoted' ? '⬆' : '⭐'} className="h-8 w-8 shrink-0" />
           <div>
             <div className="font-display text-2xl font-extrabold uppercase leading-none">
               {summary.zone === 'relegated' ? t('Relegated!') : summary.zone === 'promoted' ? t('Promoted!') : t('Qualified for Europe!')}
@@ -151,7 +152,7 @@ function BallonDorCard({ result }: { result: NonNullable<ReturnType<typeof useGa
   return (
     <Card gold className="overflow-hidden p-0">
       <div className="bg-gradient-to-b from-gold-300/25 to-transparent px-4 py-3.5 text-center">
-        <div className="text-3xl">{result.won ? '🏆' : '🥇'}</div>
+        <GameIcon e={result.won ? '🏆' : '🥇'} className="mx-auto h-9 w-9 text-gold-300" />
         <div className="font-display text-2xl font-extrabold uppercase leading-none text-gold-200">{t('Ballon d’Or')}</div>
         <p className="mt-1 text-xs text-zinc-300">
           {result.won ? t('You won the Ballon d’Or!') : t('You finished {rank} in the vote.', { rank: ordinalOf(result.rank, lang) })}

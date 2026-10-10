@@ -18,6 +18,7 @@ import { SlalomGame } from './minigames/SlalomGame';
 import { SlideGame } from './minigames/SlideGame';
 import { VolleyGame } from './minigames/VolleyGame';
 import { cn } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 interface Props {
   kind: MiniKind;
@@ -762,7 +763,7 @@ function MemoryGame({ pressure, difficulty, onStop, locked }: GameProps) {
                 on ? 'border-gold-300 bg-gold-400/40 shadow-gold' : f === true ? 'border-neon-300 bg-neon-400/30' : f === false ? 'border-crimson-400 bg-crimson-500/30' : 'border-white/10 bg-white/[0.05]',
               )}
             >
-              👕
+              <GameIcon e="👕" className="h-5 w-5" />
             </button>
           );
         })}

@@ -18,6 +18,7 @@ import { useLang, useT } from '@/lib/i18n';
 import { fmtCountdown, cn } from '@/lib/utils';
 import type { Fixture, RepKey, TalkMemory } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 const KIND_LABEL: Record<Fixture['kind'], string> = {
   league: 'League',
@@ -138,7 +139,7 @@ export function PreMatch({
       {/* The pre-match moment: a different format every time, one tap */}
       <div>
         <div className="mb-2.5 flex items-center gap-2 px-0.5">
-          <span className="text-lg">{ritual.emoji}</span>
+          <GameIcon e={ritual.emoji} className="h-5 w-5 text-gold-300" />
           <h2 className="eyebrow">{t(ritual.title)}</h2>
         </div>
         <p className="mb-3 px-0.5 text-[15px] font-semibold leading-snug text-zinc-100">{t(ritual.prompt, { opp: opp.name })}</p>
@@ -159,7 +160,7 @@ export function PreMatch({
                   active ? 'border-neon-400/60 bg-neon-400/10 shadow-neon' : 'border-white/[0.08] bg-white/[0.04]',
                 )}
               >
-                <span className="text-3xl">{op.emoji}</span>
+                <GameIcon e={op.emoji} className="h-8 w-8 text-gold-300" />
                 <span className="text-[14px] font-bold leading-tight">{t(op.label)}</span>
               </motion.button>
             );
@@ -218,7 +219,7 @@ export function PreMatch({
                 aria-pressed={boostId === b.id}
                 className={cn('flex shrink-0 items-center gap-2 rounded-2xl border px-3.5 py-2.5 text-left', boostId === b.id ? 'border-gold-400/60 bg-gold-400/10 shadow-gold' : 'border-white/[0.08] bg-white/[0.04]')}
               >
-                <span className="text-xl">{b.emoji}</span>
+                <GameIcon e={b.emoji} className="h-5 w-5 text-gold-300" />
                 <span>
                   <span className="block text-[13px] font-bold leading-tight">
                     {t(b.name)} <span className="text-gold-300">×{boosts?.[b.id]}</span>

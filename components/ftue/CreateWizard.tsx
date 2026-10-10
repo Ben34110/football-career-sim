@@ -2,7 +2,7 @@
 
 import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Check, ChevronRight, Dices, Footprints, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Dices, Footprints, Minus, Plus, Mars, Venus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -202,7 +202,7 @@ export function CreateWizard() {
                             aria-pressed={(look.gender ?? 'male') === g}
                             className={cn('h-10 rounded-xl border text-[13px] font-bold transition-all active:scale-95', (look.gender ?? 'male') === g ? 'border-neon-400/60 bg-neon-400/10 text-neon-300' : 'border-white/[0.08] bg-white/[0.04] text-zinc-400')}
                           >
-                            {g === 'male' ? '♂ ' + t('Man') : '♀ ' + t('Woman')}
+                            {g === 'male' ? <Mars className="mr-1 inline h-4 w-4 align-[-0.2em]" /> : <Venus className="mr-1 inline h-4 w-4 align-[-0.2em]" />}{g === 'male' ? t('Man') : t('Woman')}
                           </button>
                         ))}
                       </div>

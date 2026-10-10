@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { stripEmoji } from './emoji';
 
 export interface ToastItem {
   id: number;
@@ -20,7 +21,7 @@ export const useToastStore = create<ToastStore>((set, get) => ({
   items: [],
   push: (text, tone = 'neutral') => {
     const id = ++seq;
-    set({ items: [...get().items.slice(-2), { id, text, tone }] });
+    set({ items: [...get().items.slice(-2), { id, text: stripEmoji(text), tone }] });
     setTimeout(() => get().dismiss(id), 3200);
   },
   dismiss: (id) => set({ items: get().items.filter((t) => t.id !== id) }),

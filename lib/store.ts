@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub, setClubYear } from './data/clubs';
+import { stripEmoji } from './emoji';
 import { getNationality, nationalityByName } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
@@ -176,7 +177,7 @@ const mkNews = (text: string, tone: NewsItem['tone'] = 'neutral'): NewsItem => (
   id: uid('news'),
   at: Date.now(),
   tone,
-  text,
+  text: stripEmoji(text),
 });
 
 const addNews = (news: NewsItem[], ...items: NewsItem[]) => [...items.reverse(), ...news].slice(0, 14);

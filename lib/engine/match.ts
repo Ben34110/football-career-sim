@@ -1,3 +1,4 @@
+import { stripEmoji } from '../emoji';
 import { AMBIENT, fill } from '../data/commentary';
 import { CLUTCH_DECK } from '../data/clutch';
 import { SURNAMES } from '../data/names';
@@ -214,7 +215,7 @@ export function createMatch(ctx: MatchCtx, rng: Rng): MatchState {
 
 function push(m: MatchState, minute: number, type: MatchEventType, side: MatchEvent['side'], text: string, star = false): MatchState {
   const eid = m.eid + 1;
-  return { ...m, eid, events: [...m.events, { id: eid, minute, type, side, text, star }] };
+  return { ...m, eid, events: [...m.events, { id: eid, minute, type, side, text: stripEmoji(text), star }] };
 }
 
 /* ───────────── Live ticks ───────────── */

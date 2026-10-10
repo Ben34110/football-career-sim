@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { FR, FR_PATTERNS } from './fr';
+import { stripEmoji } from '../emoji';
 import { getLang, useLangStore, type Lang } from './lang';
 
 export type Vars = Record<string, string | number>;
@@ -23,7 +24,7 @@ function lookup(lang: Lang, text: string): string {
 
 /** Translate outside React (engine, store). Reads the current language. */
 export function translate(text: string, vars?: Vars): string {
-  return interpolate(lookup(getLang(), text), vars);
+  return stripEmoji(interpolate(lookup(getLang(), text), vars));
 }
 
 /**
@@ -36,7 +37,7 @@ export function translate(text: string, vars?: Vars): string {
  */
 export function useT() {
   const lang = useLangStore((s) => s.lang);
-  return useCallback((text: string, vars?: Vars) => interpolate(lookup(lang, text), vars), [lang]);
+  return useCallback((text: string, vars?: Vars) => stripEmoji(interpolate(lookup(lang, text), vars)), [lang]);
 }
 
 export function useLang() {

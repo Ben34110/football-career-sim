@@ -15,6 +15,7 @@ import { formatEur, getPaymentProvider, isTestPayments, LIFE_PACKS, paymentsAvai
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { cn, fmtCountdown } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 export function ShopScreen() {
   const t = useT();
@@ -67,7 +68,7 @@ export function ShopScreen() {
       <div className="grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-1" role="tablist">
         {(
           [
-            ['lives', '❤️', 'Lives'],
+            ['lives', '❤', 'Lives'],
             ['boosts', '⚡', 'Boosts'],
             ['upgrades', '🏆', 'Upgrades'],
           ] as const
@@ -79,7 +80,7 @@ export function ShopScreen() {
             onClick={() => setTab(id)}
             className={cn('h-10 rounded-xl text-[13px] font-bold transition-colors', tab === id ? 'bg-gradient-to-b from-gold-300 to-gold-500 text-zinc-950' : 'text-zinc-400')}
           >
-            {icon} {t(label)}
+            <GameIcon e={icon} className="mr-1 inline h-4 w-4 align-[-0.2em]" /> {t(label)}
           </button>
         ))}
       </div>
@@ -141,7 +142,7 @@ export function ShopScreen() {
             const owned = player.boosts?.[b.id] ?? 0;
             return (
               <div key={b.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-2xl">{b.emoji}</span>
+                <GameIcon e={b.emoji} className="h-6 w-6 text-gold-300" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[14px] font-bold">
                     {t(b.name)} {owned > 0 && <span className="ml-1 rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-300">×{owned}</span>}

@@ -21,6 +21,7 @@ import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { GoalTarget } from './GoalTarget';
 import type { TeamBadge } from './LiveMatch';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 export interface ShootoutResult {
   winner: 'me' | 'opp';
@@ -124,7 +125,7 @@ export function Shootout({
       ) : (
         <Card className="p-8 text-center">
           <motion.div animate={{ scale: [1, 1.06, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="text-4xl">
-            🧤
+            <GameIcon e="🧤" className="mx-auto h-10 w-10 text-sky-300" />
           </motion.div>
           <p className="mt-3 font-display text-2xl font-bold uppercase">
             {side === 'me' ? t('Teammate steps up…') : t('{team} step up…', { team: opp.name })}

@@ -11,6 +11,7 @@ import { haptic } from '@/lib/haptics';
 import { useLang, useT } from '@/lib/i18n';
 import { useUiStore, type CallUpEvent } from '@/lib/ui';
 import { cn } from '@/lib/utils';
+import { GameIcon } from '@/components/ui/GameIcon';
 
 const CALLED_QUOTES = [
   '“Your performances have earned this. Represent your country with pride.”',
@@ -78,7 +79,7 @@ function Card({ event, onClose }: { event: CallUpEvent; onClose: () => void }) {
             <h2 className={cn('font-display text-4xl font-extrabold uppercase leading-none', called ? 'text-gold-200' : 'text-zinc-200')}>
               {called ? t('Called up!') : t('Not selected')}
             </h2>
-            {event.competition && <p className="mt-1 text-sm font-semibold text-zinc-300">🏆 {t(event.competition)}</p>}
+            {event.competition && <p className="mt-1 text-sm font-semibold text-zinc-300"><GameIcon e="🏆" className="mr-1 inline h-4 w-4 align-[-0.2em] text-gold-300" />{t(event.competition)}</p>}
           </div>
 
           {event.overage && (

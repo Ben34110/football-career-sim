@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { getClub } from './data/clubs';
+import { getClub, setClubYear } from './data/clubs';
 import { getNationality } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
@@ -793,6 +793,9 @@ export const useGameStore = create<GameStore>()(
       version: 1,
       storage: createJSONStorage(() => (typeof window === 'undefined' ? undefined : window.localStorage) as Storage),
       skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        if (state?.season?.year) setClubYear(state.season.year);
+      },
     },
   ),
 );

@@ -409,8 +409,9 @@ export function resolveClutch(m: MatchState, ctx: MatchCtx, optionId: string, rn
 /** Result of a mini-game → probability of the option succeeding. */
 export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState, q: MiniQuality): number {
   const base = successChance(opt, ctx, m);
-  if (q === 'perfect') return clamp(base + 0.26, 0.45, 0.82);
-  if (q === 'good') return clamp(base * 1.05, 0.08, 0.6);
+  // what you do in the mini-game is what happens: the harder the match, the harder the game is to beat,
+  // but a block, tackle, run or strike you pull off always works
+  if (q === 'perfect' || q === 'good') return 1;
   return clamp(base * 0.12, 0.02, 0.12);
 }
 
@@ -480,7 +481,10 @@ function settleOption(m: MatchState, ctx: MatchCtx, opt: ClutchOption, success: 
     s.clutchWins += 1;
     switch (opt.onSuccess) {
       case 'goal':
-        s = { ...s, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + 1, momentum: clamp(s.momentum + 28, -100, 100) };
+        // when a teammate takes it, the goal is the team's: it does not go on your tally
+        s = opt.taker !== undefined
+          ? { ...s, myScore: s.myScore + 1, rating: s.rating + 0.2, momentum: clamp(s.momentum + 28, -100, 100) }
+          : { ...s, myScore: s.myScore + 1, goals: s.goals + 1, rating: s.rating + 1, momentum: clamp(s.momentum + 28, -100, 100) };
         s = push(s, s.minute, 'goal', 'me', tr('⚽ GOAL! {who} {act}! {a}–{b}', { who, act, ...sc(ctx, s.myScore, s.oppScore) }), true);
         break;
       case 'assist':

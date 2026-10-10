@@ -168,7 +168,7 @@ export function SlideGame({ bonus, pressure, difficulty, locked, kit, oppKit, sk
   const cardAge = foul && tc !== null ? st - (tc + 0.3) : -1;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/40">
         <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" style={{ transform: `translateX(${shake}px)` }}>
           <defs>
@@ -176,37 +176,19 @@ export function SlideGame({ bonus, pressure, difficulty, locked, kit, oppKit, sk
               <stop offset="0" stopColor="#4ade80" stopOpacity=".55" />
               <stop offset="1" stopColor="#4ade80" stopOpacity="0" />
             </linearGradient>
-            <linearGradient id="sz-curtain-r" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0" stopColor="#f87171" stopOpacity=".4" />
-              <stop offset="1" stopColor="#f87171" stopOpacity="0" />
-            </linearGradient>
+            <radialGradient id="sz-pool" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stopColor="#ecfdf5" stopOpacity=".95" />
+              <stop offset=".6" stopColor="#4ade80" stopOpacity=".45" />
+              <stop offset="1" stopColor="#4ade80" stopOpacity="0" />
+            </radialGradient>
           </defs>
           <g transform={`translate(${zx * (1 - zoom)} ${zy * (1 - zoom)}) scale(${zoom})`}>
             <PitchSide w={W} h={H} />
 
-            {/* the tackle zone painted on the grass */}
-            <g opacity={res ? 0.4 : 1}>
-              {/* the light curtain over the zone */}
-              <rect x={zn.good0} y={GROUND - 64} width={zn.good1 - zn.good0} height={64} fill="url(#sz-curtain)" opacity={inGood ? 1 : 0.55} />
-              <rect x={zn.good1} y={GROUND - 36} width={zn.red1 - zn.good1} height={36} fill="url(#sz-curtain-r)" opacity=".55" />
-              {/* the strip on the ground, in perspective */}
-              <g>
-                <rect x={zn.good0} y={GROUND - 1} width={zn.good1 - zn.good0} height="13" rx="2" fill="#16a34a" opacity={inGood ? 0.9 : 0.6} />
-                <rect x={zn.perfect0} y={GROUND - 1} width={zn.perfect1 - zn.perfect0} height="13" rx="2" fill="#bbf7d0" opacity={inPerfect ? 1 : 0.8} />
-                <rect x={zn.good1} y={GROUND - 1} width={zn.yellow1 - zn.good1} height="13" fill="#f59e0b" opacity=".85" />
-                <rect x={zn.yellow1} y={GROUND - 1} width={zn.red1 - zn.yellow1} height="13" rx="2" fill="#dc2626" opacity=".85" />
-              </g>
-              <g fontSize="8" fontWeight="800" letterSpacing=".4" textAnchor="middle">
-                <text x={(zn.good0 + zn.good1) / 2} y={GROUND + 24} fill="#86efac">
-                  {t('TACKLE')}
-                </text>
-                <text x={zn.good0 - 4} y={GROUND + 24} fill="#a1a1aa" textAnchor="end">
-                  {t('TOO EARLY')}
-                </text>
-                <text x={zn.good1 + 4} y={GROUND + 24} fill="#fca5a5" textAnchor="start">
-                  {t('FOUL!')}
-                </text>
-              </g>
+            {/* the spot to tackle on: one soft pool of light on the grass */}
+            <g opacity={res ? 0.25 : 1}>
+              <rect x={zn.good0} y={GROUND - 70} width={zn.good1 - zn.good0} height={72} fill="url(#sz-curtain)" opacity={inGood ? 0.9 : 0.4} />
+              <ellipse cx={(zn.good0 + zn.good1) / 2} cy={GROUND + 5} rx={(zn.good1 - zn.good0) / 2 + 4} ry="6.500" fill="url(#sz-pool)" opacity={inGood ? 1 : 0.7} />
             </g>
 
             {/* the attacker, in their shirt */}
@@ -262,7 +244,7 @@ export function SlideGame({ bonus, pressure, difficulty, locked, kit, oppKit, sk
         </svg>
 
         {flow.stage === 'count' && <CountOverlay count={flow.count} />}
-        {flow.stage === 'idle' && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-[11px] font-semibold text-white/80">{t('Slide when the ball is in the green zone.')}</div>}
+        {flow.stage === 'idle' && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-[11px] font-semibold text-white/80">{t('Slide as the ball crosses the light.')}</div>}
 
         {/* verdict */}
         <AnimatePresence>
@@ -282,12 +264,6 @@ export function SlideGame({ bonus, pressure, difficulty, locked, kit, oppKit, sk
         {foul && cardAge > 0 && (
           <motion.div initial={{ opacity: 0.7 }} animate={{ opacity: 0 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-0" style={{ background: out?.kind === 'late' && out.card === 'red' ? 'rgba(220,38,38,0.5)' : 'rgba(250,204,21,0.35)' }} />
         )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold leading-tight">
-        <div className="rounded-xl bg-zinc-800/80 px-1.5 py-1.5 text-zinc-300">{t('Too early: he skips past')}</div>
-        <div className="rounded-xl bg-neon-500/20 px-1.5 py-1.5 text-neon-300 ring-1 ring-neon-400/40">{t('Green: you win the ball')}</div>
-        <div className="rounded-xl bg-crimson-500/20 px-1.5 py-1.5 text-crimson-300">{t('Too late: foul and card')}</div>
       </div>
 
       <ActionButton onPress={flow.stage === 'idle' ? flow.start : slide} disabled={locked || flow.stage === 'count' || !!res} label={flow.stage === 'idle' ? t('START') : t('SLIDE!')} tone={inGood ? 'primary' : 'danger'} icon={<Swords className="h-5 w-5" />} />

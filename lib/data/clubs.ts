@@ -185,3 +185,28 @@ const CURATED_RIVALS: Record<string, string[]> = {
 
 /** Rivals by league: curated leagues by name, generated ones by "country|league". */
 export const LOCAL_RIVALS: Record<string, string[]> = { ...CURATED_RIVALS, ...GENERATED_RIVALS };
+
+/* ───────── Clubs change slowly from one season to the next ───────── */
+
+const FIRST_YEAR = 2026;
+const BASE = new Map(CLUBS.map((c) => [c.id, c.strength]));
+let appliedYear = FIRST_YEAR;
+
+/**
+ * Gives every club its strength for `year`. A club drifts by a point or two a season around its own level
+ * (never by ten): the drift is a fixed function of the club and the year, so a saved game reloads the same world.
+ */
+export function setClubYear(year: number) {
+  if (year === appliedYear) return;
+  appliedYear = year;
+  for (const c of CLUBS) {
+    const base = BASE.get(c.id) ?? c.strength;
+    let d = 0;
+    for (let k = 1; k <= Math.max(0, year - FIRST_YEAR); k++) {
+      const u = (hash(`${c.id}:${k}`) % 10007) / 10007;
+      // a pull back towards its normal level, plus a small push
+      d = Math.max(-7, Math.min(7, d * 0.88 + (u - 0.5) * 3));
+    }
+    c.strength = Math.max(45, Math.min(94, Math.round(base + d)));
+  }
+}

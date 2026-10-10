@@ -1,4 +1,4 @@
-import { CLUBS, COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS } from '../data/clubs';
+import { CLUBS, COUNTRY_RIVALS, getClub, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
 import { OPPONENT_NATIONS, tournamentFor, youthTournamentFor } from '../data/nationalities';
 import type {
   Club,
@@ -70,14 +70,19 @@ export interface SeasonOptions {
 
 /** The European run: a short group stage with fixed opponents, then four draws. */
 function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixtures: Fixture[]; draw: TournamentState } {
-  const boost = comp === 'Champions League' ? 6 : 1;
-  // top clubs first, smaller ones only to fill the pots
-  const abroad = CLUBS.filter((c) => c.country !== club.country);
-  const foreign = [...shuffle(abroad.filter((c) => c.tier <= 3), rng), ...shuffle(abroad.filter((c) => c.tier > 3), rng)];
+  setClubYear(year);
+  // every club is as strong as it really is this season (give or take a point of form), not as strong as you are
+  const abroad = CLUBS.filter((c) => c.country !== club.country).sort((a, b) => b.strength - a.strength);
+  // the Champions League draws on the best clubs, the Europa League on the next ones down
+  const top = comp === 'Champions League' ? abroad.slice(0, 24) : abroad.slice(6, 34);
+  const foreign = [...shuffle(top, rng), ...abroad.filter((c) => !top.includes(c))];
   const used = new Set<string>();
+  const form = () => rand(-2, 2, rng);
   // never the same club twice in one round, even when the supply of fresh clubs runs out
-  const next = (round?: Set<string>): Club => {
-    const c = foreign.find((x) => !used.has(x.id)) ?? foreign.find((x) => !round?.has(x.id)) ?? foreign[0];
+  const next = (round?: Set<string>, lo = 0, hi = foreign.length): Club => {
+    const band = abroad.slice(comp === 'Champions League' ? lo : lo + 6, comp === 'Champions League' ? hi : hi + 6);
+    const fresh = shuffle(band.filter((x) => !used.has(x.id) && !round?.has(x.id)), rng);
+    const c = fresh[0] ?? foreign.find((x) => !used.has(x.id)) ?? foreign.find((x) => !round?.has(x.id)) ?? foreign[0];
     used.add(c.id);
     round?.add(c.id);
     return c;
@@ -89,11 +94,10 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
     opponentColor: c.color,
   });
 
-  // the group stage is drawn from four pots: you and fifteen clubs, ranked by level (a club's tier sets how it ranks among them)
-  const shift = (club.tier - 2) * 4 + boost / 2;
+  // the group stage is drawn from four pots: you and fifteen clubs, ranked by their real level
   const fifteen = foreign.slice(0, 15).map((c) => {
     used.add(c.id);
-    return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(club.strength + shift + rand(-9, 9, rng)), 45, 95) };
+    return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(c.strength + form()), 45, 95) };
   });
   const draw = createEuroDraw({ name: club.name, short: club.short, color: club.color, strength: club.strength }, fifteen, rng);
   const group: Fixture[] = draw.potOrder.map((p, i) => {
@@ -117,11 +121,15 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
     ['Semi-Final', 3],
     ['Final', 4],
   ];
-  const knock: Fixture[] = rounds.map(([r, extra], i) => {
-    const spread = shuffle([-5, -1, 2, 6], rng);
+  // the later the round, the higher up the ranking the opponents come from
+  const bands: [number, number][] = [[6, 40], [3, 26], [1, 16], [0, 10]];
+  const knock: Fixture[] = rounds.map(([r], i) => {
     // last four: three possible opponents; the final's opponent comes from the other semi-final
     const round = new Set<string>();
-    const pool = spread.slice(0, i === 2 ? 3 : i === 3 ? 1 : 4).map((sp) => cand(next(round), club.strength + boost + extra + sp));
+    const pool = Array.from({ length: i === 2 ? 3 : i === 3 ? 1 : 4 }, () => {
+      const c = next(round, bands[i][0], bands[i][1]);
+      return cand(c, c.strength + form());
+    });
     return {
       id: `${year}-E${i + 4}`,
       kind: 'euro' as const,
@@ -137,7 +145,11 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   return { fixtures: [...group, ...knock], draw };
 }
 
+/** A top club sits above the rest of its league: the league's average opponent is this much weaker than it. */
+const ELITE_GAP: Record<number, number> = { 1: 7, 2: 4, 3: 1, 4: 0, 5: 0 };
+
 export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonOptions = {}): SeasonState {
+  setClubYear(year);
   const tier = club.tier;
   const division = opts.division ?? baseDivision(club);
   const offset = divisionOffset(club, division);
@@ -150,7 +162,7 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     id: `${year}-r${i}`,
     name,
     short: shortOf(name),
-    strength: clamp(Math.round(club.strength + offset + rand(-9, 9, rng)), 45, 92),
+    strength: clamp(Math.round(club.strength - (ELITE_GAP[tier] ?? 0) + offset + rand(-8, 8, rng)), 45, 92),
     color: RIVAL_COLORS[i % RIVAL_COLORS.length],
   }));
 

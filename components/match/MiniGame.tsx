@@ -80,7 +80,7 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
   slide: {
     title: 'Sliding Tackle',
-    how: ['He dribbles at you. A zone is painted on the grass.', 'Slide while the ball is inside the green zone.'],
+    how: ['He dribbles at you. A pool of light marks the spot.', 'Slide as the ball crosses the light.'],
     tip: 'Too early and he skips past. Too late and you take the man: yellow card, or red if it is reckless.',
     icon: Swords,
   },
@@ -104,8 +104,8 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
   },
   volley: {
     title: 'Volley',
-    how: ['The ball drops from the sky.', 'Tap when it reaches the gold line.'],
-    tip: 'Hit it at the top of the bounce for the sweetest strike.',
+    how: ['A cross drops from the night sky.', 'Start your swing just before the ball reaches the ring — your leg needs a moment.'],
+    tip: 'Against better teams the cross comes in quicker.',
     icon: Target,
   },
   oneonone: {
@@ -138,11 +138,11 @@ const HINT: Record<MiniKind, string> = {
   memory: 'Press PLAY, watch the passes, then repeat them.',
   aim: 'Tap when the crosshair is on the target.',
   charge: 'Hold, then release on the gold line.',
-  slide: 'Press START, then slide when the ball is in the green zone.',
+  slide: 'Press START, then slide as the ball crosses the light.',
   slalom: 'Tap left or right to dodge the defenders.',
   race: 'Alternate LEFT and RIGHT as fast as you can.',
   block: 'Slide to the lane he is aiming at.',
-  volley: 'Tap when the ball reaches the gold line.',
+  volley: 'Swing as the ball drops into your boot.',
   oneonone: 'Wait for the keeper to commit, then pick your side.',
   rebound: 'Tap the real ball before it is cleared.',
 };

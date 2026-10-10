@@ -19,10 +19,12 @@ export function RaceGame({ bonus, pressure, difficulty, locked, kit, oppKit, ski
   const last = useRef<'L' | 'R' | null>(null);
   const [stumble, setStumble] = useState(0);
   const done = useRef(false);
-  const [cruise] = useState(() => 12.2 + difficulty * 3.4 + pressure * 1.2 + Math.random() * 1.4);
+  // the better the opposition and the bigger the match, the faster he runs — and the harder he surges in the middle
+  const [cruise] = useState(() => 10.5 + difficulty * 7.5 + pressure * 2 + Math.random() * 1.2);
+  const surge = 3 + difficulty * 9 + pressure * 3;
 
   // the defender: steady, with a burst between 2 and 3.2 seconds
-  const opp = Math.min(FINISH, cruise * clock + (clock > 2 ? Math.min(1.2, clock - 2) * 5 : 0));
+  const opp = Math.min(FINISH, cruise * clock + (clock > 2 ? Math.min(1.2, clock - 2) * surge : 0));
   const lead = mine - opp;
 
   const tap = (side: 'L' | 'R') => {
@@ -40,8 +42,10 @@ export function RaceGame({ bonus, pressure, difficulty, locked, kit, oppKit, ski
     if (!playing || done.current) return;
     if (mine >= FINISH || opp >= FINISH || clock > LIMIT) {
       done.current = true;
+      // you have to beat him: level or behind at the end is a loss
       const diff = mineRef.current - opp;
-      onStop(mineRef.current >= FINISH && diff >= 8 ? 'perfect' : mineRef.current >= FINISH || diff > -3 ? 'good' : 'miss');
+      const margin = 5 + difficulty * 5;
+      onStop(mineRef.current >= FINISH && diff >= margin ? 'perfect' : diff > 0 ? 'good' : 'miss');
     }
   }, [clock]); // eslint-disable-line react-hooks/exhaustive-deps
 

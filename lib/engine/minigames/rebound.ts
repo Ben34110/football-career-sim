@@ -24,6 +24,8 @@ export interface ReboundRound {
   clearSide: 1 | -1;
   /** The side the keeper dived to */
   keeperSide: 1 | -1;
+  /** The side the shot came from */
+  shotSide: 1 | -1;
 }
 
 export interface ReboundPlan {
@@ -39,6 +41,8 @@ export interface ReboundPlan {
 }
 
 export const ROUNDS = 3;
+/** Seconds before the save in which you see the shot coming in */
+export const PRE = 0.55;
 
 export const tClear = (r: ReboundRound) => r.t2 + r.win;
 
@@ -58,7 +62,12 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 /** The ball before anyone touches it again: the drop, the first bounce, the second, then rolling loose, then cleared. */
 export function ballAt(r: ReboundRound, t: number): { x: number; d: number; h: number; cleared: boolean } {
   const tc = tClear(r);
-  if (t <= 0) return { x: 0, d: 0.03, h: 0.9, cleared: false };
+  if (t < -PRE) return { x: r.shotSide * 3.4, d: 0.7, h: 0.25, cleared: false };
+  if (t <= 0) {
+    // the shot, driven in from the side, a little above the grass
+    const u = (t + PRE) / PRE;
+    return { x: lerp(r.shotSide * 3.4, 0, u), d: lerp(0.7, 0.03, u), h: lerp(0.25, 0.9, u), cleared: false };
+  }
   if (t < r.t1) {
     const u = t / r.t1;
     return { x: lerp(0, r.bounceX, u), d: lerp(0.03, 0.36, u), h: 0.9 * (1 - u * u), cleared: false };
@@ -101,9 +110,9 @@ export function makeRebound(pressure: number, difficulty: number, bonus: number,
     const win = Math.max(0.42, 0.78 - difficulty * 0.2 - pressure * 0.1 + bonus * 2);
     // the first bounce is on the opposite side more often than not: a ricochet, not a straight line
     const bounceX = lane === 0 ? (rnd() < 0.5 ? -0.8 : 0.8) : rnd() < 0.7 ? -lane * 0.6 : lane * 0.3;
-    rounds.push({ lane, bounceX, t1, t2, win, ideal: t2 + Math.min(0.14, win * 0.3), clearSide: rnd() < 0.5 ? 1 : -1, keeperSide: bounceX < 0 ? 1 : -1 });
+    rounds.push({ lane, bounceX, t1, t2, win, ideal: t2 + Math.min(0.14, win * 0.3), clearSide: rnd() < 0.5 ? 1 : -1, keeperSide: bounceX < 0 ? 1 : -1, shotSide: rnd() < 0.5 ? 1 : -1 });
     prev = lane;
   }
   const slowest = Math.max(...rounds.map((r) => tClear(r)));
-  return { rounds, reach: 0.62, perfect: 0.11 + bonus * 0.8, roundLen: slowest + 1.15, lead: 0.5 };
+  return { rounds, reach: 0.62, perfect: 0.11 + bonus * 0.8, roundLen: slowest + 1.15 + PRE, lead: 0.5 + PRE };
 }

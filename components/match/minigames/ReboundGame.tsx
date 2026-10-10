@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ROUNDS, ballAt, judgePounce, makeRebound, shotAt, tClear, type Lane, type ReboundVerdict } from '@/lib/engine/minigames/rebound';
+import { PRE, ROUNDS, ballAt, judgePounce, makeRebound, shotAt, tClear, type Lane, type ReboundVerdict } from '@/lib/engine/minigames/rebound';
 import { glide } from '@/lib/engine/minigames/dribble';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
@@ -17,7 +17,7 @@ const CX = 170;
 const HOR = 62;
 const YP = 198;
 /** Where the goal line is, and the depth range between it and your feet */
-const ZG = 0.42;
+const ZG = 0.5;
 const ZF = 0.97;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -85,7 +85,7 @@ function Box({ keeper, keeperKit, ripple }: { keeper: { side: number; dive: numb
       <rect x={CX - gw} y={gy - gh} width={2 * gw} height={gh} fill="#000" opacity=".25" />
       {ripple && ripple.p > 0 && <circle cx={ripple.x} cy={ripple.y} r={4 + ripple.p * 26} fill="#fff" opacity={0.55 * (1 - ripple.p)} />}
       <g transform={`rotate(${(keeper.side * keeper.dive * 58).toFixed(1)} ${CX + keeper.side * keeper.dive * gw * 0.35} ${gy - 14})`}>
-        <FrontPlayer x={CX + keeper.side * keeper.dive * gw * 0.35} y={gy - 1} s={0.56} kit={keeperKit} skin="#e0b896" hair="#27272a" lean={0} kick={0} arms={keeper.dive > 0.3 ? 'up' : 'balance'} />
+        <FrontPlayer x={CX + keeper.side * keeper.dive * gw * 0.35} y={gy - 1} s={0.66} kit={keeperKit} skin="#e0b896" hair="#27272a" lean={0} kick={0} arms={keeper.dive > 0.3 ? 'up' : 'balance'} />
       </g>
       <path d={`M${CX - gw} ${gy}V${gy - gh}H${CX + gw}V${gy}`} stroke="#fff" strokeWidth="2.6" fill="none" strokeLinejoin="round" />
     </g>
@@ -133,7 +133,9 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   };
 
   const roundStart = (i: number) => plan.lead + i * plan.roundLen;
-  const round = Math.min(ROUNDS - 1, Math.max(0, Math.floor((clock - plan.lead) / plan.roundLen)));
+  // a round starts PRE seconds before its save, when the shot comes in
+  const roundOf = (c: number) => Math.min(ROUNDS - 1, Math.max(0, Math.floor((c - plan.lead + PRE) / plan.roundLen)));
+  const round = roundOf(clock);
   const rd = plan.rounds[round];
   const local = playing ? clock - roundStart(round) : -1;
 
@@ -146,7 +148,7 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
 
   const pounce = () => {
     if (locked || !playing || done.current) return;
-    const i = Math.min(ROUNDS - 1, Math.max(0, Math.floor((ref.current - plan.lead) / plan.roundLen)));
+    const i = roundOf(ref.current);
     const lt = ref.current - roundStart(i);
     if (lt < 0 || verdicts.current[i] !== undefined) return;
     pounces.current[i] = lt;
@@ -171,7 +173,7 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   const v = shown[round];
   const tp = pounces.current[round];
   const scored = v === 'perfect' || v === 'good';
-  const natural = ballAt(rd, Math.max(0, local));
+  const natural = ballAt(rd, local);
   const shot = scored && tp !== undefined ? shotAt(rd, tp, local) : null;
   const pose = shot ?? natural;
   const ball = project(pose.x, pose.d, pose.h);
@@ -180,8 +182,29 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   const goalTarget = project(-rd.keeperSide * 0.72, 0, 0.9);
 
   // the keeper has just made the save, then dives again too late
-  const keeperDive = !playing || local < 0 ? 0 : goalIn || (scored && sinceStrike > 0.15) ? smooth((sinceStrike - 0.15) / 0.35) * -1 : Math.sin(Math.PI * clamp01(local / 0.95));
-  const keeperSide = scored && sinceStrike > 0.15 ? rd.keeperSide : rd.keeperSide;
+  const keeperDive = !playing ? 0 : local < 0 ? smooth((local + PRE) / PRE) * 0.25 : scored && sinceStrike > 0.15 ? smooth((sinceStrike - 0.15) / 0.35) : Math.sin(Math.PI * clamp01(local / 0.95));
+  const keeperSide = rd.keeperSide;
+
+  // the camera pushes in on the strike and shakes with it
+  const bump = scored && sinceStrike > -0.1 ? Math.sin(Math.PI * clamp01((sinceStrike + 0.1) / 1.0)) : 0;
+  const zoom = 1 + 0.13 * bump;
+  const zcx = CX;
+  const zcy = rowAt(ZG) + 18;
+  const shake = scored && sinceStrike > 0.45 && sinceStrike < 0.8 ? Math.sin(sinceStrike * 140) * 3 * (0.8 - sinceStrike) * 3 : 0;
+  // the ball's last few positions, for a trail
+  const trail = playing && local > -PRE
+    ? [1, 2, 3, 4].map((k) => {
+        const tt = local - 0.035 * k;
+        const q = shot && tp !== undefined && tt >= tp ? shotAt(rd, tp, tt) : ballAt(rd, tt);
+        return project(q.x, q.d, q.h);
+      })
+    : [];
+  // the save: a burst of light where the keeper gets his hands to it
+  const parry = playing && local > 0 && local < 0.3 ? local / 0.3 : -1;
+  const parryAt = project(0, 0.03, 0.9);
+  // tension: the closer the defender, the redder the edges
+  const tension = playing && v === undefined && local > rd.t2 ? clamp01((local - rd.t2) / rd.win) : 0;
+  const celebrating = scored && sinceStrike > 0.55;
 
   // the defender who comes to clear
   const tc = tClear(rd);
@@ -225,8 +248,10 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
     { x: 0.55, d: 0.2, kitC: kit, k: 2 },
   ];
   const standing = others.map((o) => {
-    const p = project(o.x, o.d, 0);
-    return { ...o, lane: o.x, sx: p.x, sy: p.y, z: p.z };
+    // they never stand still: they shuffle, and drift towards the ball
+    const sway = Math.sin(clock * 1.7 + o.k * 2.1) * 0.07 + (playing && local > 0 ? clamp01(local / 1.2) * (pose.x - o.x) * 0.12 : 0);
+    const p = project(o.x + sway, o.d, 0);
+    return { ...o, lane: o.x, sx: p.x, sy: p.y - (o.k === 2 && celebrating ? Math.abs(Math.sin(clock * 9)) * 5 : 0), z: p.z };
   });
 
   return (
@@ -241,19 +266,33 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
       </div>
 
       <div className="relative select-none overflow-hidden rounded-3xl border border-white/10 bg-black/40">
-        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full">
-          <Box keeper={{ side: keeperSide, dive: keeperDive < 0 ? -keeperDive : keeperDive }} keeperKit="#f59e0b" ripple={ripple} />
+        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" style={{ transform: shake ? `translateX(${shake}px)` : undefined }}>
+          <g transform={`translate(${zcx * (1 - zoom)} ${zcy * (1 - zoom)}) scale(${zoom})`}>
+          <Box keeper={{ side: keeperSide, dive: keeperDive }} keeperKit="#f59e0b" ripple={ripple} />
 
           {standing.map((o) => (
-            <FrontPlayer key={o.k} x={o.sx} y={o.sy} s={sizeAt(o.z)} kit={o.kitC} skin={SKINS[o.k % SKINS.length]} hair="#18120c" lean={Math.max(-1, Math.min(1, (pose.x - o.lane) * 0.4))} kick={0} arms="balance" stride={playing ? clock * 2.6 + o.k : undefined} />
+            <FrontPlayer key={o.k} x={o.sx} y={o.sy} s={sizeAt(o.z)} kit={o.kitC} skin={SKINS[o.k % SKINS.length]} hair="#18120c" lean={Math.max(-1, Math.min(1, (pose.x - o.lane) * 0.4))} kick={0} arms={o.k === 2 && celebrating ? 'up' : 'balance'} stride={playing ? clock * 2.6 + o.k : undefined} />
           ))}
           {playing && !clearerHidden && local > 0 && (
             <FrontPlayer x={cP.x} y={cP.y} s={sizeAt(cP.z)} kit={oppKit} skin={SKINS[1]} hair="#18120c" lean={Math.max(-1, Math.min(1, (rd.lane - clearer.x) * 0.5))} kick={clearKick} arms="balance" stride={local < tc - 0.28 ? clock * 11 : undefined} />
           )}
 
+          {/* the burst of the save */}
+          {parry >= 0 && (
+            <g transform={`translate(${parryAt.x} ${parryAt.y})`} opacity={1 - parry}>
+              <circle r={4 + parry * 26} fill="none" stroke="#fff" strokeWidth="2" />
+              {Array.from({ length: 8 }, (_, i) => {
+                const a = (i / 8) * Math.PI * 2;
+                return <line key={i} x1={Math.cos(a) * (8 + parry * 20)} y1={Math.sin(a) * (8 + parry * 20)} x2={Math.cos(a) * (16 + parry * 34)} y2={Math.sin(a) * (16 + parry * 34)} stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />;
+              })}
+            </g>
+          )}
           {/* the ball and its shadow on the turf */}
           <ellipse cx={project(pose.x, pose.d, 0).x} cy={project(pose.x, pose.d, 0).y + 1} rx={7 * sizeAt(ball.z) * 0.8} ry={2 * sizeAt(ball.z) * 0.8} fill="#000" opacity={0.3 - Math.min(0.15, pose.h * 0.08)} />
-          {playing && local >= 0 && (
+          {trail.map((q, i) => (
+            <circle key={i} cx={q.x} cy={q.y - 6 * sizeAt(q.z)} r={Math.max(2, 7 * sizeAt(q.z) * (1 - i * 0.18))} fill="#fff" opacity={0.28 - i * 0.06} />
+          ))}
+          {playing && local > -PRE && (
             <g transform={`translate(${ball.x} ${ball.y - 6 * sizeAt(ball.z)}) rotate(${clock * 520})`}>
               <circle r={Math.max(3.2, 8 * sizeAt(ball.z))} fill="#fafafa" stroke="#18181b" strokeWidth=".7" />
               <circle r={Math.max(1.2, 3 * sizeAt(ball.z))} fill="#18181b" />
@@ -268,7 +307,9 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           <g transform={`translate(0 ${-jump})`}>
             <BackPlayer x={youX} y={YP + 8} s={1.4} kit={kit} skin={skin} hair={hair} step={clock * 11} tilt={tilt} stretch={tp !== undefined ? 1 : 0} dir={rd.lane - pos.current >= 0 ? 1 : -1} run={Math.abs(vel.current) > 0.4 ? 2 : 0.6} />
           </g>
+          </g>
         </svg>
+        {tension > 0.05 && <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(ellipse at center, transparent 55%, rgba(220,38,38,${0.38 * tension}) 100%)` }} />}
 
         {playing && (
           <div className="absolute inset-0 grid grid-cols-2">
@@ -279,7 +320,7 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
         )}
         {flow.stage === 'count' && <CountOverlay count={flow.count} />}
         {flow.stage === 'idle' && <div className="pointer-events-none absolute inset-x-0 top-2 px-4 text-center text-[11px] font-semibold text-white/80">{t('Read the bounce, get to the ball first.')}</div>}
-        {playing && local >= 0 && local < rd.t2 && v === undefined && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-bold text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{t('Where will it fall?')}</div>}
+        {playing && local >= -PRE && local < rd.t2 && v === undefined && <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs font-bold text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{t('Where will it fall?')}</div>}
 
         <AnimatePresence>
           {showVerdict && verdictText && (

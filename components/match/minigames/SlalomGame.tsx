@@ -21,7 +21,7 @@ const SKINS = ['#c68642', '#8d5524', '#e0ac69', '#f1c27d'];
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 /** You run up the pitch at V metres a second; everything else stands in the world, and gets closer. */
-const V = 9;
+const V = 12.5;
 const K = 8;
 /** Distance ahead of you (metres) → depth on the screen (0 far … 1 at your feet, more once passed) */
 const zOf = (d: number) => 1 / (1 + d / K);

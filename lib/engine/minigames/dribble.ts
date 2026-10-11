@@ -39,7 +39,7 @@ export const caught = (w: DribbleWave, pos: number, reach: number) => w.blocked.
 export const dribbleQuality = (hits: number): 'perfect' | 'good' | 'miss' => (hits === 0 ? 'perfect' : hits === 1 ? 'good' : 'miss');
 
 /** Follow a target smoothly (an ease that never overshoots), with a cap on the speed. */
-export const glide = (pos: number, target: number, dt: number, rate = 11, maxSpeed = 6) => {
+export const glide = (pos: number, target: number, dt: number, rate = 14, maxSpeed = 8) => {
   const step = (target - pos) * (1 - Math.exp(-rate * dt));
   const cap = maxSpeed * dt;
   return pos + Math.max(-cap, Math.min(cap, step));
@@ -61,8 +61,8 @@ export function makeDribble(pressure: number, difficulty: number, bonus: number,
   }
   return {
     waves,
-    travel: Math.max(0.8, 1.35 - difficulty * 0.22 - pressure * 0.12 + bonus * 1.5),
-    gap: Math.max(0.78, 1.15 - difficulty * 0.16 - pressure * 0.1),
+    travel: Math.max(0.58, 1.02 - difficulty * 0.2 - pressure * 0.1 + bonus * 1.1),
+    gap: Math.max(0.58, 0.88 - difficulty * 0.14 - pressure * 0.08),
     reach: 0.55,
   };
 }

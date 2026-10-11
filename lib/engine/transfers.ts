@@ -37,7 +37,8 @@ const roleFor = (c: Club, ovr: number) =>
 export function buildOffer(player: Player, club: Club, source: Offer['source'], rng: Rng): Offer {
   const ovr = ovrOf(player);
   const mv = marketValue(ovr, player.age);
-  const fee = Math.round(mv * rand(0.9, 1.4, rng) * 100) / 100;
+  // a club never offers more than it can pay
+  const fee = Math.round(Math.min(mv * rand(0.9, 1.4, rng), Math.max(club.budget, mv * 0.9)) * 100) / 100;
   const agentBonus = 1 + 0.04 * (player.upgrades?.agent ?? 0);
   const wage = Math.round(wageFor(ovr, player.age, club.tier) * rand(0.95, 1.2, rng) * agentBonus);
   return {
@@ -54,16 +55,20 @@ export function buildOffer(player: Player, club: Club, source: Offer['source'], 
 export function generateOffers(player: Player, listed: boolean, rng: Rng): Offer[] {
   const ovr = ovrOf(player);
   const current = getClub(player.clubId);
-  const eligible = CLUBS.filter((c) => c.id !== player.clubId && c.strength <= ovr + 7 && c.strength >= ovr - 22);
+  // a star is courted by the clubs of his level, and only by those who can pay for him
+  const mv = marketValue(ovr, player.age);
+  const eligible = CLUBS.filter((c) => c.id !== player.clubId && c.strength <= ovr + 7 && c.strength >= ovr - 22 && c.budget >= mv * 0.9);
   if (eligible.length === 0) return [];
-  const n = clamp(1 + Math.floor((player.rep.fanPopularity + player.rep.mediaHeat) / 70) + (listed ? 2 : 0) + randInt(0, 1, rng), 1, 5);
+  // the best player in the world draws extra interest
+  const star = player.trophies.some((t) => /^Golden Star/.test(t));
+  const n = clamp(1 + Math.floor((player.rep.fanPopularity + player.rep.mediaHeat) / 70) + (listed ? 2 : 0) + (star ? 2 : 0) + randInt(0, 1, rng), 1, 5);
   const pool = [...eligible];
   const offers: Offer[] = [];
   for (let i = 0; i < n && pool.length > 0; i++) {
-    const c = weightedPick(pool, (cl) => Math.exp(((cl.strength - (current?.strength ?? 55)) / 8)) + 0.2, rng);
+    // clubs that are a step up from yours, and close to your own level: a Golden Star is wanted by the biggest
+    const c = weightedPick(pool, (cl) => Math.exp((cl.strength - (current?.strength ?? 55)) / 8) * Math.exp(-Math.pow((cl.strength - ovr) / 10, 2) / 2) + 0.05, rng);
     pool.splice(pool.indexOf(c), 1);
-    const o = buildOffer(player, c, 'incoming', rng);
-    if (o.fee <= c.budget) offers.push(o);
+    offers.push(buildOffer(player, c, 'incoming', rng));
   }
   return offers;
 }

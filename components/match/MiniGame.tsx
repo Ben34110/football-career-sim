@@ -281,7 +281,7 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked, running }: Game
 
   useEffect(() => {
     if (locked || !running) return;
-    const base = 0.72 + pressure * 0.3 + difficulty * 0.2; // traversals per second
+    const base = 1.05 + pressure * 0.4 + difficulty * 0.4; // traversals per second
     let raf = 0;
     let last = performance.now();
     let phase = Math.random();

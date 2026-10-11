@@ -50,6 +50,41 @@ const turn = (from: number, to: number, k: number) => {
   return from + d * k;
 };
 
+/** The broadcast camera: it keeps your striker, the ball and the defender in frame, as close as it can. */
+const ZMIN = 1.25;
+const ZMAX = 2.2;
+interface Cam {
+  x: number;
+  y: number;
+  z: number;
+}
+function cameraTarget(points: V[]): Cam {
+  const margin = 1.5;
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const q of points) {
+    x0 = Math.min(x0, q.x);
+    x1 = Math.max(x1, q.x);
+    y0 = Math.min(y0, q.y);
+    y1 = Math.max(y1, q.y);
+  }
+  const bw = x1 - x0 + 2 * margin;
+  const bh = y1 - y0 + 2 * margin;
+  const z = Math.max(ZMIN, Math.min(ZMAX, Math.min(W / (bw * PPM), H / (bh * PPM))));
+  const vw = W / (PPM * z);
+  const vh = H / (PPM * z);
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  // never show much beyond the pitch: a little of the net at the top, the edge of the box at the bottom
+  const lox = FIELD.xMin - 0.3 + vw / 2;
+  const hix = FIELD.xMax + 0.3 - vw / 2;
+  const loy = -1.7 + vh / 2;
+  const hiy = FIELD.yMax + 0.9 - vh / 2;
+  return { x: lox > hix ? 0 : Math.max(lox, Math.min(hix, cx)), y: loy > hiy ? (loy + hiy) / 2 : Math.max(loy, Math.min(hiy, cy)), z };
+}
+
 const SKINS = ['#c68642', '#8d5524', '#e0ac69', '#f1c27d'];
 
 /* ───────────────────────── a player seen from above ───────────────────────── */
@@ -64,7 +99,8 @@ function Man({
   kick = 0,
   arms = 'swing',
   gloves,
-  scale = 1.15,
+  scale = 1.3,
+  number,
 }: {
   p: V;
   face: number;
@@ -78,44 +114,67 @@ function Man({
   arms?: 'swing' | 'up' | 'reach';
   gloves?: string;
   scale?: number;
+  /** The shirt number on his back */
+  number?: number;
 }) {
-  const dark = shade(kit, -0.4);
+  const dark = shade(kit, -0.42);
+  const light = shade(kit, 0.22);
+  const shorts = shade(kit, -0.55);
   const sw = Math.sin(stride);
   const kickR = Math.max(0, kick);
   const windR = Math.max(0, -kick);
-  const legR = 3.2 - sw * 3 - kickR * 6 + windR * 3.5;
-  const legL = 3.2 + sw * 3;
-  const swing = arms === 'swing' ? sw * 2.6 : 0;
-  const hand = (side: 1 | -1): [number, number] => (arms === 'up' ? [side * 7.2, -4.6] : arms === 'reach' ? [side * 2.8, -9.4] : [side * 6.6, 1.6 + side * swing]);
-  const shoulder = (side: 1 | -1): [number, number] => [side * 4.8, -0.4];
+  // the feet: one forward, one back while running; the right one swings through on a strike
+  const footR = -sw * 3.4 - kickR * 7.5 + windR * 4;
+  const footL = sw * 3.4;
+  const swing = arms === 'swing' ? sw * 3 : 0;
+  const hand = (side: 1 | -1): [number, number] => (arms === 'up' ? [side * 8.6, -3.6] : arms === 'reach' ? [side * 3.4, -10.5] : [side * 7.4, 1.4 + side * swing]);
+  const elbow = (side: 1 | -1): [number, number] => (arms === 'up' ? [side * 7.4, -0.6] : arms === 'reach' ? [side * 5.2, -5.4] : [side * 7, -0.6 + side * swing * 0.5]);
+  const shoulder = (side: 1 | -1): [number, number] => [side * 5, -0.8];
+  const leg = (side: 1 | -1, foot: number) => (
+    <g key={side}>
+      {/* thigh in shorts, then sock, then boot */}
+      <ellipse cx={side * 2.5} cy={1.6 + foot * 0.3} rx="2.5" ry="3.1" fill={shorts} />
+      <ellipse cx={side * 2.5} cy={4.4 + foot * 0.75} rx="1.7" ry="3" fill={light} />
+      <ellipse cx={side * 2.5} cy={7 + foot} rx="2" ry="2.7" fill="#0b0b0e" />
+      <ellipse cx={side * 2.5} cy={6.4 + foot} rx="0.8" ry="1.2" fill="#fff" opacity=".35" />
+    </g>
+  );
   return (
     <g transform={`translate(${px(p.x)} ${py(p.y)}) scale(${scale})`}>
-      <ellipse cx="1.6" cy="2.2" rx="7.4" ry="5.8" fill="#000" opacity=".3" />
+      <ellipse cx="1.8" cy="2.4" rx="8.4" ry="7.4" fill="#000" opacity=".22" />
+      <ellipse cx="1.4" cy="2" rx="6.4" ry="5.4" fill="#000" opacity=".16" />
       <g transform={`rotate(${face.toFixed(1)})`}>
-        {/* legs and boots */}
-        <ellipse cx="-2.5" cy={legL} rx="1.9" ry="3.4" fill={dark} />
-        <ellipse cx="-2.5" cy={legL + 2.6} rx="1.7" ry="1.9" fill="#0b0b0e" />
-        <ellipse cx="2.5" cy={legR} rx="1.9" ry="3.4" fill={dark} />
-        <ellipse cx="2.5" cy={legR + 2.6} rx="1.7" ry="1.9" fill="#0b0b0e" />
-        {/* arms */}
-        {([-1, 1] as const).map((s) => {
-          const sh = shoulder(s);
-          const h = hand(s);
+        {/* legs: the far one first */}
+        {footL <= footR ? [leg(-1, footL), leg(1, footR)] : [leg(1, footR), leg(-1, footL)]}
+        {/* arms: sleeve, forearm, hand */}
+        {([-1, 1] as const).map((sd) => {
+          const sh = shoulder(sd);
+          const el = elbow(sd);
+          const h = hand(sd);
           return (
-            <g key={s}>
-              <path d={`M${sh[0]} ${sh[1]}L${h[0]} ${h[1]}`} stroke={kit} strokeWidth="3" strokeLinecap="round" />
-              <circle cx={h[0]} cy={h[1]} r="1.7" fill={gloves ?? skin} />
+            <g key={sd} strokeLinecap="round" fill="none">
+              <path d={`M${sh[0]} ${sh[1]}L${el[0]} ${el[1]}`} stroke={kit} strokeWidth="3.6" />
+              <path d={`M${el[0]} ${el[1]}L${h[0]} ${h[1]}`} stroke={skin} strokeWidth="2.5" />
+              <circle cx={h[0]} cy={h[1]} r={gloves ? 2.1 : 1.6} fill={gloves ?? skin} stroke="none" />
             </g>
           );
         })}
-        {/* shoulders and shirt */}
-        <ellipse cx="0" cy="0" rx="5.9" ry="3.5" fill={kit} stroke={dark} strokeWidth=".8" />
-        <path d="M-3.2 0.6Q0 2 3.2 0.6" stroke={dark} strokeWidth=".7" fill="none" opacity=".6" />
-        {/* the head: hair, with a hint of face at the front */}
-        <circle cx="0" cy="-0.6" r="3.5" fill={hair} />
-        <ellipse cx="0" cy="-2.6" rx="2.2" ry="1.3" fill={skin} />
-        <circle cx="-3.4" cy="-0.6" r="0.9" fill={skin} />
-        <circle cx="3.4" cy="-0.6" r="0.9" fill={skin} />
+        {/* the shirt: shoulders, a lighter top, side stripes, the collar and the number */}
+        <ellipse cx="0" cy="0.4" rx="6.6" ry="4.2" fill={kit} stroke={dark} strokeWidth=".8" />
+        <ellipse cx="-1.4" cy="-0.6" rx="4.2" ry="2.3" fill={light} opacity=".28" />
+        <path d="M-6.1 -1.3Q-6.6 0.8 -5.2 2.6M6.1 -1.3Q6.6 0.8 5.2 2.6" stroke={dark} strokeWidth="1.1" fill="none" strokeLinecap="round" opacity=".55" />
+        {number !== undefined && (
+          <text x="0" y="2.6" textAnchor="middle" fontSize="6.4" fontWeight="800" fill="#fff" opacity=".85" fontFamily="system-ui, sans-serif">
+            {number}
+          </text>
+        )}
+        {/* the head: neck, ears, hair with a lighter crown */}
+        <ellipse cx="0" cy="-2.6" rx="2.3" ry="1.5" fill={shade(skin, -0.2)} />
+        <circle cx="-3.5" cy="-3.8" r="1" fill={skin} />
+        <circle cx="3.5" cy="-3.8" r="1" fill={skin} />
+        <ellipse cx="0" cy="-3.9" rx="3.7" ry="4" fill={hair} />
+        <ellipse cx="-0.8" cy="-4.4" rx="2" ry="1.9" fill={shade(hair, 0.18)} opacity=".55" />
+        <path d="M-2.8 -7Q0 -8.4 2.8 -7" stroke={skin} strokeWidth="1.3" fill="none" strokeLinecap="round" opacity=".9" />
       </g>
     </g>
   );
@@ -136,23 +195,23 @@ function Pitch({ ripple }: { ripple: { x: number; y: number; p: number } | null 
           <path d="M0 0L5 5M5 0L0 5" stroke="#fff" strokeWidth=".45" opacity=".55" />
         </pattern>
       </defs>
-      <rect width={W} height={H} fill="url(#rb-grass)" />
-      {Array.from({ length: 8 }, (_, k) => (
-        <rect key={k} y={py(k * 2)} width={W} height={2 * PPM} fill="#fff" opacity={k % 2 ? 0.045 : 0} />
+      <rect x="-400" y="-300" width={W + 800} height={H + 700} fill="url(#rb-grass)" />
+      {Array.from({ length: 12 }, (_, k) => (
+        <rect key={k} x="-400" y={py(k * 2 - 2)} width={W + 800} height={2 * PPM} fill="#fff" opacity={k % 2 ? 0.045 : 0} />
       ))}
       {/* behind the goal: boards and the stand */}
-      <rect width={W} height={GY - 26} fill="#070d1c" />
+      <rect x="-400" y="-300" width={W + 800} height={GY - 26 + 300} fill="#070d1c" />
       <g opacity=".6">
-        {Array.from({ length: 38 }, (_, i) => (
-          <circle key={i} cx={i * 9.2 + 3} cy={9 - ((i * 7) % 7)} r={3.3} fill={['#b45309', '#e5e7eb', '#1d4ed8', '#fbbf24', '#9ca3af'][i % 5]} opacity=".55" />
+        {Array.from({ length: 110 }, (_, i) => (
+          <circle key={i} cx={(i - 36) * 9.2 + 3} cy={9 - ((i * 7) % 7) - (i % 3) * 7} r={3.3} fill={['#b45309', '#e5e7eb', '#1d4ed8', '#fbbf24', '#9ca3af'][i % 5]} opacity=".55" />
         ))}
       </g>
-      <rect y={GY - 36} width={W} height="9" fill="#0b1220" />
-      <rect y={GY - 28} width={W} height="2" fill="#10e08a" opacity=".5" />
-      <rect y={GY - 26} width={W} height="26" fill="#0e3a21" />
+      <rect x="-400" y={GY - 36} width={W + 800} height="9" fill="#0b1220" />
+      <rect x="-400" y={GY - 28} width={W + 800} height="2" fill="#10e08a" opacity=".5" />
+      <rect x="-400" y={GY - 26} width={W + 800} height="26" fill="#0e3a21" />
       {/* the lines */}
       <path d={`M${px(-9.16)} ${GY}V${py(5.5)}H${px(9.16)}V${GY}`} fill="none" stroke="#fff" strokeWidth="1.6" opacity=".6" strokeLinejoin="round" />
-      <path d={`M0 ${GY}H${W}`} stroke="#fff" strokeWidth="1.6" opacity=".6" />
+      <path d={`M-400 ${GY}H${W + 400}`} stroke="#fff" strokeWidth="1.6" opacity=".6" />
       <circle cx={px(0)} cy={py(11)} r="1.6" fill="#fff" opacity=".7" />
       {/* the goal */}
       <rect x={px(-GOAL_HALF)} y={GY - 26} width={2 * gw} height="26" fill="url(#rb-net)" opacity=".75" />
@@ -164,6 +223,13 @@ function Pitch({ ripple }: { ripple: { x: number; y: number; p: number } | null 
 }
 
 /* ───────────────────────── the game ───────────────────────── */
+
+/** A point of the screen (viewBox units) → a point of the pitch, through the camera. */
+function screenToWorld(sx: number, sy: number, cam: Cam): V {
+  const bx = (sx - W / 2) / cam.z + px(cam.x);
+  const by = (sy - H / 2) / cam.z + py(cam.y);
+  return { x: Math.max(FIELD.xMin, Math.min(FIELD.xMax, (bx - CX) / PPM)), y: Math.max(FIELD.yMin, Math.min(FIELD.yMax, (by - GY) / PPM)) };
+}
 
 interface Sim {
   clock: number;
@@ -179,6 +245,9 @@ interface Sim {
   /** Metres run, for the stride */
   run: number;
   spin: number;
+  cam: Cam;
+  /** Where your thumb is on the screen (viewBox units), while it is down */
+  ptr: { sx: number; sy: number } | null;
 }
 
 /**
@@ -216,6 +285,8 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
     verdict: Array(ROUNDS).fill(undefined),
     run: 0,
     spin: 0,
+    cam: cameraTarget([plan.rounds[0].me0, plan.rounds[0].shooter, plan.rounds[0].hit]),
+    ptr: null,
   });
   const [, setFrame] = useState(0);
   const [shown, setShown] = useState<(ReboundVerdict | undefined)[]>([]);
@@ -241,9 +312,15 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
         S.me = { ...plan.rounds[i].me0, vx: 0, vy: 0 };
         S.face = 0;
         S.target = null;
+        S.ptr = null;
+        S.down = false;
+        S.cam = cameraTarget([plan.rounds[i].me0, plan.rounds[i].shooter, plan.rounds[i].hit]);
       }
       const rd = plan.rounds[i];
       const lt = clock - starts[i] - PRE;
+
+      // the target stays under your thumb even while the camera moves
+      if (S.down && S.ptr) S.target = screenToWorld(S.ptr.sx, S.ptr.sy, S.cam);
 
       // you run to where your thumb is, until you have played the ball
       if (S.touch[i] === null && S.verdict[i] === undefined) {
@@ -276,6 +353,18 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
         }
       }
 
+      // the camera: on the shooter and the keeper at first, then on you, the ball and the defender
+      {
+        const pts: V[] = [{ x: S.me.x, y: S.me.y }, ballAt(rd, lt, S.touch[i])];
+        if (lt < -0.1) pts.push(rd.shooter, rd.hit);
+        if (lt > 0 && S.touch[i] === null) pts.push(defAt(rd, lt));
+        if (S.touch[i] !== null) pts.push(rd.corner);
+        const goal = cameraTarget(pts);
+        const kp = 1 - Math.exp(-dt / 0.3);
+        const kz = 1 - Math.exp(-dt / 0.45);
+        S.cam = { x: S.cam.x + (goal.x - S.cam.x) * kp, y: S.cam.y + (goal.y - S.cam.y) * kp, z: S.cam.z + (goal.z - S.cam.z) * kz };
+      }
+
       if (clock >= total && !done.current) {
         done.current = true;
         const n = S.verdict.filter((v) => v === 'perfect' || v === 'good').length;
@@ -289,13 +378,11 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   }, [playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ───── your thumb ───── */
-  const toWorld = (e: React.PointerEvent): V | null => {
+  const toSvg = (e: React.PointerEvent): { sx: number; sy: number } | null => {
     const el = svgRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * W;
-    const y = ((e.clientY - r.top) / r.height) * H;
-    return { x: Math.max(FIELD.xMin, Math.min(FIELD.xMax, (x - CX) / PPM)), y: Math.max(FIELD.yMin, Math.min(FIELD.yMax, (y - GY) / PPM)) };
+    return { sx: ((e.clientX - r.left) / r.width) * W, sy: ((e.clientY - r.top) / r.height) * H };
   };
   const press = (e: React.PointerEvent) => {
     if (!playing || locked) return;
@@ -305,16 +392,21 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
     } catch {
       /* not every browser lets us capture */
     }
+    const q = toSvg(e);
     sim.current.down = true;
-    sim.current.target = toWorld(e);
+    sim.current.ptr = q;
+    if (q) sim.current.target = screenToWorld(q.sx, q.sy, sim.current.cam);
     if (!asked) setAsked(true);
   };
   const drag = (e: React.PointerEvent) => {
     if (!sim.current.down || locked) return;
-    sim.current.target = toWorld(e);
+    const q = toSvg(e);
+    sim.current.ptr = q;
+    if (q) sim.current.target = screenToWorld(q.sx, q.sy, sim.current.cam);
   };
   const release = () => {
     sim.current.down = false;
+    sim.current.ptr = null;
   };
 
   /* ───── the picture ───── */
@@ -426,6 +518,7 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
 
       <div className="relative select-none overflow-hidden rounded-3xl border border-white/10 bg-black/40">
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="block w-full touch-none" onPointerDown={press} onPointerMove={drag} onPointerUp={release} onPointerCancel={release}>
+          <g transform={`translate(${W / 2} ${H / 2}) scale(${S.cam.z.toFixed(4)}) translate(${-px(S.cam.x)} ${-py(S.cam.y)})`}>
           <Pitch ripple={ripple} />
 
           {/* where the ball is going to stop */}
@@ -443,16 +536,16 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           )}
 
           <g opacity={fade}>
-            <Man p={keeper} face={keeperFace} kit="#f59e0b" skin="#e0b896" hair="#27272a" gloves="#fafafa" arms={keeperReach ? 'reach' : 'swing'} stride={playing && lt < 0 ? clock * 5 : 0} />
-            <Man p={sPos} face={sFace} kit={kit} skin={SKINS[2]} hair="#1a1410" kick={sKick} stride={playing && lt > -FLIGHT + 0.1 ? clock * 7 : 0} />
+            <Man p={keeper} face={keeperFace} kit="#f59e0b" number={1} skin="#e0b896" hair="#27272a" gloves="#fafafa" arms={keeperReach ? 'reach' : 'swing'} stride={playing && lt < 0 ? clock * 5 : 0} />
+            <Man p={sPos} face={sFace} number={8} kit={kit} skin={SKINS[2]} hair="#1a1410" kick={sKick} stride={playing && lt > -FLIGHT + 0.1 ? clock * 7 : 0} />
 
             {/* him: a ring so you always know who is coming */}
-            {playing && lt > 0 && touch === null && lt < rd.tDef + 0.4 && <circle cx={px(def.x)} cy={py(def.y)} r="13" fill="none" stroke="#ef4444" strokeWidth="1.5" opacity={0.25 + 0.2 * Math.sin(clock * 10)} />}
-            <Man p={def} face={defHeading} kit={oppKit} skin={SKINS[1]} hair="#18120c" stride={defStride} kick={defKick} />
+            {playing && lt > 0 && touch === null && lt < rd.tDef + 0.4 && <circle cx={px(def.x)} cy={py(def.y)} r="15" fill="none" stroke="#ef4444" strokeWidth="1.5" opacity={0.25 + 0.2 * Math.sin(clock * 10)} />}
+            <Man p={def} face={defHeading} number={5} kit={oppKit} skin={SKINS[1]} hair="#18120c" stride={defStride} kick={defKick} />
 
             {/* you */}
-            <circle cx={px(S.me.x)} cy={py(S.me.y)} r="13" fill="none" stroke="#10e08a" strokeWidth="1.8" opacity=".9" />
-            <Man p={S.me} face={myFace} kit={kit} skin={skin} hair={hair} stride={sprinting ? myStride : 0} kick={myKick} arms={celebrate ? 'up' : 'swing'} scale={meScale} />
+            <circle cx={px(S.me.x)} cy={py(S.me.y)} r="15" fill="none" stroke="#10e08a" strokeWidth="1.8" opacity=".9" />
+            <Man p={S.me} face={myFace} number={9} kit={kit} skin={skin} hair={hair} stride={sprinting ? myStride : 0} kick={myKick} arms={celebrate ? 'up' : 'swing'} scale={meScale} />
           </g>
 
           {/* the ball: shadow, trail, spin */}
@@ -467,6 +560,7 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
             <circle cx="-2.2" cy="2" r=".9" fill="#18181b" />
           </g>
           {pulse && <rect x={px(-GOAL_HALF)} y={GY - 26} width={2 * GOAL_HALF * PPM} height="26" fill="#fff" opacity=".18" />}
+          </g>
         </svg>
 
         {playing && locked === false && !asked && (

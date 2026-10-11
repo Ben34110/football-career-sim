@@ -256,6 +256,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
       opponentShort: shortOf(n),
       opponentStrength: clamp(Math.round(club.strength + cupBoost[i] + spread[k]), 45, 94),
       opponentColor: RIVAL_COLORS[(i * 4 + k + 3) % RIVAL_COLORS.length],
+      // a cup mixes the divisions: a weaker draw is from a division below, a stronger one from the division above (nine points a step)
+      opponentDivision: clamp(Math.round(division - (cupBoost[i] + spread[k]) / 9), 1, 3) as Division,
     }));
     return {
       id: `${year}-C${i + 1}`,

@@ -95,6 +95,8 @@ export interface DrawCandidate {
   opponentShort: string;
   opponentStrength: number;
   opponentColor: string;
+  /** The division the opponent plays in (domestic cup ties) */
+  opponentDivision?: Division;
 }
 
 export interface Fixture {
@@ -106,6 +108,8 @@ export interface Fixture {
   opponentShort: string;
   opponentStrength: number;
   opponentColor: string;
+  /** The division the opponent plays in (domestic cup ties) */
+  opponentDivision?: Division;
   home: boolean;
   /** Draws are settled by a penalty shootout */
   knockout: boolean;

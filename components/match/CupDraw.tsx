@@ -14,7 +14,7 @@ import { cn, crestFace } from '@/lib/utils';
 import type { TeamBadge } from './LiveMatch';
 
 /** The draw: the player picks one of four balls, which decides the opponent of the round. */
-export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture; me: TeamBadge; myStrength: number; onDraw: (index: number) => void }) {
+export function CupDraw({ fixture, me, myStrength, division, onDraw }: { fixture: Fixture; me: TeamBadge; myStrength: number; /** Your own division, to compare with the opponent's */ division?: number; onDraw: (index: number) => void }) {
   const t = useT();
   const pool = fixture.pool ?? [];
   const [picked, setPicked] = useState<number | null>(null);
@@ -109,6 +109,11 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
               </div>
               <div className="mt-3 text-center">
                 <div className="font-display text-4xl font-extrabold uppercase leading-none">{t(result.opponent)}</div>
+                {result.opponentDivision && (
+                  <div className="mt-1.5 flex justify-center">
+                    <Chip tone={result.opponentDivision < (division ?? 1) ? 'bad' : result.opponentDivision > (division ?? 1) ? 'good' : 'neutral'}>{t('Division {n}', { n: result.opponentDivision })}</Chip>
+                  </div>
+                )}
                 <div className="mt-1 text-xs text-zinc-400">
                   {t('Squad')} <b className="font-num text-sm text-zinc-100">{Math.round(myStrength)}</b> {t('vs')} <b className="font-num text-sm text-zinc-100">{result.opponentStrength}</b>
                 </div>
@@ -143,7 +148,7 @@ export function CupDraw({ fixture, me, myStrength, onDraw }: { fixture: Fixture;
                         <span className="truncate">
                           {i + 1} · {t(c.opponent)}
                         </span>
-                        <span className="font-num">{c.opponentStrength}</span>
+                        <span className="font-num">{c.opponentDivision ? `${t('Division {n}', { n: c.opponentDivision })} · ` : ''}{c.opponentStrength}</span>
                       </div>
                     ),
                   )}

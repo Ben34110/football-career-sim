@@ -277,7 +277,7 @@ export function MatchScreen() {
         <GroupDraw tourney={season.euroDraw} tournament={season.europe ?? 'Europe Elite Cup'} onDraw={(picks) => useGameStore.getState().drawEuroGroup(picks)} />
       )}
       {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
-        <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
+        <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} division={season?.division ?? 1} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
       {stage === 'brief' && fixture.drawn !== false && room && (
         <PreMatch

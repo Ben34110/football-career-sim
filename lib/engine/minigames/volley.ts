@@ -1,3 +1,4 @@
+import { timingScale } from './difficulty';
 /**
  * Volley — the rules of the scene, with no drawing in it so they can be tested.
  *
@@ -110,7 +111,7 @@ export function makeVolley(pressure: number, difficulty: number, bonus: number, 
   const y0 = 52 + rnd() * 20;
   const vx = (xc - x0) / fall;
   const vy = (yc - y0 - 0.5 * g * fall * fall) / fall;
-  const p: VolleyParams = { x0, y0, vx, vy, g, floor, xc, yc, tIdeal: fall, perfect: 0.05 + bonus * 0.45, good: 0.12 + bonus * 0.7 };
+  const p: VolleyParams = { x0, y0, vx, vy, g, floor, xc, yc, tIdeal: fall, perfect: (0.05 + bonus * 0.45) * timingScale(difficulty, pressure), good: (0.12 + bonus * 0.7) * timingScale(difficulty, pressure) };
   p.tIdeal = timeAtSpot(p);
   return p;
 }

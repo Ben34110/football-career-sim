@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { zoneScale } from '@/lib/engine/minigames/difficulty';
 import { BAR, CHARGE, G, makeLob, previewPath, simulateLob, smotherAt, keeperX, lobQuality, type LobResult } from '@/lib/engine/minigames/lob';
 import { CONTACT_K } from '@/lib/engine/minigames/volley';
 import { haptic } from '@/lib/haptics';
@@ -83,7 +84,7 @@ export function OneOnOneGame({ bonus, pressure, difficulty, locked, kit, skin, h
     const pw = clamp01((now - holdFrom.current) / CHARGE);
     holdFrom.current = null;
     setHolding(false);
-    setShot({ at: now, power: pw, res: simulateLob(params, now, pw, -bonus * 2.5) });
+    setShot({ at: now, power: pw, res: simulateLob(params, now, pw, -bonus * 2.5 + (1 - zoneScale(difficulty, pressure)) * 0.5) });
     haptic(25);
   };
 
@@ -196,11 +197,6 @@ export function OneOnOneGame({ bonus, pressure, difficulty, locked, kit, skin, h
             <circle key={i} cx={X(q.x)} cy={Y(q.y)} r={i % 2 ? 1.1 : 1.5} fill="#fff" opacity={0.75 * (1 - i / (path.length + 6))} />
           ))}
           {holding && path.length > 0 && <circle cx={X(path[path.length - 1].x)} cy={Y(0)} r="2.6" fill="none" stroke="#fde047" strokeWidth="1.4" opacity=".9" />}
-
-          {/* his gloves, so you can see what the ball has to clear */}
-          {playing && !shot && (
-            <circle cx={X(kxNow)} cy={Y(2.45)} r="13" fill="none" stroke="#fde047" strokeWidth="1.2" strokeDasharray="2.5 3" opacity=".55" />
-          )}
 
           {playing || shot ? <SideKeeper x={X(kxNow)} lean={kLean} jump={jump} kit="#f59e0b" /> : <SideKeeper x={X(G - 1)} lean={0} jump={0} kit="#f59e0b" />}
           <Striker x={STRIKER_X} y={GROUND} s={1.35} kit={kit} skin={skin} hair={hair} k={k} lean={lean} arm={k * 0.9} right />

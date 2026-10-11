@@ -95,6 +95,8 @@ export function buildOtherGames(season: SeasonState, fixture: Fixture, rng: Rng)
       .forEach((x, k) => out.push(makeGame(`tk${k}`, x.a, x.b, team(x.a), team(x.b), false, rng)));
     return out;
   }
+  // a final is the only game on: nothing else is being played while it lasts
+  if (/(^| )Final$/.test(fixture.label) && !/Semi|Quarter/.test(fixture.label)) return [];
   // knockouts and internationals: other ties going on elsewhere (flavour only)
   const names: [string, string][] =
     fixture.kind === 'tournament' || fixture.kind === 'intl'

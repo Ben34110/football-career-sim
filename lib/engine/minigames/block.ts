@@ -1,3 +1,4 @@
+import { zoneScale } from './difficulty';
 /**
  * Block the shot — the rules of the scene, with no drawing in it so they can be tested.
  *
@@ -67,9 +68,9 @@ export function makeBlock(pressure: number, difficulty: number, bonus: number, r
   return {
     shots,
     windup: 1.15,
-    flight: Math.max(0.55, 0.86 - difficulty * 0.15 - pressure * 0.08 + bonus),
+    flight: Math.max(0.5, 0.86 - difficulty * 0.2 - pressure * 0.08 + bonus),
     after: 0.85,
     speed: 4.4 + bonus * 6,
-    reach: 0.56 + bonus * 2,
+    reach: (0.56 + bonus * 2) * (0.6 + 0.4 * zoneScale(difficulty, pressure)),
   };
 }

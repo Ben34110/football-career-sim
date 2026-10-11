@@ -13,6 +13,7 @@ import type { MiniExtra, MiniKind, MiniQuality } from '@/lib/types';
 import { BlockGame } from './minigames/BlockGame';
 import { OneOnOneGame } from './minigames/OneOnOneGame';
 import { RaceGame } from './minigames/RaceGame';
+import { timingScale, zoneScale } from '@/lib/engine/minigames/difficulty';
 import { ReboundGame } from './minigames/ReboundGame';
 import { SlalomGame } from './minigames/SlalomGame';
 import { SlideGame } from './minigames/SlideGame';
@@ -274,8 +275,9 @@ function PowerBar({ bonus, pressure, difficulty, onStop, locked, running }: Game
   const [pos, setPos] = useState(0);
   const posRef = useRef(0);
   const [center] = useState(() => 0.25 + Math.random() * 0.5);
-  const perfect = (0.06 + bonus * 0.25) * (1 - 0.15 * difficulty);
-  const good = (0.17 + bonus * 0.8) * (1 - 0.12 * difficulty);
+  const z = zoneScale(difficulty, pressure);
+  const perfect = (0.06 + bonus * 0.25) * z;
+  const good = (0.17 + bonus * 0.8) * z;
 
   useEffect(() => {
     if (locked || !running) return;
@@ -330,8 +332,9 @@ function RingGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const rRef = useRef(1);
   const holdRef = useRef(false);
   const total = 2100 - pressure * 250 - difficulty * 150; // ms of holding to close the whole ring
-  const perfect = (0.065 + bonus * 0.3) * (1 - 0.2 * difficulty);
-  const good = (0.18 + bonus * 0.8) * (1 - 0.15 * difficulty);
+  const z = zoneScale(difficulty, pressure);
+  const perfect = (0.065 + bonus * 0.3) * z;
+  const good = (0.18 + bonus * 0.8) * z;
 
   const release = useCallback(() => {
     if (!holdRef.current || locked) return;
@@ -411,8 +414,9 @@ function ReactionGame({ bonus, pressure, difficulty, onStop, locked }: GameProps
   const [waiting, setWaiting] = useState(false);
   const phaseRef = useRef<'idle' | 'count' | 'wait' | 'decoy' | 'go'>('idle');
   const goAt = useRef(0);
-  const perfect = 240 + bonus * 700 - difficulty * 20;
-  const good = 470 + bonus * 900 - pressure * 60 - difficulty * 40;
+  const zt = timingScale(difficulty, pressure);
+  const perfect = Math.max(150, (240 + bonus * 700) * zt);
+  const good = Math.max(260, (470 + bonus * 900) * zt - pressure * 40);
 
   const setBoth = useCallback((v: 'idle' | 'count' | 'wait' | 'decoy' | 'go') => {
     phaseRef.current = v;
@@ -508,7 +512,7 @@ const DIRS: Dir[] = ['L', 'U', 'D', 'R'];
 function DribbleGame({ bonus, pressure, difficulty, onStop, locked }: GameProps) {
   const t = useT();
   const STEPS = 5;
-  const window = 1600 - pressure * 250 - difficulty * 150 + bonus * 1200;
+  const window = (1600 - pressure * 250 + bonus * 1200) * (0.45 + 0.55 * timingScale(difficulty, pressure));
   const [seq] = useState(() =>
     Array.from({ length: STEPS }, (_, i) => ({
       dir: DIRS[Math.floor(Math.random() * 4)],
@@ -791,8 +795,9 @@ function AimGame({ bonus, pressure, difficulty, onStop, locked, running }: GameP
   const [cross, setCross] = useState({ x: 0.5, y: 0.5 });
   const ref = useRef({ x: 0.5, y: 0.5 });
   // a big target: the crosshair crosses it often and the gold centre is easy to read
-  const perfect = (0.09 + bonus * 0.2) * (1 - 0.2 * difficulty);
-  const good = (0.2 + bonus * 0.5) * (1 - 0.15 * difficulty);
+  const z = zoneScale(difficulty, pressure);
+  const perfect = (0.09 + bonus * 0.2) * z;
+  const good = (0.2 + bonus * 0.5) * z;
 
   useEffect(() => {
     if (locked || !running) return;
@@ -851,8 +856,9 @@ function ChargeGame({ bonus, pressure, difficulty, onStop, locked, running }: Ga
   const [holding, setHolding] = useState(false);
   const levelRef = useRef(0);
   const holdRef = useRef(false);
-  const perfect = (0.05 + bonus * 0.25) * (1 - 0.15 * difficulty);
-  const good = (0.125 + bonus * 0.7) * (1 - 0.12 * difficulty);
+  const z = zoneScale(difficulty, pressure);
+  const perfect = (0.05 + bonus * 0.25) * z;
+  const good = (0.125 + bonus * 0.7) * z;
   const fillMs = 1650 - pressure * 250 - difficulty * 200;
 
   const release = useCallback(() => {

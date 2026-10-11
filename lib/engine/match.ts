@@ -231,7 +231,7 @@ function dismissPlayer(input: MatchState, ctx: MatchCtx, rng: Rng, minute: numbe
     subbedOffAt: minute,
     redsMe: (input.redsMe ?? 0) + 1,
     rating: input.rating - 1.6,
-    momentum: clamp(input.momentum - 22, -100, 100),
+    momentum: clamp(input.momentum - 32, -100, 100),
     clutches: input.clutches.slice(0, input.nextClutch),
   };
   m = push(m, minute, 'card', 'me', tr(secondYellow ? '🟥 Second yellow! {who} is sent off — {me} are down to ten men.' : '🟥 RED CARD! {who} sees a straight red — {me} are down to ten men.', { who, me: ctx.myTeam }), true);
@@ -287,11 +287,11 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
       // sometimes it is the player himself
       if (playerOn && !m.sentOff && rng() < 0.2) return dismissPlayer(m, ctx, rng, minute, rng() < 0.4);
       const mate = nameFrom(ctx.myNames, rng);
-      m = { ...m, redsMe: (m.redsMe ?? 0) + 1, momentum: clamp(m.momentum - 18, -100, 100) };
+      m = { ...m, redsMe: (m.redsMe ?? 0) + 1, momentum: clamp(m.momentum - 30, -100, 100) };
       m = push(m, minute, 'card', 'me', tr(rng() < 0.5 ? '🟥 RED CARD! {mate} is sent off — {me} are down to ten men.' : '🟥 Second yellow for {mate}! {me} must play on with ten.', { mate, me: ctx.myTeam }), true);
     } else {
       const mate = nameFrom(ctx.oppNames, rng);
-      m = { ...m, redsOpp: (m.redsOpp ?? 0) + 1, momentum: clamp(m.momentum + 18, -100, 100) };
+      m = { ...m, redsOpp: (m.redsOpp ?? 0) + 1, momentum: clamp(m.momentum + 30, -100, 100) };
       m = push(m, minute, 'card', 'opp', tr(rng() < 0.5 ? '🟥 RED CARD! {mate} is sent off — {opp} are down to ten men!' : '🟥 {mate} sees a second yellow — {opp} are down to ten and {me} smell blood.', { mate, opp: ctx.oppName, me: ctx.myTeam }), true);
     }
   }
@@ -306,15 +306,18 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
     m = push(m, m.minute, 'chance', 'opp', tr('⚡ {opp} come out fired up — this is no walkover!', { opp: ctx.oppName }), true);
   }
   const surging = m.surgeUntil !== undefined && m.minute <= m.surgeUntil;
-  // a side with ten men attacks less and leaks chances; the other smells it
-  const manMe = 0.55 ** (m.redsMe ?? 0) * 1.6 ** (m.redsOpp ?? 0);
-  const manOpp = 0.55 ** (m.redsOpp ?? 0) * 1.6 ** (m.redsMe ?? 0);
-  const d = ctx.myStr - ctx.oppStr;
+  // a side with ten men all but stops attacking and leaks chances; the other smells blood.
+  // It also plays as a weaker team (six points a red card), so the chances it concedes are better too.
+  const redMe = m.redsMe ?? 0;
+  const redOpp = m.redsOpp ?? 0;
+  const manMe = 0.4 ** redMe * 1.8 ** redOpp;
+  const manOpp = 0.4 ** redOpp * 1.8 ** redMe;
+  const d = ctx.myStr - ctx.oppStr + 6 * (redOpp - redMe);
   const men = MENTALITY[m.mentality ?? 'balanced'];
   const myRate = clamp(0.13 * ctx.myRateMul * men.my * manMe * Math.exp(d / 38 + m.momentum / 300), 0.03, 0.55);
   const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * manOpp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.03, 0.55);
-  const myConv = clamp(0.18 * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.08, 0.38);
-  const oppConv = clamp(0.22 * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.08, 0.4);
+  const myConv = clamp(0.18 * men.myConv * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.06, 0.4);
+  const oppConv = clamp(0.22 * men.oppConv * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.06, 0.42);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
 
   // My team attacks
@@ -568,10 +571,15 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
 
 /* ───────────── Team mentality ───────────── */
 
-export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number }> = {
-  attack: { my: 1.22, opp: 1.18, share: 1.15 },
-  balanced: { my: 1, opp: 1, share: 1 },
-  defend: { my: 0.8, opp: 0.74, share: 0.85 },
+/**
+ * What the team's approach does to the match. `my` and `opp` scale how often each side gets a chance, `myConv` and `oppConv`
+ * how good those chances are: going all-out attack creates much more but leaves space behind (their counters are better),
+ * defending shuts the game down but offers little up front.
+ */
+export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number; myConv: number; oppConv: number }> = {
+  attack: { my: 1.55, opp: 1.45, share: 1.2, myConv: 1.05, oppConv: 1.2 },
+  balanced: { my: 1, opp: 1, share: 1, myConv: 1, oppConv: 1 },
+  defend: { my: 0.55, opp: 0.56, share: 0.8, myConv: 0.88, oppConv: 0.88 },
 };
 
 /** Switch the team's approach: it stays until you change it again. */
@@ -646,10 +654,10 @@ export function applyRally(m: MatchState, ctx: MatchCtx, kind: 'trailing', optio
 
 /**
  * How hard the skill mini-games play: it follows the gap between the two teams, not the opponent's absolute level.
- * An even match is a fair test (0.38), a team 15 points better is brutal (1.06), a much weaker one barely tests you.
+ * An even match is a fair test (0.38); every point the opponent is better makes it harder, and ten points make it brutal (1.2).
  */
 export function miniDifficulty(ctx: MatchCtx): number {
-  return clamp(0.38 + (ctx.oppStr - ctx.myStr) / 22, 0, 1.15);
+  return clamp(0.38 + (ctx.oppStr - ctx.myStr) / 15, 0, 1.2);
 }
 
 export function pressureFor(m: MatchState, ctx: MatchCtx): number {

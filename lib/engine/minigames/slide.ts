@@ -1,3 +1,4 @@
+import { zoneScale } from './difficulty';
 /**
  * Sliding tackle — the rules of the scene, with no drawing in it so they can be tested.
  *
@@ -121,7 +122,7 @@ export function makeSlide(pressure: number, difficulty: number, bonus: number, r
     hold: 0.35 + rnd() * 0.15,
     burst: 1.22,
     xD: 268,
-    reach: 52 + bonus * 60,
+    reach: (52 + bonus * 60) * (0.6 + 0.4 * zoneScale(difficulty, pressure)),
     slideTime: 0.3,
     tg: 0.15 - difficulty * 0.03 - pressure * 0.015 + bonus * 0.4,
     tp: 0,

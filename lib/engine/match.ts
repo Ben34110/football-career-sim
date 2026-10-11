@@ -417,11 +417,38 @@ export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchStat
   return q === 'perfect' || q === 'good' ? 1 : 0;
 }
 
+/**
+ * A chance you create in a mini-game is not a goal yet: a perfect one usually goes in, a good one about half the time,
+ * and the better the opposition the harder it is to finish. (Defensive and other moments are not affected.)
+ */
+export function finishChance(q: MiniQuality, ctx: MatchCtx): number {
+  const base = q === 'perfect' ? 0.7 : 0.48;
+  return clamp(base + clamp((ctx.myStr - ctx.oppStr) / 100, -0.15, 0.12), 0.25, 0.85);
+}
+
 export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng, extra?: MiniExtra): ClutchResolution {
   const { opt } = findOption(m, optionId);
-  const res = settleOption(m, ctx, opt, rng() < miniSuccessChance(opt, ctx, m, q), rng);
+  const played = rng() < miniSuccessChance(opt, ctx, m, q);
+  // you made the chance: now the keeper has his say
+  if (played && (opt.onSuccess === 'goal' || opt.onSuccess === 'assist') && opt.taker === undefined && rng() >= finishChance(q, ctx)) {
+    return missedFinish(m, ctx, opt, rng);
+  }
+  const res = settleOption(m, ctx, opt, played, rng);
   // a reckless challenge is punished by the referee, whatever the rest of the move did
   return extra?.card ? { ...res, state: punishFoul(res.state, ctx, rng, extra) } : res;
+}
+
+/** The move was perfect but it does not go in: a great save, the post, or just wide. Nothing of the mistake, so no penalty for it. */
+function missedFinish(m: MatchState, ctx: MatchCtx, opt: ClutchOption, rng: Rng): ClutchResolution {
+  const who = surname(ctx.playerName);
+  const act = tr(opt.successText);
+  let s: MatchState = { ...m, clutchTotal: m.clutchTotal + 1, clutchWins: m.clutchWins + 1, nextClutch: m.nextClutch + 1, status: 'playing' };
+  s.minute = Math.min(89, s.minute + 1);
+  const r = rng();
+  const text = r < 0.55 ? tr('🧤 {who} {act} — but the keeper pulls off a great save!', { who, act }) : r < 0.82 ? tr('😱 {who} {act} — and it hits the post!', { who, act }) : tr('😬 {who} {act} — but it flashes just wide!', { who, act });
+  s = { ...s, rating: s.rating + 0.3, momentum: clamp(s.momentum + 8, -100, 100) };
+  s = push(s, s.minute, r < 0.55 ? 'save' : 'miss', 'me', text, true);
+  return { state: s, success: true };
 }
 
 /** The referee reacts to a foul committed in a mini-game: a booking, a sending-off, maybe a penalty against you. */
@@ -577,7 +604,7 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
  * defending shuts the game down but offers little up front.
  */
 export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number; myConv: number; oppConv: number }> = {
-  attack: { my: 1.55, opp: 1.45, share: 1.2, myConv: 1.05, oppConv: 1.2 },
+  attack: { my: 1.4, opp: 1.5, share: 1.2, myConv: 1.05, oppConv: 1.2 },
   balanced: { my: 1, opp: 1, share: 1, myConv: 1, oppConv: 1 },
   defend: { my: 0.55, opp: 0.56, share: 0.8, myConv: 0.88, oppConv: 0.88 },
 };

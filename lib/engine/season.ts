@@ -186,10 +186,10 @@ function buildWorldClub(year: number, club: Club, rng: Rng): Fixture[] {
 }
 
 /** A top club sits above the rest of its league: the league's average opponent is this much weaker than it. */
-const ELITE_GAP: Record<number, number> = { 1: 7, 2: 4, 3: 1, 4: 0, 5: 0 };
+const ELITE_GAP: Record<number, number> = { 1: 4, 2: 2, 3: 0, 4: 0, 5: 0 };
 
 /** How far the level of the league's clubs varies around its centre: the elite play against a tighter, weaker field. */
-const SPREAD: Record<number, number> = { 1: 5, 2: 5, 3: 6, 4: 8, 5: 8 };
+const SPREAD: Record<number, number> = { 1: 6, 2: 6, 3: 6, 4: 8, 5: 8 };
 /** A top club is among the best of its league: its rivals are not stronger than it, give or take. */
 const rivalCeiling = (club: Club, tier: number, division: Division) => (division !== baseDivision(club) ? 92 : tier <= 2 ? club.strength - 1 : tier === 3 ? club.strength + 2 : 92);
 

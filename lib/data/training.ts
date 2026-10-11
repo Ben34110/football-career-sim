@@ -89,12 +89,12 @@ export function trainOutcome(drill: Drill, q: MiniQuality, scouted: boolean, see
   const pct = (mul: number) => Math.round(Math.abs(mul - 1) * 100);
   switch (drill.id) {
     case 'finishing':
-      brief.myRateMul = 1 + 0.24 * lvl * k;
+      brief.myRateMul = 1 + 0.18 * lvl * k;
       perf = q === 'miss' ? 0 : 1;
       effects.push({ kind: 'attack', n: pct(brief.myRateMul) });
       break;
     case 'defence':
-      brief.oppRateMul = 1 - 0.22 * lvl * k;
+      brief.oppRateMul = 1 - 0.18 * lvl * k;
       effects.push({ kind: 'defence', n: pct(brief.oppRateMul) });
       break;
     case 'counter':

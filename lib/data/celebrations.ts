@@ -60,8 +60,13 @@ export function celebrationFor(trophy: string, ctx: { club: string; kit: string;
   const club = { team: ctx.club, kit: ctx.kit, badge: ctx.clubShort ? { short: ctx.clubShort, color: ctx.kit } : undefined, squad: ctx.clubCountryCode };
   if (/^League Title/.test(trophy)) return { scenario: 'league', trophy, ...club, solo: false, trophyKind: 'league', accent: '#16a34a' };
   if (/^Domestic Cup/.test(trophy)) return { scenario: 'cup', trophy, ...club, solo: false, trophyKind: 'cup', accent: '#16a34a' };
-  if (/^Europe Elite Cup/.test(trophy)) return { scenario: 'champions', trophy, ...club, solo: false, trophyKind: 'bigears', accent: '#1d4ed8' };
-  if (/^Europe Challenge Cup/.test(trophy)) return { scenario: 'europa', trophy, ...club, solo: false, trophyKind: 'europa', accent: '#ea580c' };
+  if (/^World Club Cup/.test(trophy)) return { scenario: 'worldcup', trophy, ...club, solo: false, trophyKind: 'globe', accent: '#eab308' };
+  const cont = /^(Europe|Africa|South America|Asia|North America) (Elite|Challenge) Cup/.exec(trophy);
+  if (cont) {
+    // each continent has its own colour; the Elite Cup gets the big-eared cup, the Challenge Cup the lesser one
+    const accent = { Europe: '#1d4ed8', Africa: '#16a34a', 'South America': '#eab308', Asia: '#dc2626', 'North America': '#7c3aed' }[cont[1]] ?? '#1d4ed8';
+    return cont[2] === 'Elite' ? { scenario: 'champions', trophy, ...club, solo: false, trophyKind: 'bigears', accent } : { scenario: 'europa', trophy, ...club, solo: false, trophyKind: 'europa', accent: cont[1] === 'Europe' ? '#ea580c' : accent };
+  }
   if (/^Golden Star/.test(trophy)) return { scenario: 'ballon', trophy, ...club, solo: true, trophyKind: 'ballon', accent: '#fbbf24' };
   const nation = { team: ctx.nation, kit: ctx.nationKit ?? '#fbbf24', badge: ctx.nationCode ? { short: `${ctx.nationFlag ?? ''} ${ctx.nationCode}`.trim(), color: ctx.nationKit ?? '#fbbf24' } : undefined, squad: ctx.nationCode };
   if (/World Nations Cup/.test(trophy)) return { scenario: 'worldcup', trophy, ...nation, solo: false, trophyKind: 'globe', accent: '#16a34a' };

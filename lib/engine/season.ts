@@ -1,4 +1,5 @@
 import { CLUBS, COUNTRY_RIVALS, getClub, getClubBoost, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
+import { challengeCup, continentOf, eliteCup, isElite, isWorldClubLabel, localComp, REGION, WORLD_CLUB_CUP } from '../data/continental';
 import { NATIONS_LEAGUE, nationalTournament, OPPONENT_NATIONS } from '../data/nationalities';
 import type {
   Club,
@@ -39,10 +40,11 @@ export const baseDivision = (club: Club): Division => (club.tier <= 3 ? 1 : club
  */
 export function europeFor(club: Club, rng: Rng): EuroComp | null {
   if (club.tier > 3) return null;
+  const conf = continentOf(club.country);
   const roll = rng();
-  if (club.tier === 1) return roll < 0.8 ? 'Europe Elite Cup' : roll < 0.95 ? 'Europe Challenge Cup' : null;
-  if (club.tier === 2) return roll < 0.25 ? 'Europe Elite Cup' : roll < 0.65 ? 'Europe Challenge Cup' : null;
-  return roll < 0.15 ? 'Europe Challenge Cup' : null;
+  if (club.tier === 1) return roll < 0.8 ? eliteCup(conf) : roll < 0.95 ? challengeCup(conf) : null;
+  if (club.tier === 2) return roll < 0.25 ? eliteCup(conf) : roll < 0.65 ? challengeCup(conf) : null;
+  return roll < 0.15 ? challengeCup(conf) : null;
 }
 
 export const zonesFor = (d: Division): SeasonZones =>
@@ -66,16 +68,25 @@ const divisionOffset = (club: Club, d: Division) => (baseDivision(club) - d) * 9
 export interface SeasonOptions {
   division?: Division;
   europe?: EuroComp | null;
+  /** Qualified for the World Club Cup by winning the continental Elite Cup */
+  worldClub?: boolean;
 }
 
-/** The European run: a short group stage with fixed opponents, then four draws. */
+/** The continental run: a short group stage with fixed opponents, then four draws. */
 function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixtures: Fixture[]; draw: TournamentState } {
   setClubYear(year);
-  // every club is as strong as it really is this season (give or take a point of form), not as strong as you are
-  const abroad = CLUBS.filter((c) => c.country !== club.country).sort((a, b) => b.strength - a.strength);
-  // who is in the competition: the Europe Elite Cup is mostly the biggest clubs (the elite are almost always there),
-  // the Europe Challenge Cup the middle of the table; a weak club rarely gets in. A weighted draw, strongest favoured.
-  const weight = (c: Club) => (comp === 'Europe Elite Cup' ? Math.exp((c.strength - 76) / 5) : Math.exp(-Math.pow((c.strength - 73) / 8, 2) / 2));
+  const conf = continentOf(club.country);
+  const elite = isElite(comp);
+  // every club is as strong as it really is this season (give or take a point of form), not as strong as you are;
+  // and they come from your own continent: an Asian club meets Asian clubs
+  const abroad = CLUBS.filter((c) => c.country !== club.country && continentOf(c.country) === conf).sort((a, b) => b.strength - a.strength);
+  // who is in the competition: the Elite Cup is mostly the biggest clubs (the elite are almost always there),
+  // the Challenge Cup the middle of the table; a weak club rarely gets in. A weighted draw, strongest favoured.
+  // The reference levels are Europe's; elsewhere they are the 12th and the 40th best club of the continent.
+  const at = (i: number) => abroad[Math.min(i, abroad.length - 1)]?.strength ?? 70;
+  const refElite = conf === 'UEFA' ? 76 : at(11);
+  const refChallenge = conf === 'UEFA' ? 73 : at(40);
+  const weight = (c: Club) => (elite ? Math.exp((c.strength - refElite) / 5) : Math.exp(-Math.pow((c.strength - refChallenge) / 8, 2) / 2));
   const foreign = abroad
     .map((c) => ({ c, k: -Math.log(Math.max(1e-9, rng())) / Math.max(1e-6, weight(c)) }))
     .sort((a, b) => a.k - b.k)
@@ -84,7 +95,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   const form = () => rand(-2, 2, rng);
   // never the same club twice in one round, even when the supply of fresh clubs runs out
   const next = (round?: Set<string>, lo = 0, hi = foreign.length): Club => {
-    const band = abroad.slice(comp === 'Europe Elite Cup' ? lo : lo + 6, comp === 'Europe Elite Cup' ? hi : hi + 6);
+    const band = abroad.slice(elite ? lo : lo + 6, elite ? hi : hi + 6);
     const fresh = shuffle(band.filter((x) => !used.has(x.id) && !round?.has(x.id)), rng);
     const c = fresh[0] ?? foreign.find((x) => !used.has(x.id)) ?? foreign.find((x) => !round?.has(x.id)) ?? foreign[0];
     used.add(c.id);
@@ -147,6 +158,31 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
     };
   });
   return { fixtures: [...group, ...knock], draw };
+}
+
+/**
+ * The World Club Cup: the champions of the other continents. You come in as your continent's champion, play a semi-final
+ * against one of the weaker champions and, if you win, the final against the strongest.
+ */
+function buildWorldClub(year: number, club: Club, rng: Rng): Fixture[] {
+  setClubYear(year);
+  const mine = continentOf(club.country);
+  const champions = (Object.keys(REGION) as (keyof typeof REGION)[])
+    .filter((conf) => conf !== mine)
+    .map((conf) => {
+      // the champion of a continent is one of its very best clubs
+      const best = CLUBS.filter((c) => continentOf(c.country) === conf).sort((a, b) => b.strength - a.strength);
+      const c = best[Math.floor(rng() * Math.min(3, best.length))];
+      return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(c.strength + rand(-2, 2, rng)), 45, 95) };
+    })
+    .sort((a, b) => b.strength - a.strength);
+  const cand = (c: (typeof champions)[number]): DrawCandidate => ({ opponent: c.name, opponentShort: c.short, opponentStrength: c.strength, opponentColor: c.color });
+  const semiPool = champions.slice(1).map(cand);
+  const finalPool = [cand(champions[0])];
+  return [
+    { id: `${year}-W1`, kind: 'euro', label: `${WORLD_CLUB_CUP} Semi-Final`, ...semiPool[0], home: false, knockout: true, status: 'upcoming', drawn: false, pool: semiPool },
+    { id: `${year}-W2`, kind: 'euro', label: `${WORLD_CLUB_CUP} Final`, ...finalPool[0], home: false, knockout: true, status: 'upcoming', drawn: false, pool: finalPool },
+  ];
 }
 
 /** A top club sits above the rest of its league: the league's average opponent is this much weaker than it. */
@@ -235,7 +271,9 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
   });
 
   // Interleave cup rounds (and the European run, if qualified) with the league run
-  const built = opts.europe ? buildEurope(year, club, opts.europe, rng) : null;
+  // a club plays in its own continent's competition, whatever the season before said
+  const europe = opts.europe ? localComp(opts.europe, club) : null;
+  const built = europe ? buildEurope(year, club, europe, rng) : null;
   const eu = built?.fixtures ?? [];
   const fixtures: Fixture[] = [
     league[0],
@@ -255,6 +293,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     ...(eu[5] ? [eu[5]] : []),
     league[9],
     ...(eu[6] ? [eu[6]] : []),
+    // the world championship closes the season
+    ...(opts.worldClub ? buildWorldClub(year, club, rng) : []),
   ];
 
   return {
@@ -269,7 +309,8 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     tournamentQueued: false,
     division,
     zones: zonesFor(division),
-    europe: opts.europe ?? null,
+    europe,
+    worldClub: !!opts.worldClub,
     euroPts: 0,
     // the group table appears once you have drawn your group
     euroDraw: built?.draw,
@@ -523,7 +564,10 @@ export function applyFixtureResult(season: SeasonState, result: FixtureResult, r
     }
   }
 
-  if (fixture.kind === 'euro') {
+  if (fixture.kind === 'euro' && isWorldClubLabel(fixture.label)) {
+    if (result.outcome === 'L') skipRest('euro');
+    else if (fixture.label.endsWith(' Final')) next.trophies = [...next.trophies, `${WORLD_CLUB_CUP} ${seasonLabel(season.year)}`];
+  } else if (fixture.kind === 'euro') {
     const comp = (season.europe ?? 'Europe Elite Cup') as EuroComp;
     if (!fixture.knockout) {
       next.euroPts = (next.euroPts ?? 0) + (result.outcome === 'W' ? 3 : result.outcome === 'D' ? 1 : 0);

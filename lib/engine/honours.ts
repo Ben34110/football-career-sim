@@ -21,7 +21,7 @@ export const honourTitle = (trophy: string) => trophy.replace(/\s+\d{4}(\/\d{2})
 const NATIONAL = /^(League Title|Domestic Cup)$/;
 
 /** How prestigious each kind of title is, for the order of the cabinet. */
-const ORDER: RegExp[] = [/^Golden Star/, /World Nations Cup$/, /^Europe Elite Cup/, /^Summer Games/, /^Europe Challenge Cup/, /Championship|African Nations Cup|South American Cup|Asian Nations Cup|North American Cup|Nations Trophy/, /^League Title/, /^Domestic Cup/];
+const ORDER: RegExp[] = [/^Golden Star/, /World Nations Cup$/, /^World Club Cup/, /^(Europe|Africa|South America|Asia|North America) Elite Cup/, /^Summer Games/, /^(Europe|Africa|South America|Asia|North America) Challenge Cup/, /Championship|African Nations Cup|South American Cup|Asian Nations Cup|North American Cup|Nations Trophy/, /^League Title/, /^Domestic Cup/];
 const rank = (title: string) => {
   const i = ORDER.findIndex((re) => re.test(title));
   return i === -1 ? ORDER.length : i;

@@ -12,6 +12,7 @@ import { standingsFor } from '@/lib/engine/standing';
 import { getNationality, nationalityByName } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
+import { isWorldClubLabel, regionOfComp, WORLD_CLUB_CUP } from '@/lib/data/continental';
 import { buildRoom } from '@/lib/data/room';
 import type { Ritual, RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
@@ -281,7 +282,7 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn !== false && room && (
         <PreMatch
           fixture={fixture}
-          competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined}
+          competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : fixture.kind === 'euro' && isWorldClubLabel(fixture.label) ? t(WORLD_CLUB_CUP) : fixture.kind === 'euro' && season?.europe ? t(regionOfComp(season.europe)) : undefined}
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}

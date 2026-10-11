@@ -644,6 +644,14 @@ export function applyRally(m: MatchState, ctx: MatchCtx, kind: 'trailing', optio
 
 /* ───────────── Pressure & results ───────────── */
 
+/**
+ * How hard the skill mini-games play: it follows the gap between the two teams, not the opponent's absolute level.
+ * An even match is a fair test (0.38), a team 15 points better is brutal (1.06), a much weaker one barely tests you.
+ */
+export function miniDifficulty(ctx: MatchCtx): number {
+  return clamp(0.38 + (ctx.oppStr - ctx.myStr) / 22, 0, 1.15);
+}
+
 export function pressureFor(m: MatchState, ctx: MatchCtx): number {
   const base: Record<FixtureKind, number> = { league: 0.15, cup: 0.35, intl: 0.4, tournament: 0.55, euro: 0.5 };
   let p = base[ctx.kind];

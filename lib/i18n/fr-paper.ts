@@ -141,7 +141,7 @@ export const FR_PAPER: Record<string, string> = {
   'That is three wins on the bounce — the confidence around the club is sky-high.': 'Trois victoires de suite — la confiance est au plus haut autour du club.',
   'Three defeats in a row: the pressure is now building around the club.': 'Trois défaites d’affilée : la pression monte autour du club.',
 
-  '🌍 {club} qualified for the {comp} last season: European nights ahead!': '🌍 {club} s’est qualifié pour la {comp} la saison dernière : des soirées européennes en perspective !',
+  '🌍 {club} qualified for the {comp} last season: continental nights ahead!': '🌍 {club} s’est qualifié pour la {comp} la saison dernière : des soirées continentales en perspective !',
 
   'Agent’s office': 'Bureau de l’agent',
   '{n} offers on the table': '{n} offres sur la table',

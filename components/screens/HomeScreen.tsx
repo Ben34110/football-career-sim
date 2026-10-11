@@ -12,6 +12,7 @@ import { Crest } from '@/components/ui/Crest';
 import { LangToggle } from '@/components/ui/LangToggle';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { getClub } from '@/lib/data/clubs';
+import { challengeCup, continentOf, eliteCup } from '@/lib/data/continental';
 import { ATTR_KEYS, ATTR_LABEL, fmtMoneyK, nextNationalGoal, ovrOf } from '@/lib/engine/player';
 import { currentFixture, leaguePosition, leagueZone } from '@/lib/engine/season';
 import { transferWindow } from '@/lib/engine/transfers';
@@ -166,10 +167,11 @@ export function HomeScreen() {
           </div>
           {season && (() => {
             const z = leagueZone(pos, season.division ?? 1, season.table.length);
-            const label = z === 'champions' ? 'Europe Elite Cup place' : z === 'europa' ? 'Europe Challenge Cup place' : z === 'promoted' ? 'Promotion place' : z === 'relegated' ? 'Relegation zone' : null;
+            const conf = continentOf(club?.country);
+            const label = z === 'champions' ? t('{comp} place', { comp: t(eliteCup(conf)) }) : z === 'europa' ? t('{comp} place', { comp: t(challengeCup(conf)) }) : z === 'promoted' ? t('Promotion place') : z === 'relegated' ? t('Relegation zone') : null;
             return label ? (
               <p className={cn('mt-2.5 rounded-xl px-3 py-2 text-xs font-semibold', z === 'relegated' ? 'bg-crimson-500/10 text-crimson-400' : z === 'promoted' ? 'bg-neon-400/10 text-neon-300' : 'bg-sky-400/10 text-sky-300')}>
-                <GameIcon e={z === 'relegated' ? '⬇' : z === 'promoted' ? '⬆' : '⭐'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{t(label)}
+                <GameIcon e={z === 'relegated' ? '⬇' : z === 'promoted' ? '⬆' : '⭐'} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />{label}
               </p>
             ) : null;
           })()}

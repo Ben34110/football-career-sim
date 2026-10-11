@@ -141,7 +141,7 @@ export function buildFrontPage(c: PaperCtx, rng: () => number = Math.random): Fr
   else if (emotion === 'angry') pose = 'crossed';
   else pose = 'facepalm';
 
-  const compName = c.kind === 'league' ? 'league' : c.kind === 'cup' ? 'cup' : c.kind === 'euro' ? 'European' : 'international';
+  const compName = c.kind === 'league' ? 'league' : c.kind === 'cup' ? 'cup' : c.kind === 'euro' ? 'continental' : 'international';
   return {
     outlet,
     tagline,

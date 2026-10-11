@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub, setClubBoosts, setClubYear } from './data/clubs';
+import { challengeCup, continentOf, eliteCup, wonEliteCup } from './data/continental';
 import { archiveCurrent } from './archive';
 import { squadStatus } from './engine/status';
 import { STATUS_LABEL } from './data/status';
@@ -96,8 +97,10 @@ interface Result {
 interface GameData {
   /** Division the club plays in (changes with promotion / relegation) */
   division: Division;
-  /** European competition qualified for next season */
+  /** Continental competition qualified for next season */
   europe: EuroComp | null;
+  /** Continental champions: the World Club Cup is next season */
+  worldClub: boolean;
   /** The level your clubs have gained (promotion, good seasons) or lost (relegation) on top of their normal strength */
   clubBoost: Record<string, number>;
   hasCareer: boolean;
@@ -164,6 +167,7 @@ export type GameStore = GameData & GameActions;
 const initial: GameData = {
   division: 1,
   europe: null,
+  worldClub: false,
   clubBoost: {},
   hasCareer: false,
   phase: 'playing',
@@ -206,6 +210,7 @@ export const useGameStore = create<GameStore>()(
           hasCareer: true,
           division: baseDivision(club),
           europe: null,
+          worldClub: false,
           year: START_YEAR,
           player,
           season,
@@ -735,11 +740,11 @@ export const useGameStore = create<GameStore>()(
         set({
           player: moved,
           season: keepSeason,
-          ...(offer.source === 'renewal' ? {} : { division: baseDivision(club), europe: arrivalEurope }),
+          ...(offer.source === 'renewal' ? {} : { division: baseDivision(club), europe: arrivalEurope, worldClub: false }),
           phase: 'playing',
           offers: [],
           pendingMove: null,
-          news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold'), ...(arrivalEurope ? [mkNews(tr('🌍 {club} qualified for the {comp} last season: European nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good')] : [])),
+          news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold'), ...(arrivalEurope ? [mkNews(tr('🌍 {club} qualified for the {comp} last season: continental nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good')] : [])),
         });
         useUiStore.getState().showSigning({
           kind: offer.source === 'renewal' ? 'renewal' : 'signed',
@@ -812,13 +817,13 @@ export const useGameStore = create<GameStore>()(
         // a new club comes with its own record: it may have qualified for Europe last season
         const newClub = !!pendingMove && pendingMove.source !== 'renewal';
         const arrivalEurope = newClub ? europeFor(club, Math.random) : null;
-        if (arrivalEurope) nextNews = addNews(nextNews, mkNews(tr('🌍 {club} qualified for the {comp} last season: European nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good'));
+        if (arrivalEurope) nextNews = addNews(nextNews, mkNews(tr('🌍 {club} qualified for the {comp} last season: continental nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good'));
         set({
           year: nextYear,
           player: p,
           // a new club starts in its own division; otherwise the promotion / relegation / European place earned carries over
-          season: generateSeason(nextYear, club, Math.random, newClub ? { europe: arrivalEurope } : { division: get().division, europe: get().europe }),
-          ...(newClub ? { division: baseDivision(club), europe: arrivalEurope } : {}),
+          season: generateSeason(nextYear, club, Math.random, newClub ? { europe: arrivalEurope } : { division: get().division, europe: get().europe, worldClub: get().worldClub }),
+          ...(newClub ? { division: baseDivision(club), europe: arrivalEurope, worldClub: false } : {}),
           phase: 'playing',
           pendingMove: null,
           lastSummary: null,
@@ -949,7 +954,10 @@ function finishSeason(set: Setter, get: Getter) {
   const divNow: Division = season.division ?? 1;
   const zone = leagueZone(pos, divNow, season.table.length);
   const nextDivision: Division = zone === 'promoted' ? ((divNow - 1) as Division) : zone === 'relegated' ? ((divNow + 1) as Division) : divNow;
-  const nextEurope: EuroComp | null = zone === 'champions' ? 'Europe Elite Cup' : zone === 'europa' ? 'Europe Challenge Cup' : null;
+  const conf = continentOf(getClub(player.clubId)?.country);
+  // the continental champion goes on to the World Club Cup
+  const nextWorldClub = wonEliteCup(season.trophies);
+  const nextEurope: EuroComp | null = zone === 'champions' ? eliteCup(conf) : zone === 'europa' ? challengeCup(conf) : null;
   if (zone === 'relegated') {
     p = { ...p, morale: clamp(p.morale - 10, 0, 100), rep: applyRep(p.rep, { fanPopularity: -4, coachTrust: -3 }) };
     nextNews = addNews(nextNews, mkNews(tr('⬇️ Relegation: the club drops to Division {n}.', { n: nextDivision }), 'bad'));
@@ -959,6 +967,10 @@ function finishSeason(set: Setter, get: Getter) {
   } else if (nextEurope) {
     p = { ...p, rep: applyRep(p.rep, { fanPopularity: 3, mediaHeat: 3 }) };
     nextNews = addNews(nextNews, mkNews(tr('⭐ Qualified for the {comp} next season!', { comp: tr(nextEurope) }), 'gold'));
+  }
+
+  if (nextWorldClub) {
+    nextNews = addNews(nextNews, mkNews(tr('🌍 Continental champions! The club will play the World Club Cup next season.'), 'gold'));
   }
 
   // the club's level follows its results: promotion strengthens the squad, relegation weakens it, and a good (or bad) season nudges it
@@ -998,6 +1010,7 @@ function finishSeason(set: Setter, get: Getter) {
     division: divNow,
     nextDivision,
     nextEurope,
+    nextWorldClub,
     record,
     ovrBefore,
     ovrAfter,
@@ -1017,6 +1030,7 @@ function finishSeason(set: Setter, get: Getter) {
     news: nextNews,
     division: nextDivision,
     europe: nextEurope,
+    worldClub: nextWorldClub,
     clubBoost,
     offerKey: '',
   });

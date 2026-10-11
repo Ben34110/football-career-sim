@@ -8,6 +8,7 @@ import { TournamentView } from './TournamentView';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
+import { challengeCup, continentOf, eliteCup } from '@/lib/data/continental';
 import { getNationality, nationalTournament } from '@/lib/data/nationalities';
 import { nationalLevel, nextNationalGoal, ovrOf, seasonLabel } from '@/lib/engine/player';
 import { selectionChance } from '@/lib/engine/selection';
@@ -207,6 +208,7 @@ function Fixtures({ season }: { season: SeasonState }) {
 function Table() {
   const t = useT();
   const season = useGameStore((s) => s.season);
+  const clubId = useGameStore((s) => s.player?.clubId ?? null);
   const [view, setView] = useState<View>(() => (season?.tourney ? 'tournament' : 'league'));
   if (!season) return null;
   const views: { id: View; label: string }[] = [
@@ -289,8 +291,8 @@ function Table() {
         })}
       </Card>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-[11px] text-zinc-400">
-        {z.champions > 0 && <Legend color="#38bdf8" label={t('Europe Elite Cup')} />}
-        {z.europa > 0 && <Legend color="#f97316" label={t('Europe Challenge Cup')} />}
+        {z.champions > 0 && <Legend color="#38bdf8" label={t(eliteCup(continentOf(getClub(clubId)?.country)))} />}
+        {z.europa > 0 && <Legend color="#f97316" label={t(challengeCup(continentOf(getClub(clubId)?.country)))} />}
         {z.promo > 0 && <Legend color="#34d399" label={t('Promotion')} />}
         {z.relegation > 0 && <Legend color="#ef4444" label={t('Relegation')} />}
       </div>
@@ -321,7 +323,7 @@ function ViewSwitch({ view, onChange, options }: { view: View; onChange: (v: Vie
 function EuropeTable({ season, table }: { season: SeasonState; table: TableRow[] }) {
   const t = useT();
   const rows = sortTable(table);
-  const rounds = season.fixtures.filter((f) => f.kind === 'euro' && f.knockout);
+  const rounds = season.fixtures.filter((f) => f.kind === 'euro' && f.knockout && !f.label.startsWith('World Club Cup'));
   const groupDone = season.fixtures.filter((f) => f.kind === 'euro' && !f.knockout).every((f) => f.status !== 'upcoming');
   const myRank = rows.findIndex((r) => r.isMe);
   return (
@@ -366,7 +368,7 @@ function EuropeTable({ season, table }: { season: SeasonState; table: TableRow[]
         <div className="eyebrow mb-2.5">{t('Road to the final')}</div>
         <ol className="space-y-2">
           {rounds.map((f) => {
-            const round = f.label.replace(/^(Europe Elite Cup|Europe Challenge Cup) /, '');
+            const round = f.label.replace(/^(?:Europe|Africa|South America|Asia|North America) (?:Elite|Challenge) Cup /, '');
             const r = f.result;
             return (
               <li key={f.id} className={cn('flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[13px]', f.status === 'skipped' ? 'opacity-40' : 'bg-white/[0.04]')}>

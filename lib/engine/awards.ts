@@ -22,8 +22,12 @@ export interface SeasonForAward {
 
 const trophyPoints = (t: string) => {
   if (t.startsWith('League Title')) return 10;
-  if (t.startsWith('Europe Elite Cup')) return 14;
-  if (t.startsWith('Europe Challenge Cup')) return 7;
+  if (/^World Club Cup/.test(t)) return 12;
+  if (/^Europe Elite Cup/.test(t)) return 14;
+  if (/^Europe Challenge Cup/.test(t)) return 7;
+  // the other continents' club cups count for less in the Golden Star vote
+  if (/^(Africa|South America|Asia|North America) Elite Cup/.test(t)) return 9;
+  if (/^(Africa|South America|Asia|North America) Challenge Cup/.test(t)) return 4;
   if (t.startsWith('Domestic Cup')) return 5;
   if (t.startsWith('World Nations Cup')) return 22;
   // youth trophies are a stepping stone, not a Golden Star argument

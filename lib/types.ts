@@ -50,7 +50,17 @@ export type FixtureKind = 'league' | 'cup' | 'intl' | 'tournament' | 'euro';
 
 /** 1 = top flight, 2 = second tier, 3 = lower leagues */
 export type Division = 1 | 2 | 3;
-export type EuroComp = 'Europe Elite Cup' | 'Europe Challenge Cup';
+export type EuroComp =
+  | 'Europe Elite Cup'
+  | 'Europe Challenge Cup'
+  | 'Africa Elite Cup'
+  | 'Africa Challenge Cup'
+  | 'South America Elite Cup'
+  | 'South America Challenge Cup'
+  | 'Asia Elite Cup'
+  | 'Asia Challenge Cup'
+  | 'North America Elite Cup'
+  | 'North America Challenge Cup';
 export type LeagueZone = 'champions' | 'europa' | 'promoted' | 'relegated' | 'safe';
 
 /** How many places of the table lead somewhere (counted from the top, or the bottom for relegation). */
@@ -196,6 +206,8 @@ export interface SeasonState {
   zones?: SeasonZones;
   /** European competition played this season */
   europe?: EuroComp | null;
+  /** The club is playing the World Club Cup this season (it won its continent's Elite Cup last time) */
+  worldClub?: boolean;
   /** Points collected in the European group stage */
   euroPts?: number;
   /** The European group: you and three foreign clubs */
@@ -305,6 +317,8 @@ export interface SeasonSummary {
   division?: Division;
   nextDivision?: Division;
   nextEurope?: EuroComp | null;
+  /** Won the continental Elite Cup: the World Club Cup comes next season */
+  nextWorldClub?: boolean;
 }
 
 export interface BallonDorEntry {

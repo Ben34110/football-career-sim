@@ -31,9 +31,11 @@ export const FR_PATTERNS: [RegExp, (m: RegExpExecArray) => string][] = [
   // international windows: "African Nations Cup Qualifier"
   [/^(.+) Qualifier$/, (m) => `Qualif. ${FR[m[1]] ?? m[1]}`],
   // European competitions: fixture labels and trophies
-  [/^(Europe Elite Cup|Europe Challenge Cup) Group Match (\d)$/, (m) => `${FR[m[1]]} · Match de poule ${m[2]}`],
-  [/^(Europe Elite Cup|Europe Challenge Cup) (Round of 16|Quarter-Final|Semi-Final|Final)$/, (m) => `${FR[m[1]]} · ${FR[m[2]] ?? m[2]}`],
-  [/^(Europe Elite Cup|Europe Challenge Cup) (\d{4}\/\d{2})$/, (m) => `${FR[m[1]]} ${m[2]}`],
+  [/^((?:Europe|Africa|South America|Asia|North America) (?:Elite|Challenge) Cup) Group Match (\d)$/, (m) => `${FR[m[1]]} · Match de poule ${m[2]}`],
+  [/^((?:Europe|Africa|South America|Asia|North America) (?:Elite|Challenge) Cup) (Round of 16|Quarter-Final|Semi-Final|Final)$/, (m) => `${FR[m[1]]} · ${FR[m[2]] ?? m[2]}`],
+  [/^((?:Europe|Africa|South America|Asia|North America) (?:Elite|Challenge) Cup) (\d{4}\/\d{2})$/, (m) => `${FR[m[1]]} ${m[2]}`],
+  [/^World Club Cup (Semi-Final|Final)$/, (m) => `Coupe du monde des clubs · ${FR[m[1]] ?? m[1]}`],
+  [/^World Club Cup (\d{4}\/\d{2})$/, (m) => `Coupe du monde des clubs ${m[1]}`],
   [/^Domestic Cup (.+)$/, (m) => `Coupe nationale ${m[1]}`],
   [/^League Title (.+)$/, (m) => `Titre de champion ${m[1]}`],
   [/^Golden Star (.+)$/, (m) => `Étoile d’Or ${m[1]}`],

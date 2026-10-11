@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { Sheet } from '@/components/ui/Sheet';
-import { applyKick, applyRally, createMatch, MENTALITY, setMentality, pressureFor, rallyChance, rallyKind, rallyOptions, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
+import { applyKick, applyRally, createMatch, MENTALITY, miniDifficulty, setMentality, pressureFor, rallyChance, rallyKind, rallyOptions, resolveClutch, resolveMini, tickMatch, type MatchCtx } from '@/lib/engine/match';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import { liveTable, scoreAt, type OtherGame } from '@/lib/engine/livefeed';
@@ -400,7 +400,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
             kind={mini.kind}
             skill={miniSkill(mini.kind, ctx)}
             pressure={pressureFor(m, ctx)}
-            difficulty={Math.min(1, Math.max(0, (ctx.oppStr - 55) / 40))}
+            difficulty={miniDifficulty(ctx)}
             kit={me.color}
             oppKit={opp.color}
             inBox={!!moment?.defensive}

@@ -136,6 +136,8 @@ interface GameActions {
   applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;
   /** Remembers what was said in the dressing room so the next talks can react to it. */
   recordTalk: (e: { stance?: string; speech?: string; instruction?: string }) => void;
+  /** Match-day training: attribute progress, which becomes a point when it reaches one */
+  addTrainingXp: (attr: AttrKey, xp: number) => void;
   /** Apply the outcome of a scandal; returns true when the club terminated the contract. */
   resolveControversy: (e: Effect, title: string) => boolean;
   /** Feed the media with an extra headline (+Media Heat, small fan boost) */
@@ -474,6 +476,18 @@ export const useGameStore = create<GameStore>()(
             },
           },
         });
+      },
+
+      addTrainingXp: (attr, xp) => {
+        const { player } = get();
+        if (!player) return;
+        const attrs = { ...player.attrs };
+        const bank = { ...player.xp, [attr]: player.xp[attr] + xp };
+        while (bank[attr] >= 1 && attrs[attr] < 99) {
+          bank[attr] -= 1;
+          attrs[attr] += 1;
+        }
+        set({ player: { ...player, attrs, xp: bank } });
       },
 
       recordTalk: (e) => {

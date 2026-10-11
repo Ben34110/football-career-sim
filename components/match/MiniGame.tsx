@@ -34,6 +34,8 @@ interface Props {
   oppKit?: string;
   /** The moment happens in your own box: a foul can cost a penalty */
   inBox?: boolean;
+  /** The small line above the title ('Skill moment' by default) */
+  eyebrow?: string;
   onDone: (q: MiniQuality, extra?: MiniExtra) => void;
 }
 
@@ -158,7 +160,7 @@ const QUALITY_COPY: Record<MiniQuality, { text: string; color: string }> = {
 /** Games with no time pressure — waiting never hurts — begin by themselves; the others wait for the first tap. */
 const AUTO_START: MiniKind[] = ['power', 'aim', 'charge'];
 
-export function MiniGame({ kind, skill, pressure, difficulty, kit = '#10b981', oppKit = '#ef4444', inBox = false, onDone }: Props) {
+export function MiniGame({ kind, skill, pressure, difficulty, kit = '#10b981', oppKit = '#ef4444', inBox = false, eyebrow, onDone }: Props) {
   const t = useT();
   // The first frame stays frozen until the player taps once; that first tap only starts the game.
   const [running, setRunning] = useState(!AUTO_START.includes(kind));
@@ -212,7 +214,7 @@ export function MiniGame({ kind, skill, pressure, difficulty, kit = '#10b981', o
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="eyebrow text-gold-300">{t('Skill moment')}</div>
+          <div className="eyebrow text-gold-300">{eyebrow ?? t('Skill moment')}</div>
           <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{t(meta.title)}</h3>
         </div>
         <Chip tone="gold">

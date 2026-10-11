@@ -1,4 +1,4 @@
-import type { Brief, Expectation, Reputation } from '../types';
+import type { AttrKey, Brief, Expectation, Reputation } from '../types';
 
 /** What a pre-match choice changes once it is made (the dressing room builds one from the talk you had). */
 export interface RitualOption {
@@ -13,6 +13,8 @@ export interface RitualOption {
   expectation: Expectation;
   /** Some choices are also a tactical call */
   brief?: Brief;
+  /** Attribute progress earned by the session */
+  train?: { attr: AttrKey; xp: number };
 }
 
 export interface Ritual {
@@ -21,5 +23,5 @@ export interface Ritual {
   title: string;
 }
 
-/** The pre-match moment: you read the dressing room, then say the right thing to the right teammate. */
-export const ROOM_RITUAL: Ritual = { id: 'room', emoji: '🗣️', title: 'The dressing room' };
+/** The pre-match moment: match-day training, chosen from the scouting report. */
+export const TRAINING_RITUAL: Ritual = { id: 'training', emoji: '👟', title: 'Match-day training' };

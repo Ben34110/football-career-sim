@@ -9,17 +9,16 @@ import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { BOOSTS } from '@/lib/data/boosts';
-import type { Mate } from '@/lib/data/room';
-import { ROOM_RITUAL, type Ritual, type RitualOption } from '@/lib/data/rituals';
+import { TRAINING_RITUAL, type RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET } from '@/lib/data/speeches';
 import { REP_LABEL } from '@/lib/engine/player';
 import { fmtShortDate } from '@/lib/dates';
 import { useLang, useT } from '@/lib/i18n';
 import { fmtCountdown, cn, roundLabel } from '@/lib/utils';
-import type { Fixture, RepKey } from '@/lib/types';
+import type { Attributes, Fixture, RepKey } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
 import { GameIcon } from '@/components/ui/GameIcon';
-import { DressingRoom } from './DressingRoom';
+import { TrainingGround } from './TrainingGround';
 
 const KIND_LABEL: Record<Fixture['kind'], string> = {
   league: 'League',
@@ -35,7 +34,7 @@ export function PreMatch({
   me,
   opp,
   myStrength,
-  room,
+  attrs,
   bolts,
   msToNext,
   fatigueRelief = 0,
@@ -50,8 +49,8 @@ export function PreMatch({
   me: TeamBadge;
   opp: TeamBadge;
   myStrength: number;
-  /** The teammates in the dressing room for this fixture */
-  room: { mates: Mate[]; seed: string };
+  /** Your attributes: they set the sweet spot of the training mini-games */
+  attrs: Attributes;
   bolts: number;
   msToNext: number;
   fatigueRelief?: number;
@@ -59,7 +58,7 @@ export function PreMatch({
   date: Date;
   /** Boosts in the bag (id → quantity) */
   boosts?: Record<string, number>;
-  onKickoff: (o: RitualOption, ritual: Ritual, boostId: string | null) => void;
+  onKickoff: (o: RitualOption, ritual: typeof TRAINING_RITUAL, boostId: string | null) => void;
 }) {
   const t = useT();
   const { lang } = useLang();
@@ -133,9 +132,9 @@ export function PreMatch({
         </Link>
       )}
 
-      {/* The pre-match moment: read the dressing room, talk to the right teammate */}
+      {/* The pre-match moment: scout the opponent, pick the drill, play it */}
       <div>
-        <DressingRoom mates={room.mates} seed={room.seed} kit={me.color} onPick={setPicked} />
+        <TrainingGround seed={fixture.id} oppName={opp.name} oppColor={opp.color} diff={myStrength - fixture.opponentStrength} attrs={attrs} kit={me.color} oppKit={opp.color} onPick={setPicked} />
         <AnimatePresence initial={false}>
           {picked && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -200,7 +199,7 @@ export function PreMatch({
       </div>
 
       <FloatingAction>
-        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ROOM_RITUAL, boostId)}>
+        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, TRAINING_RITUAL, boostId)}>
           {exhausted ? (
             <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (

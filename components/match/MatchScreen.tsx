@@ -13,7 +13,6 @@ import { getNationality, nationalityByName } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
 import { isWorldClubLabel, regionOfComp, WORLD_CLUB_CUP } from '@/lib/data/continental';
-import { buildRoom } from '@/lib/data/room';
 import type { Ritual, RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
@@ -123,33 +122,6 @@ export function MatchScreen() {
     return { me, opp, strength };
   }, [player, fixture, season, t]);
 
-  /** The dressing room for this fixture: the same four teammates every time you come back to it */
-  const room = useMemo(() => {
-    if (!player || !season || !fixture || !badges) return null;
-    const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
-    const country = getClub(player.clubId)?.country;
-    const seed = fixture.id;
-    const recent = season.fixtures
-      .filter((f) => f.status === 'played' && f.result)
-      .slice(-3)
-      .map((f) => f.result!.outcome);
-    return {
-      seed,
-      mates: buildRoom({
-        diff: badges.strength - fixture.opponentStrength,
-        important: fixture.knockout || fixture.kind === 'tournament' || fixture.kind === 'euro' || /Matchday (5|10)$/.test(fixture.label),
-        home: fixture.home,
-        recent,
-        trust: player.rep.coachTrust,
-        surnames: surnamesFor(national ? player.nationality : country),
-        nation: national ? player.nationality : country ? nationalityByName(country)?.code : undefined,
-        seed,
-      }),
-    };
-    // a new room only when the fixture changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixture?.id, !!player, !!season, !!badges]);
-
   // the season can vanish mid-flow (contract terminated after a scandal): keep the report on screen
   if (!player || (!season && stage === 'brief' && gamePhase === 'playing')) return null;
 
@@ -186,6 +158,8 @@ export function MatchScreen() {
     store.applyStance({ morale: stance.morale + (boost?.morale ?? 0), rep: stance.rep });
     if (boost) store.consumeBoost(boost.id);
     store.recordTalk({ stance: rawStance.id, speech: usedRitual.id });
+    // the session on the training ground moves an attribute a little
+    if (stance.train) store.addTrainingXp(stance.train.attr, stance.train.xp);
     const p = useGameStore.getState().player!;
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     setFx(fixture);
@@ -285,14 +259,14 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} division={season?.division ?? 1} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
-      {stage === 'brief' && fixture.drawn !== false && room && (
+      {stage === 'brief' && fixture.drawn !== false && badges && (
         <PreMatch
           fixture={fixture}
           competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : fixture.kind === 'euro' && isWorldClubLabel(fixture.label) ? t(WORLD_CLUB_CUP) : fixture.kind === 'euro' && season?.europe ? t(regionOfComp(season.europe)) : undefined}
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}
-          room={room}
+          attrs={player.attrs}
           bolts={bolts}
           msToNext={msToNext}
           fatigueRelief={player.upgrades?.nutrition ?? 0}

@@ -409,11 +409,9 @@ export function resolveClutch(m: MatchState, ctx: MatchCtx, optionId: string, rn
 
 /** Result of a mini-game → probability of the option succeeding. */
 export function miniSuccessChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState, q: MiniQuality): number {
-  const base = successChance(opt, ctx, m);
   // what you do in the mini-game is what happens: the harder the match, the harder the game is to beat,
-  // but a block, tackle, run or strike you pull off always works
-  if (q === 'perfect' || q === 'good') return 1;
-  return clamp(base * 0.12, 0.02, 0.12);
+  // a block, tackle, run or strike you pull off always works, and one you miss never does
+  return q === 'perfect' || q === 'good' ? 1 : 0;
 }
 
 export function resolveMini(m: MatchState, ctx: MatchCtx, optionId: string, q: MiniQuality, rng: Rng, extra?: MiniExtra): ClutchResolution {

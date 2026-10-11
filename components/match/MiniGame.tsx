@@ -110,9 +110,9 @@ const META: Record<MiniKind, { title: string; how: string[]; tip: string; icon: 
     icon: Target,
   },
   oneonone: {
-    title: 'One on One',
-    how: ['Wait for the keeper to commit.', 'Then beat him: left, right or chip.'],
-    tip: 'Go too early and he reads you.',
+    title: 'The Lob',
+    how: ['The keeper rushes out of his goal. Hold to charge the chip, let go to play it.', 'The dotted line shows where it lands: over his gloves, under the bar.'],
+    tip: 'Wait for him to leave his line — but not until he is on top of you.',
     icon: Crosshair,
   },
   rebound: {
@@ -144,7 +144,7 @@ const HINT: Record<MiniKind, string> = {
   race: 'Alternate LEFT and RIGHT as fast as you can.',
   block: 'Slide to the lane he is aiming at.',
   volley: 'Swing as the ball drops into your boot.',
-  oneonone: 'Wait for the keeper to commit, then pick your side.',
+  oneonone: 'Hold to charge the lob, let go over his head.',
   rebound: 'Tap the lane where the ball will drop.',
 };
 

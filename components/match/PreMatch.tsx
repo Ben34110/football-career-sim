@@ -9,16 +9,17 @@ import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { BOOSTS } from '@/lib/data/boosts';
-import type { Ritual, RitualOption } from '@/lib/data/rituals';
+import type { Mate } from '@/lib/data/room';
+import { ROOM_RITUAL, type Ritual, type RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET } from '@/lib/data/speeches';
-import { repetition } from '@/lib/data/talks';
 import { REP_LABEL } from '@/lib/engine/player';
 import { fmtShortDate } from '@/lib/dates';
 import { useLang, useT } from '@/lib/i18n';
 import { fmtCountdown, cn, roundLabel } from '@/lib/utils';
-import type { Fixture, RepKey, TalkMemory } from '@/lib/types';
+import type { Fixture, RepKey } from '@/lib/types';
 import type { TeamBadge } from './LiveMatch';
 import { GameIcon } from '@/components/ui/GameIcon';
+import { DressingRoom } from './DressingRoom';
 
 const KIND_LABEL: Record<Fixture['kind'], string> = {
   league: 'League',
@@ -34,13 +35,12 @@ export function PreMatch({
   me,
   opp,
   myStrength,
-  ritual,
+  room,
   bolts,
   msToNext,
   fatigueRelief = 0,
   benchWhy,
   date,
-  talks,
   boosts,
   onKickoff,
 }: {
@@ -50,14 +50,13 @@ export function PreMatch({
   me: TeamBadge;
   opp: TeamBadge;
   myStrength: number;
-  ritual: Ritual;
+  /** The teammates in the dressing room for this fixture */
+  room: { mates: Mate[]; seed: string };
   bolts: number;
   msToNext: number;
   fatigueRelief?: number;
   benchWhy: 'trust' | 'form' | null;
   date: Date;
-  /** What the player said lately (repetition, reactions) */
-  talks?: TalkMemory;
   /** Boosts in the bag (id → quantity) */
   boosts?: Record<string, number>;
   onKickoff: (o: RitualOption, ritual: Ritual, boostId: string | null) => void;
@@ -67,8 +66,6 @@ export function PreMatch({
   const [picked, setPicked] = useState<RitualOption | null>(null);
   const [boostId, setBoostId] = useState<string | null>(null);
   const owned = BOOSTS.filter((b) => (boosts?.[b.id] ?? 0) > 0);
-  // repeating the same choice week after week weakens it
-  const rpt = picked ? repetition(talks?.stances ?? [], picked.id) : { count: 0, factor: 1 };
   const diff = myStrength - fixture.opponentStrength;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
   const exhausted = bolts < 1;
@@ -136,52 +133,22 @@ export function PreMatch({
         </Link>
       )}
 
-      {/* The pre-match moment: a different format every time, one tap */}
+      {/* The pre-match moment: read the dressing room, talk to the right teammate */}
       <div>
-        <div className="mb-2.5 flex items-center gap-2 px-0.5">
-          <GameIcon e={ritual.emoji} className="h-5 w-5 text-gold-300" />
-          <h2 className="eyebrow">{t(ritual.title)}</h2>
-        </div>
-        <p className="mb-3 px-0.5 text-[15px] font-semibold leading-snug text-zinc-100">{t(ritual.prompt, { opp: opp.name })}</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {ritual.options.map((op, i) => {
-            const active = picked?.id === op.id;
-            return (
-              <motion.button
-                key={op.id}
-                initial={{ y: 12, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.06 * i }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setPicked(op)}
-                aria-pressed={active}
-                className={cn(
-                  'gloss-edge flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all',
-                  active ? 'border-neon-400/60 bg-neon-400/10 shadow-neon' : 'border-white/[0.08] bg-white/[0.04]',
-                )}
-              >
-                <GameIcon e={op.emoji} className="h-8 w-8 text-gold-300" />
-                <span className="text-[14px] font-bold leading-tight">{t(op.label)}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-
+        <DressingRoom mates={room.mates} seed={room.seed} kit={me.color} onPick={setPicked} />
         <AnimatePresence initial={false}>
           {picked && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5">
-                <p className="text-[14px] italic text-zinc-200">{t(picked.line)}</p>
-                {rpt.count >= 2 && <p className="mt-1.5 text-xs font-semibold text-crimson-400">{t('You keep doing the same thing — less effect (−{n}%).', { n: Math.round((1 - rpt.factor) * 100) })}</p>}
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <Chip tone="info">{t('Morale')} +{Math.round(picked.morale * rpt.factor)}</Chip>
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip tone="info">{t('Morale')} +{picked.morale}</Chip>
                   {(Object.entries(picked.rep) as [RepKey, number][]).map(([k, v]) => (
                     <Chip key={k} tone={v > 0 ? 'good' : 'bad'}>
                       {t(REP_LABEL[k].replace(' Respect', ''))} {v > 0 ? '+' : ''}
                       {v}
                     </Chip>
                   ))}
-                  <Chip tone="gold">+{picked.perfBonus} {t('form')}</Chip>
+                  {picked.perfBonus > 0 && <Chip tone="gold">+{picked.perfBonus} {t('form')}</Chip>}
                   {picked.brief && <Chip tone="info">{t('Tactical call')}</Chip>}
                 </div>
                 <p className="mt-2 text-[11px] text-zinc-500">
@@ -233,7 +200,7 @@ export function PreMatch({
       </div>
 
       <FloatingAction>
-        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ritual, boostId)}>
+        <Button block size="lg" disabled={!picked || exhausted} onClick={() => picked && onKickoff(picked, ROOM_RITUAL, boostId)}>
           {exhausted ? (
             <>{t('No lives left · next one in {time}', { time: fmtCountdown(msToNext) })}</>
           ) : (

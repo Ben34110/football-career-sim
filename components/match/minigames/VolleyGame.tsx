@@ -37,7 +37,7 @@ const PLX = XC + FOOT_X * S;
 
 /* ───────────────────────── the striker, side-on, facing the goal on the left ───────────────────────── */
 
-function Striker({ x, y, s, kit, skin, hair, k, lean, arm }: { x: number; y: number; s: number; kit: string; skin: string; hair: string; k: number; lean: number; arm: number }) {
+export function Striker({ x, y, s, kit, skin, hair, k, lean, arm, right = false }: { x: number; y: number; s: number; kit: string; skin: string; hair: string; k: number; lean: number; arm: number; right?: boolean }) {
   const dark = shade(kit, -0.35);
   const { thigh, flex } = legPose(k);
   const knee: [number, number] = [11 * Math.sin(thigh), -21 + 11 * Math.cos(thigh)];
@@ -54,7 +54,7 @@ function Striker({ x, y, s, kit, skin, hair, k, lean, arm }: { x: number; y: num
     </g>
   );
   return (
-    <g transform={`translate(${x} ${y}) scale(${-s} ${s})`}>
+    <g transform={`translate(${x} ${y}) scale(${right ? s : -s} ${s})`}>
       <ellipse cx="2" cy="1" rx="17" ry="3.2" fill="#000" opacity=".28" />
       {/* the standing leg, bent a little, planted */}
       <path d={`M0 -21L2 -11L-1.5 -1`} stroke={shade(skin, -0.14)} strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />

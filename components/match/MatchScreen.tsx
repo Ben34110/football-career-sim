@@ -9,10 +9,11 @@ import { CLUBS, getClub } from '@/lib/data/clubs';
 import { surnamesFor } from '@/lib/data/surnames';
 import { pickMotm, type Motm } from '@/lib/data/motm';
 import { standingsFor } from '@/lib/engine/standing';
-import { getNationality } from '@/lib/data/nationalities';
+import { getNationality, nationalityByName } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
-import { pickRitual, type Ritual, type RitualOption } from '@/lib/data/rituals';
+import { buildRoom } from '@/lib/data/room';
+import type { Ritual, RitualOption } from '@/lib/data/rituals';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
@@ -115,20 +116,30 @@ export function MatchScreen() {
     return { me, opp, strength };
   }, [player, fixture, season, t]);
 
-  /** One pre-match moment per fixture: a different format every time */
-  const ritual = useMemo<Ritual | null>(() => {
+  /** The dressing room for this fixture: the same four teammates every time you come back to it */
+  const room = useMemo(() => {
     if (!player || !season || !fixture || !badges) return null;
-    return pickRitual(
-      {
+    const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
+    const country = getClub(player.clubId)?.country;
+    const seed = fixture.id;
+    const recent = season.fixtures
+      .filter((f) => f.status === 'played' && f.result)
+      .slice(-3)
+      .map((f) => f.result!.outcome);
+    return {
+      seed,
+      mates: buildRoom({
         diff: badges.strength - fixture.opponentStrength,
-        age: player.age,
-        trust: player.rep.coachTrust,
         important: fixture.knockout || fixture.kind === 'tournament' || fixture.kind === 'euro' || /Matchday (5|10)$/.test(fixture.label),
         home: fixture.home,
-      },
-      player.talks?.speeches ?? [],
-    );
-    // a new moment only when the fixture changes
+        recent,
+        trust: player.rep.coachTrust,
+        surnames: surnamesFor(national ? player.nationality : country),
+        nation: national ? player.nationality : country ? nationalityByName(country)?.code : undefined,
+        seed,
+      }),
+    };
+    // a new room only when the fixture changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixture?.id, !!player, !!season, !!badges]);
 
@@ -267,19 +278,18 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
-      {stage === 'brief' && fixture.drawn !== false && ritual && (
+      {stage === 'brief' && fixture.drawn !== false && room && (
         <PreMatch
           fixture={fixture}
           competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined}
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}
-          ritual={ritual}
+          room={room}
           bolts={bolts}
           msToNext={msToNext}
           fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
-          talks={player.talks}
           boosts={player.boosts}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)

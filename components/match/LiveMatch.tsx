@@ -464,7 +464,7 @@ function TeamSide({ badge, you, reds = 0 }: { badge: TeamBadge; you?: boolean; r
   return (
     <div className="flex w-[84px] flex-col items-center gap-1.5 text-center">
       {badge.rank && (
-        <span className={cn('whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
+        <span className={cn('whitespace-pre-line rounded-xl border px-2 py-0.5 text-center text-[10px] font-bold leading-tight', you ? 'border-neon-400/40 bg-neon-400/10 text-neon-300' : 'border-white/15 bg-white/[0.06] text-zinc-300')}>{badge.rank}</span>
       )}
       <div className="relative">
         <Crest short={badge.short} color={badge.color} size={48} />

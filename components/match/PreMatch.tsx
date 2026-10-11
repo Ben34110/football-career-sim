@@ -83,7 +83,7 @@ export function PreMatch({
         </div>
         <div className="flex items-center justify-between">
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
-            {left.rank && <span className="rounded-full border border-white/15 bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold leading-none text-zinc-300">{left.rank}</span>}
+            {left.rank && <span className="whitespace-pre-line rounded-xl border border-white/15 bg-white/[0.06] px-2 py-1 text-[10px] font-bold leading-tight text-zinc-300">{left.rank}</span>}
             <Crest short={left.short} color={left.color} size={56} />
             <span className="line-clamp-2 text-xs font-bold">{left.name}</span>
           </div>
@@ -95,7 +95,7 @@ export function PreMatch({
             </div>
           </div>
           <div className="flex w-24 flex-col items-center gap-1.5 text-center">
-            {right.rank && <span className="rounded-full border border-white/15 bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold leading-none text-zinc-300">{right.rank}</span>}
+            {right.rank && <span className="whitespace-pre-line rounded-xl border border-white/15 bg-white/[0.06] px-2 py-1 text-[10px] font-bold leading-tight text-zinc-300">{right.rank}</span>}
             <Crest short={right.short} color={right.color} size={56} />
             <span className="line-clamp-2 text-xs font-bold">{right.name}</span>
           </div>

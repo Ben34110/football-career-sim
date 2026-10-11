@@ -112,8 +112,14 @@ export function MatchScreen() {
     // who we are facing: the standing in the table that counts, or the team's level when there is none
     const st = standingsFor(season, fixture);
     const pts = t('Pts').toLowerCase();
-    me.rank = st.me ? `#${st.me.rank} · ${st.me.pts} ${pts}` : `${t('Squad')} ${Math.round(strength)}`;
-    opp.rank = st.opp ? `#${st.opp.rank} · ${st.opp.pts} ${pts}` : `${t('Squad')} ${fixture.opponentStrength}`;
+    if (fixture.kind === 'cup') {
+      // a cup tie is not about the league table: it is the level of the two sides and the division they play in
+      me.rank = `OVR ${Math.round(strength)}\n${t('Division {n}', { n: season?.division ?? 1 })}`;
+      opp.rank = `OVR ${fixture.opponentStrength}${fixture.opponentDivision ? `\n${t('Division {n}', { n: fixture.opponentDivision })}` : ''}`;
+    } else {
+      me.rank = st.me ? `#${st.me.rank} · ${st.me.pts} ${pts}` : `${t('Squad')} ${Math.round(strength)}`;
+      opp.rank = st.opp ? `#${st.opp.rank} · ${st.opp.pts} ${pts}` : `${t('Squad')} ${fixture.opponentStrength}`;
+    }
     return { me, opp, strength };
   }, [player, fixture, season, t]);
 

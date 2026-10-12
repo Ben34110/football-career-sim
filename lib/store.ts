@@ -11,7 +11,7 @@ import { stripEmoji } from './emoji';
 import { getNationality, nationalityByName } from './data/nationalities';
 import type { PressAnswer } from './data/press';
 import type { Effect } from './data/controversies';
-import { BOOST_BY_ID, boostPrice } from './data/boosts';
+import { BOOST_BY_ID, boostPrice, migrateBoosts } from './data/boosts';
 import { celebrationFor, nationKit } from './data/celebrations';
 import { emptyTalks, repetition, scaled as scaleNum } from './data/talks';
 import { useUiStore } from './ui';
@@ -136,8 +136,6 @@ interface GameActions {
   applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;
   /** Remembers what was said in the dressing room so the next talks can react to it. */
   recordTalk: (e: { stance?: string; speech?: string; instruction?: string }) => void;
-  /** Match-day training: attribute progress, which becomes a point when it reaches one */
-  addTrainingXp: (attr: AttrKey, xp: number) => void;
   /** Apply the outcome of a scandal; returns true when the club terminated the contract. */
   resolveControversy: (e: Effect, title: string) => boolean;
   /** Feed the media with an extra headline (+Media Heat, small fan boost) */
@@ -153,6 +151,8 @@ interface GameActions {
   donate: () => Result;
   /** Adds lives after a successful purchase */
   grantLives: (n: number) => void;
+  /** Adds a boost to the bag after a real-money purchase */
+  grantBoost: (id: string) => Result;
   ensureOffers: () => void;
   approach: (clubId: string) => Result;
   requestTransfer: () => Result;
@@ -478,18 +478,6 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
-      addTrainingXp: (attr, xp) => {
-        const { player } = get();
-        if (!player) return;
-        const attrs = { ...player.attrs };
-        const bank = { ...player.xp, [attr]: player.xp[attr] + xp };
-        while (bank[attr] >= 1 && attrs[attr] < 99) {
-          bank[attr] -= 1;
-          attrs[attr] += 1;
-        }
-        set({ player: { ...player, attrs, xp: bank } });
-      },
-
       recordTalk: (e) => {
         const { player } = get();
         if (!player) return;
@@ -631,6 +619,16 @@ export const useGameStore = create<GameStore>()(
         const { player } = get();
         if (!player) return;
         set({ player: { ...player, energy: addPaidLives(player.energy, n, Date.now()) } });
+      },
+
+      grantBoost: (id) => {
+        const { player } = get();
+        const def = BOOST_BY_ID[id];
+        if (!player || !def) return { ok: false, msg: tr('No active career.') };
+        const have = player.boosts?.[id] ?? 0;
+        if (have >= 9) return { ok: false, msg: tr('You can only carry 9 of each boost.') };
+        set({ player: { ...player, boosts: { ...player.boosts, [id]: have + 1 } } });
+        return { ok: true, msg: tr('{name} added to your bag.', { name: tr(def.name) }) };
       },
 
       ensureOffers: () => {
@@ -847,7 +845,13 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'fcs-save-v1',
-      version: 1,
+      version: 2,
+      // v2: the four match-day boosts replace the first four
+      migrate: (persisted, version) => {
+        const s = persisted as GameStore;
+        if (version < 2 && s?.player?.boosts) return { ...s, player: { ...s.player, boosts: migrateBoosts(s.player.boosts) } };
+        return s;
+      },
       storage: createJSONStorage(() => (typeof window === 'undefined' ? undefined : window.localStorage) as Storage),
       skipHydration: true,
       onRehydrateStorage: () => (state) => {

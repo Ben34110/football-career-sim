@@ -9,7 +9,7 @@ import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { BOOSTS, boostPrice } from '@/lib/data/boosts';
 import { galaCost, levelOf, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost } from '@/lib/data/shop';
 import { fmtMoneyK } from '@/lib/engine/player';
-import { useEnergy } from '@/lib/hooks';
+import { useBoostPurchase, useEnergy } from '@/lib/hooks';
 import { useLang, useT } from '@/lib/i18n';
 import { formatEur, getPaymentProvider, isTestPayments, LIFE_PACKS, paymentsAvailable, type LifePack } from '@/lib/payments';
 import { useGameStore } from '@/lib/store';
@@ -23,12 +23,12 @@ export function ShopScreen() {
   const player = useGameStore((s) => s.player);
   const year = useGameStore((s) => s.year);
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
-  const buyBoost = useGameStore((s) => s.buyBoost);
   const donate = useGameStore((s) => s.donate);
   const physio = useGameStore((s) => s.physio);
   const grantLives = useGameStore((s) => s.grantLives);
   const { bolts, msToNext } = useEnergy();
   const [busy, setBusy] = useState<string | null>(null);
+  const boostBuy = useBoostPurchase();
   const [tab, setTab] = useState<'lives' | 'boosts' | 'upgrades'>('lives');
   if (!player) return null;
 
@@ -149,22 +149,26 @@ export function ShopScreen() {
                   </div>
                   <div className="text-xs text-zinc-400">{t(b.desc)}</div>
                 </div>
-                <Button
-                  size="sm"
-                  variant={player.money >= price ? 'gold' : 'ghost'}
-                  disabled={player.money < price}
-                  onClick={() => {
-                    const r = buyBoost(b.id);
-                    toast(r.msg, r.ok ? 'good' : 'bad');
-                  }}
-                >
-                  {fmtMoneyK(price)}
-                </Button>
+                <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+                  <Button
+                    size="sm"
+                    variant={player.money >= price ? 'gold' : 'ghost'}
+                    disabled={player.money < price || owned >= 9 || boostBuy.busy !== null}
+                    onClick={() => boostBuy.withMoney(b.id)}
+                  >
+                    {fmtMoneyK(price)}
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={!available || owned >= 9 || boostBuy.busy !== null} onClick={() => void boostBuy.withEuros(b.id)}>
+                    {formatEur(b.priceEur, lang)}
+                  </Button>
+                </div>
               </div>
             );
           })}
         </Card>
         <p className="mt-2 px-1 text-[11px] text-zinc-500">{t('Use one before kick-off. Small edge, one per match.')}</p>
+        {!available && <p className="mt-1 px-1 text-[11px] text-zinc-500">{t('Real-money purchases arrive with the App Store version.')}</p>}
+        {isTestPayments() && <p className="mt-1 px-1 text-[11px] font-semibold text-gold-300">{t('Test mode: no real payment is made.')}</p>}
       </div>
 
         </>

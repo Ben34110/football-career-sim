@@ -32,3 +32,18 @@ export function standingsFor(season: SeasonState | null, fixture: Fixture): { me
   if (fixture.kind === 'league' || fixture.kind === 'cup') return tab(season.table);
   return { me: null, opp: null };
 }
+
+/**
+ * The opponent's record in the table that counts for this fixture (league, European group or tournament group),
+ * once they have played in it. The scouts use it to say how the side has really been doing.
+ */
+export function oppRecordFor(season: SeasonState | null, fixture: Fixture): TableRow | undefined {
+  if (!season) return undefined;
+  const opp = fixture.opponent.replace(/ (U20|U23)$/, '');
+  let rows: TableRow[] | undefined;
+  if (fixture.kind === 'tournament' && season.tourney?.drawn && !fixture.knockout) rows = season.tourney.groups[season.tourney.myGroup];
+  else if (fixture.kind === 'euro' && !fixture.knockout) rows = season.euroTable ?? deriveEuroTable(season);
+  else if (fixture.kind === 'league' || fixture.kind === 'cup') rows = season.table;
+  const row = rows?.find((r) => r.name === opp);
+  return row && row.played > 0 ? row : undefined;
+}

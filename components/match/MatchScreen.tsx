@@ -8,12 +8,13 @@ import { Card } from '@/components/ui/Card';
 import { CLUBS, getClub } from '@/lib/data/clubs';
 import { surnamesFor } from '@/lib/data/surnames';
 import { pickMotm, type Motm } from '@/lib/data/motm';
-import { standingsFor } from '@/lib/engine/standing';
+import { oppRecordFor, standingsFor } from '@/lib/engine/standing';
 import { getNationality, nationalityByName } from '@/lib/data/nationalities';
 import type { PressAnswer, PressContext } from '@/lib/data/press';
 import { BOOST_BY_ID, mergeBrief } from '@/lib/data/boosts';
 import { isWorldClubLabel, regionOfComp, WORLD_CLUB_CUP } from '@/lib/data/continental';
 import type { Ritual, RitualOption } from '@/lib/data/rituals';
+import { buildScouting } from '@/lib/data/scouting';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
@@ -60,6 +61,12 @@ function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: Other
         ? season?.euroTable ?? (season ? deriveEuroTable(season) ?? null : null)
         : null;
   return { table, games, opponent: fixture.opponent };
+}
+
+/** Where the opposition comes from: the nation itself, or the country of the club. */
+function opponentCountry(fixture: Fixture, clubId: string | null): string | undefined {
+  const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
+  return national ? (fixture.opponentShort.split(' ').pop() ?? fixture.opponent) : (CLUBS.find((c) => c.name === fixture.opponent)?.country ?? getClub(clubId)?.country);
 }
 
 export function MatchScreen() {
@@ -143,6 +150,13 @@ export function MatchScreen() {
 
   /* ───── Handlers ───── */
 
+  /** The opposition's surnames, with the players to watch from the scouting report in the lead: they are the ones who score */
+  const oppNamesFor = (clubId: string | null) => {
+    const country = opponentCountry(fixture, clubId);
+    const stars = buildScouting({ seed: fixture.id, oppStrength: fixture.opponentStrength, myStrength: badges.strength, country }).players.map((x) => x.name);
+    return [...stars, ...stars, ...stars, ...surnamesFor(country)];
+  };
+
   const kickoff = (rawStance: RitualOption, usedRitual: Ritual, boostId: string | null) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
@@ -158,8 +172,6 @@ export function MatchScreen() {
     store.applyStance({ morale: stance.morale + (boost?.morale ?? 0), rep: stance.rep });
     if (boost) store.consumeBoost(boost.id);
     store.recordTalk({ stance: rawStance.id, speech: usedRitual.id });
-    // the session on the training ground moves an attribute a little
-    if (stance.train) store.addTrainingXp(stance.train.attr, stance.train.xp);
     const p = useGameStore.getState().player!;
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     setFx(fixture);
@@ -174,7 +186,7 @@ export function MatchScreen() {
         rep: p.rep,
         myTeam: badges.me.name,
         myNames: surnamesFor(national ? p.nationality : getClub(p.clubId)?.country),
-        oppNames: surnamesFor(national ? (fixture.opponentShort.split(' ').pop() ?? fixture.opponent) : (CLUBS.find((c) => c.name === fixture.opponent)?.country ?? getClub(p.clubId)?.country)),
+        oppNames: oppNamesFor(p.clubId),
         teamStrength: badges.strength,
         oppName: fixture.opponent,
         oppStrength: fixture.opponentStrength,
@@ -266,12 +278,12 @@ export function MatchScreen() {
           me={badges.me}
           opp={badges.opp}
           myStrength={badges.strength}
-          attrs={player.attrs}
+          oppCountry={opponentCountry(fixture, player.clubId)}
+          oppRecord={oppRecordFor(season, fixture)}
           bolts={bolts}
           msToNext={msToNext}
           fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
-          boosts={player.boosts}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)
               ? player.rep.coachTrust < 25

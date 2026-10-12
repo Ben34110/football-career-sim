@@ -1,28 +1,21 @@
-/** French text for the pre-match training. */
+/** French text for the pre-match briefing: the scouting report on the opponent. */
 export const FR_RITUALS: Record<string, string> = {
   'Tactical call': 'Choix tactique',
-  'Match-day training': 'Entraînement d’avant-match',
-  'Session done': 'Séance faite',
-  'One session': 'Une séance',
+  'Match-day briefing': 'Briefing d’avant-match',
+  'Scouting report': 'Rapport de scouting',
   'Scouting report: {opp}': 'Rapport de scouting : {opp}',
-  'Pick the drill that answers the report.': 'Choisis l’exercice qui répond au rapport.',
-  'The session is done. Time to go out.': 'La séance est terminée. Il est temps d’entrer sur le terrain.',
-  'Answers the report': 'Répond au rapport',
-  Scouted: 'Ciblé',
-  'Training: {drill}': 'Entraînement : {drill}',
+  'You studied the scouting report.': 'Tu as étudié le rapport de scouting.',
 
-  // how the session went
-  'Perfect session': 'Séance parfaite',
-  'Good session': 'Bonne séance',
-  'Poor session': 'Séance ratée',
-  'Your chances +{n}%': 'Tes occasions +{n} %',
-  'Their chances −{n}%': 'Leurs occasions −{n} %',
-  'Flying start +{n}': 'Départ en trombe +{n}',
-  'Fatigue −{n}': 'Fatigue −{n}',
-  'The coach nods: that was exactly what we needed.': 'Le coach acquiesce : c’était exactement ce qu’il fallait.',
-  'A solid session. The group is ready.': 'Une séance solide. Le groupe est prêt.',
-  'A scrappy session. Not much to take from it.': 'Une séance brouillonne. Pas grand-chose à en tirer.',
-  'You take it easy and clear your head.': 'Tu prends ça tranquille et tu te vides la tête.',
+  // level and form
+  'Their level': 'Son niveau',
+  '{n} above you': '{n} au-dessus de toi',
+  '{n} below you': '{n} en dessous de toi',
+  'Same level as you': 'Même niveau que toi',
+  'Their last matches': 'Ses derniers matchs',
+  'W|form': 'V',
+  'D|form': 'N',
+  'L|form': 'D',
+  '{n} wins in {m}': '{n} victoire(s) sur {m}',
 
   // the scouts
   'Leaky at the back': 'Poreux derrière',
@@ -36,15 +29,33 @@ export const FR_RITUALS: Record<string, string> = {
   'Physical and aggressive': 'Physique et agressif',
   'They will try to run you ragged.': 'Ils vont essayer de te faire courir sans arrêt.',
 
-  // the drills
-  Finishing: 'Finition',
-  'Hit the target: more chances for you.': 'Cadre tes frappes : plus d’occasions pour toi.',
-  'Defensive shape': 'Bloc défensif',
-  'Block the shots: fewer chances for them.': 'Bloque les tirs : moins d’occasions pour eux.',
-  'Counter-attacks': 'Contre-attaques',
-  'Run at pace: a flying start and quicker breaks.': 'Cours à pleine vitesse : un départ en trombe et des contres plus rapides.',
-  Fitness: 'Condition physique',
-  'A sprint duel: fresh legs for the whole match.': 'Un duel de vitesse : des jambes fraîches pour tout le match.',
-  Rest: 'Repos',
-  'Skip the session: recover and stay calm.': 'Saute la séance : récupère et reste calme.',
+  // players to watch
+  'Players to watch': 'Joueurs à surveiller',
+  'Top scorer': 'Meilleur buteur',
+  'Their main goal threat: he only needs half a chance.': 'Leur principale menace : il lui suffit d’une demi-occasion.',
+  Playmaker: 'Meneur de jeu',
+  'Pulls every string in midfield.': 'Tire toutes les ficelles au milieu.',
+  'Pacy winger': 'Ailier rapide',
+  'Lightning on the break: do not leave him space.': 'Un éclair en contre : ne lui laisse pas d’espace.',
+  'The enforcer': 'Le récupérateur',
+  'Wins every duel and lets you know about it.': 'Gagne tous les duels et te le fait savoir.',
+  'The captain': 'Le capitaine',
+  'Reads the game: hard to get past.': 'Lit le jeu : difficile à passer.',
+
+  // what is expected
+  'What awaits you': 'Ce qui t’attend',
+  'You are the clear favourites: the club expects a win, and a strong performance from you.': 'Ton équipe est grande favorite : le club attend une victoire, et une grosse prestation de ta part.',
+  'You are the favourites: the club expects a win and a steady performance.': 'Ton équipe est favorite : le club attend une victoire et une prestation solide.',
+  'You are the underdogs: nobody expects much, so any good moment is a bonus.': 'Ton équipe est outsider : personne n’attend grand-chose, chaque bon moment est un bonus.',
+  'A tough one on paper: the club will settle for a solid shift.': 'Un match difficile sur le papier : le club se contentera d’une prestation solide.',
+  'An even match: the little details will decide it.': 'Un match équilibré : les petits détails feront la différence.',
+  'Expected: a {r}+ rating': 'Attendu : une note de {r}+',
+
+  // effects of a boost
+  'Your chances +{n}%': 'Tes occasions +{n} %',
+  'Their chances −{n}%': 'Leurs occasions −{n} %',
+  'Flying start +{n}': 'Départ en trombe +{n}',
+  'Big moments +{n}%': 'Moments clés +{n} %',
+  'Form +{n}': 'Forme +{n}',
+  'Morale +{n}': 'Moral +{n}',
 };

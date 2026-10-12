@@ -35,6 +35,7 @@ import { tournamentShort } from '@/lib/data/competitions';
 import { LiveMatch, type LiveBoard, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
+import { SuspendedScreen } from './SuspendedScreen';
 import { PressZone, type AnswerInfo } from './PressZone';
 import { Shootout, type ShootoutResult } from './Shootout';
 import { GameIcon } from '@/components/ui/GameIcon';
@@ -157,6 +158,12 @@ export function MatchScreen() {
     return [...stars, ...stars, ...stars, ...surnamesFor(country)];
   };
 
+  // banned after a red card: the club (or the nation) plays this match without you. The last match of a season is never missed.
+  const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
+  const ban = player.suspension;
+  const banned = !!ban && ban.matches > 0 && (ban.scope === 'nation') === national && fixture.drawn !== false && (season?.fixtures.filter((f) => f.status === 'upcoming').length ?? 0) > 1;
+  const fixtureDateOf = () => (season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date());
+
   const kickoff = (rawStance: RitualOption, usedRitual: Ritual, boostId: string | null) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
@@ -271,7 +278,20 @@ export function MatchScreen() {
       {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
         <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} division={season?.division ?? 1} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
-      {stage === 'brief' && fixture.drawn !== false && badges && (
+      {stage === 'brief' && banned && badges && (
+        <SuspendedScreen
+          fixture={fixture}
+          me={badges.me}
+          opp={badges.opp}
+          matchesLeft={ban?.matches ?? 1}
+          date={fixtureDateOf()}
+          onSitOut={() => {
+            const r = useGameStore.getState().serveSuspension(badges.strength);
+            if (r.msg) toast(r.msg, r.ok ? 'neutral' : 'bad');
+          }}
+        />
+      )}
+      {stage === 'brief' && fixture.drawn !== false && badges && !banned && (
         <PreMatch
           fixture={fixture}
           competitionName={fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : fixture.kind === 'euro' && isWorldClubLabel(fixture.label) ? t(WORLD_CLUB_CUP) : fixture.kind === 'euro' && season?.europe ? t(regionOfComp(season.europe)) : undefined}

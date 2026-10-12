@@ -366,6 +366,33 @@ export function joinMidSeason(season: SeasonState, carry: SeasonCarry, rng: Rng)
   return { ...base, fixtures, table, cursor: stop };
 }
 
+/** A match the player is not part of: how his team gets on without him. */
+export function simulateClubResult(fixture: Fixture, myStrength: number, rng: Rng): FixtureResult {
+  const pw = clamp(0.4 + (myStrength - fixture.opponentStrength) / 60, 0.1, 0.8);
+  const roll = rng();
+  let outcome: FixtureResult['outcome'] = roll < pw ? 'W' : roll < pw + 0.25 ? 'D' : 'L';
+  // a knockout tie is not drawn: it goes to penalties, which come down to a coin
+  if (fixture.knockout && outcome === 'D') outcome = rng() < 0.5 ? 'W' : 'L';
+  const winner = randInt(1, 3, rng);
+  const draw = randInt(0, 2, rng);
+  const myScore = outcome === 'W' ? winner : outcome === 'D' ? draw : randInt(0, 1, rng);
+  const oppScore = outcome === 'W' ? randInt(0, winner - 1, rng) : outcome === 'D' ? myScore : myScore + randInt(1, 2, rng);
+  return { myScore, oppScore, outcome, rating: 6, goals: 0, assists: 0 };
+}
+
+/**
+ * The player is suspended for the next match: the team plays it without him. The table and the competition move on as
+ * they would have, but nothing counts for him (no appearance, no rating, no goals, no trophy) and the fixture is marked as skipped.
+ */
+export function sitOutFixture(season: SeasonState, myStrength: number, rng: Rng): { season: SeasonState; result: FixtureResult } | null {
+  const idx = firstUpcoming(season);
+  if (idx === -1) return null;
+  const result = simulateClubResult(season.fixtures[idx], myStrength, rng);
+  const played = applyFixtureResult(season, result, rng);
+  const fixtures = played.fixtures.map((f, i) => (i === idx ? { ...f, status: 'skipped' as const, result: undefined } : f));
+  return { season: { ...played, fixtures, stats: season.stats, trophies: season.trophies }, result };
+}
+
 export const firstUpcoming = (s: SeasonState) => s.fixtures.findIndex((f) => f.status === 'upcoming');
 export const seasonFinished = (s: SeasonState) => firstUpcoming(s) === -1;
 export const currentFixture = (s: SeasonState): Fixture | null => s.fixtures[firstUpcoming(s)] ?? null;

@@ -86,6 +86,8 @@ export interface FixtureResult {
   subbedOff?: boolean;
   /** The player was shown a red card */
   sentOff?: boolean;
+  /** Matches he is banned for after that red card */
+  ban?: number;
   clutchWins?: number;
   clutchTotal?: number;
 }
@@ -288,6 +290,8 @@ export interface Player {
   boosts?: Record<string, number>;
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
+  /** Banned after a red card: matches still to miss, for the club or for the national team */
+  suspension?: { matches: number; scope: 'club' | 'nation' };
   /** Permanent upgrades bought with money */
   upgrades?: Upgrades;
   /** Season (start year) of the last charity gala */
@@ -522,4 +526,6 @@ export interface MatchState {
   redsOpp?: number;
   /** The player himself was shown a red card */
   sentOff?: boolean;
+  /** Matches of suspension that red card costs (a straight red is worse than a second yellow) */
+  ban?: number;
 }

@@ -228,6 +228,8 @@ function dismissPlayer(input: MatchState, ctx: MatchCtx, rng: Rng, minute: numbe
   let m: MatchState = {
     ...input,
     sentOff: true,
+    // a second yellow costs a match, a straight red two
+    ban: secondYellow ? 1 : 2,
     subbedOffAt: minute,
     redsMe: (input.redsMe ?? 0) + 1,
     rating: input.rating - 1.6,
@@ -235,8 +237,9 @@ function dismissPlayer(input: MatchState, ctx: MatchCtx, rng: Rng, minute: numbe
     clutches: input.clutches.slice(0, input.nextClutch),
   };
   m = push(m, minute, 'card', 'me', tr(secondYellow ? '🟥 Second yellow! {who} is sent off — {me} are down to ten men.' : '🟥 RED CARD! {who} sees a straight red — {me} are down to ten men.', { who, me: ctx.myTeam }), true);
-  // off the pitch: the match goes on without the player, except in knockout ties where the result still matters
-  if (!ctx.knockout && m.status === 'playing') {
+  // off the pitch: the match goes on without him and he takes no further part, in a league game as in a knockout tie
+  // (a shootout, if it comes to that, is taken without him)
+  if (m.status === 'playing') {
     while (m.status === 'playing') m = tickMatch(m, ctx, rng);
   }
   return m;
@@ -738,6 +741,7 @@ export function buildResult(
     benched: !m.isStarter || undefined,
     subbedOff: (m.subbedOffAt !== undefined && !m.sentOff) || undefined,
     sentOff: m.sentOff || undefined,
+    ban: m.sentOff ? (m.ban ?? 2) : undefined,
     clutchWins: m.clutchWins,
     clutchTotal: m.clutchTotal,
   };

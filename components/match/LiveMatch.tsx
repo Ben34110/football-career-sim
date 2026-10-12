@@ -229,6 +229,14 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
         </div>
       </Card>
 
+      {m.sentOff && (
+        <div className="flex items-center gap-2.5 rounded-xl border border-crimson-500/40 bg-crimson-500/10 px-3 py-2 text-xs font-semibold text-crimson-400">
+          <span className="h-4 w-3 shrink-0 rounded-[2px] bg-crimson-500" aria-hidden />
+          {t('You were sent off — you take no further part in the match.')}
+          {(m.ban ?? 0) > 0 && <span className="ml-auto shrink-0 text-zinc-300">{t('Ban: {n} match(es)', { n: m.ban ?? 0 })}</span>}
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-zinc-500">

@@ -250,4 +250,15 @@ export const FR_MATCH: Record<string, string> = {
   'Quarter-Final': 'Quart de finale',
   'Semi-Final': 'Demi-finale',
   Final: 'Finale',
+
+  // sent off and suspended
+  'You were sent off — you take no further part in the match.': 'Tu es expulsé — tu ne participes plus au match.',
+  'Ban: {n} match(es)': 'Suspension : {n} match(s)',
+  '🟥 Suspended for {n} match(es) after the red card.': '🟥 Suspendu pour {n} match(s) après le carton rouge.',
+  Suspended: 'Suspendu',
+  'You are banned for this match after your red card.': 'Tu es suspendu pour ce match après ton carton rouge.',
+  '{n} match(es) of suspension left, this one included.': '{n} match(s) de suspension restant(s), celui-ci compris.',
+  'Watch from the stands': 'Regarder depuis les tribunes',
+  'The team plays without you: no appearance, no rating, no life spent.': 'L’équipe joue sans toi : pas de match, pas de note, pas de vie dépensée.',
+  'Suspended — you watched from the stands: {me} {a}–{b} {opp}.': 'Suspendu — tu as regardé depuis les tribunes : {me} {a}–{b} {opp}.',
 };

@@ -60,6 +60,7 @@ import {
   leaguePosition,
   queueCallUps,
   seasonFinished,
+  sitOutFixture,
   sortTable,
   type SeasonCarry,
 } from './engine/season';
@@ -138,6 +139,8 @@ interface GameActions {
   applyStance: (s: { morale: number; rep: Partial<Reputation> }) => void;
   adjust: (morale: number, rep: Partial<Reputation>) => void;
   commitMatch: (result: FixtureResult, others?: OtherGame[]) => void;
+  /** Suspended: the team plays the next match without you. `teamStrength` is the level of the side you represent. */
+  serveSuspension: (teamStrength: number) => Result;
   applyPress: (a: PressAnswer, info?: { win: boolean; followUp?: boolean; question?: string }) => void;
   /** Remembers what was said in the dressing room so the next talks can react to it. */
   recordTalk: (e: { stance?: string; speech?: string; instruction?: string }) => void;
@@ -333,6 +336,8 @@ export const useGameStore = create<GameStore>()(
           attrs: xp.attrs,
           xp: xp.xp,
           form: [...player.form, result.rating].slice(-5),
+          // a red card costs the next matches; playing a match means any earlier ban was waived or served
+          suspension: result.ban ? { matches: result.ban, scope: intl ? ('nation' as const) : ('club' as const) } : undefined,
           morale: clamp(morale + (result.sentOff ? -9 : result.subbedOff ? -4 : 0), 0, 100),
           rep: applyRep(
             player.rep,
@@ -363,7 +368,10 @@ export const useGameStore = create<GameStore>()(
         if (xp.gained.length > 0) {
           nextNews = addNews(nextNews, mkNews(tr('Attribute boost: +{n} after a {r} rating.', { n: xp.gained.length, r: result.rating.toFixed(1) }), 'good'));
         }
-        if (result.sentOff) nextNews = addNews(nextNews, mkNews(tr('🟥 You were sent off — the dressing room is not happy.'), 'bad'));
+        if (result.sentOff) {
+          nextNews = addNews(nextNews, mkNews(tr('🟥 You were sent off — the dressing room is not happy.'), 'bad'));
+          if (result.ban) nextNews = addNews(nextNews, mkNews(tr('🟥 Suspended for {n} match(es) after the red card.', { n: result.ban }), 'bad'));
+        }
         else if (result.subbedOff) nextNews = addNews(nextNews, mkNews(tr('The coach hauled you off early after a poor display.'), 'bad'));
         for (const t of newTrophies) nextNews = addNews(nextNews, mkNews(tr('🏆 {t} — silverware!', { t: tr(t) }), 'gold'));
         const rank = { U20: 1, U23: 2, A: 3 } as const;
@@ -453,6 +461,29 @@ export const useGameStore = create<GameStore>()(
         set({ player: updated, season: nextSeason, news: nextNews });
 
         if (seasonFinished(nextSeason)) finishSeason(set, get);
+      },
+
+      serveSuspension: (teamStrength) => {
+        const { player, season, news } = get();
+        if (!player || !season || !player.suspension) return { ok: false, msg: tr('No active career.') };
+        const upcoming = season.fixtures.filter((f) => f.status === 'upcoming');
+        const fixture = upcoming[0];
+        // the last match of the season is never missed: the ban is waived rather than leave the season unfinished
+        if (!fixture || fixture.drawn === false || upcoming.length <= 1) {
+          set({ player: { ...player, suspension: undefined } });
+          return { ok: false, msg: '' };
+        }
+        const out = sitOutFixture(season, teamStrength, Math.random);
+        if (!out) return { ok: false, msg: '' };
+        const left = player.suspension.matches - 1;
+        const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
+        const msg = tr('Suspended — you watched from the stands: {me} {a}–{b} {opp}.', { me: national ? tr(getNationality(player.nationality).name) : (getClub(player.clubId)?.name ?? ''), a: out.result.myScore, b: out.result.oppScore, opp: tr(fixture.opponent) });
+        set({
+          season: out.season,
+          player: { ...player, suspension: left > 0 ? { ...player.suspension, matches: left } : undefined },
+          news: addNews(news, mkNews(msg, 'neutral')),
+        });
+        return { ok: true, msg };
       },
 
       applyPress: (a, info) => {

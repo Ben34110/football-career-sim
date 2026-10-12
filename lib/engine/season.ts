@@ -11,6 +11,7 @@ import type {
   LeagueZone,
   Nationality,
   SeasonState,
+  SeasonStats,
   SeasonZones,
   TableRow,
   TournamentState,
@@ -325,6 +326,44 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
     stats: { apps: 0, goals: 0, assists: 0, ratingSum: 0 },
     trophies: [],
   };
+}
+
+/** What a season in progress leaves behind when the player leaves his club for another one, in the same season. */
+export interface SeasonCarry {
+  /** League matches he had played */
+  leaguePlayed: number;
+  stats: SeasonStats;
+  trophies: string[];
+}
+
+/**
+ * The player joins a new club while the season is under way (he was sacked, or left as a free agent): the new club's
+ * season picks up where he was, not from matchday 1. What the club played before he arrived is behind it (those matches
+ * count as skipped for him, and the table moves as if the club had played them), and his own numbers carry over.
+ */
+export function joinMidSeason(season: SeasonState, carry: SeasonCarry, rng: Rng): SeasonState {
+  const leagueIdx = season.fixtures.flatMap((f, i) => (f.kind === 'league' ? [i] : []));
+  // there is always a league match left to play
+  const k = Math.min(carry.leaguePlayed, leagueIdx.length - 1);
+  const base = { ...season, stats: carry.stats, trophies: carry.trophies };
+  if (k <= 0) return base;
+  const stop = leagueIdx[k];
+  const me = season.table.find((r) => r.isMe);
+  let table = season.table;
+  const fixtures = season.fixtures.map((f, i) => {
+    if (i >= stop) return f;
+    if (f.kind === 'league' && me) {
+      const pw = clamp(0.4 + (me.strength - f.opponentStrength) / 60, 0.1, 0.8);
+      const roll = rng();
+      const outcome: FixtureResult['outcome'] = roll < pw ? 'W' : roll < pw + 0.25 ? 'D' : 'L';
+      const winner = randInt(1, 3, rng);
+      const myScore = outcome === 'W' ? winner : outcome === 'D' ? randInt(0, 2, rng) : randInt(0, 1, rng);
+      const oppScore = outcome === 'W' ? randInt(0, winner - 1, rng) : outcome === 'D' ? myScore : myScore + randInt(1, 2, rng);
+      table = updateTable(table, f, { myScore, oppScore, outcome, rating: 6, goals: 0, assists: 0 }, rng);
+    }
+    return { ...f, status: 'skipped' as const };
+  });
+  return { ...base, fixtures, table, cursor: stop };
 }
 
 export const firstUpcoming = (s: SeasonState) => s.fixtures.findIndex((f) => f.status === 'upcoming');

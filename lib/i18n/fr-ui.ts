@@ -243,6 +243,8 @@ export const FR_UI: Record<string, string> = {
   Profile: 'Profil',
   Boosts: 'Boosts',
 
+  '{club} stand by you: your performances earn you a last warning.': '{club} te soutient : tes performances t’épargnent, mais c’est le dernier avertissement.',
+
   // waiting screens
   'Loading…': 'Chargement…',
   'Loading your career…': 'Chargement de ta carrière…',

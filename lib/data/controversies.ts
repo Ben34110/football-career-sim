@@ -305,7 +305,7 @@ export const CONTROVERSIES: Controversy[] = [
 
 /** Chance (0..1) that a scandal breaks after a press conference. */
 export function controversyChance(c: ControversyCtx): number {
-  if (c.apps < 4) return 0;
+  if (c.apps < 6) return 0;
   let p = 0.03 + c.mediaHeat / 500;
   if (c.answerStyle === 'bold') p += 0.07;
   if (c.answerStyle === 'no-comment') p += 0.025;
@@ -313,8 +313,10 @@ export function controversyChance(c: ControversyCtx): number {
   if (c.missedKick) p += 0.05;
   if (c.subbedOff) p += 0.12;
   if (c.lockerRoom < 30) p += 0.04;
+  // a good game keeps the story on the pitch, a poor one feeds the rumours
+  const show = c.rating >= 8 ? 0.5 : c.rating >= 7.2 ? 0.7 : c.rating <= 5.5 ? 1.15 : 1;
   // scandals stay rare: a calm player almost never makes the headlines
-  return Math.min(0.25, p * 0.75 * (1 - 0.15 * (c.pr ?? 0)));
+  return Math.min(0.14, p * 0.4 * show * (1 - 0.15 * (c.pr ?? 0)));
 }
 
 /** Chance that a given reaction lands well, adjusted by the player's standing. */

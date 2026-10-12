@@ -45,6 +45,7 @@ import {
 } from './engine/player';
 import { clamp, uid } from './engine/rng';
 import { runBallonDor } from './engine/awards';
+import { sackChance } from './engine/discipline';
 import { ordinalOf, translate as tr } from './i18n';
 import {
   applyDraw,
@@ -54,11 +55,13 @@ import {
   baseDivision,
   europeFor,
   generateSeason,
+  joinMidSeason,
   leagueZone,
   leaguePosition,
   queueCallUps,
   seasonFinished,
   sortTable,
+  type SeasonCarry,
 } from './engine/season';
 import {
   approachChance,
@@ -113,6 +116,8 @@ interface GameData {
   approached: string[];
   transferListed: boolean;
   pendingMove: Offer | null;
+  /** Sacked mid-season: what the season looked like, so the next club picks it up from there */
+  carry?: SeasonCarry | null;
   history: SeasonRecord[];
   lastSummary: SeasonSummary | null;
   news: NewsItem[];
@@ -511,6 +516,14 @@ export const useGameStore = create<GameStore>()(
         if (fine) nextNews = addNews(nextNews, mkNews(tr('The club fines you {fine} for the {title} affair.', { fine: fmtMoneyK(fine), title: tr(title) }), 'bad'));
         if (strikes >= 3) {
           const club = getClub(p.clubId);
+          const { season } = get();
+          // the club only walks away if you are not delivering: a player who is playing well gets a last warning instead
+          const sack = phase === 'season-end' || Math.random() < sackChance({ form: p.form, coachTrust: p.rep.coachTrust, ovr: ovrOf(p), clubStrength: club?.strength ?? 60, stats: season?.stats });
+          if (!sack) {
+            p = { ...p, strikes: 2, rep: applyRep(p.rep, { coachTrust: -4, lockerRoom: -2 }) };
+            set({ player: p, news: addNews(nextNews, mkNews(tr('{club} stand by you: your performances earn you a last warning.', { club: club?.name ?? '' }), 'gold')) });
+            return false;
+          }
           p = { ...p, strikes: 0, rep: applyRep(p.rep, { coachTrust: -15, fanPopularity: -6, lockerRoom: -6 }) };
           if (phase === 'season-end') {
             // the season is already over: simply make sure the contract is not renewed
@@ -520,6 +533,8 @@ export const useGameStore = create<GameStore>()(
             p = { ...p, clubId: null, contract: null };
             set({
               player: p,
+              // the season goes on without you: the next club picks it up from where you were
+              carry: season ? { leaguePlayed: season.fixtures.filter((f) => f.kind === 'league' && f.status === 'played').length, stats: season.stats, trophies: season.trophies } : null,
               season: null,
               phase: 'free-agent',
               offers: freeAgentOffers(p, Math.random),
@@ -746,9 +761,13 @@ export const useGameStore = create<GameStore>()(
         }
 
         const moved = applyMove(player, offer);
-        // a new club comes with its own record: it may have qualified for Europe last season
-        const arrivalEurope = offer.source === 'renewal' ? null : europeFor(club, Math.random);
-        const keepSeason = offer.source === 'renewal' ? season : generateSeason(year, club, Math.random, { europe: arrivalEurope });
+        // sacked mid-season: the new club's season is already under way, and it picks up from where you were
+        const carry = phase === 'free-agent' && offer.source !== 'renewal' ? get().carry : null;
+        const midway = !!carry && carry.leaguePlayed > 0;
+        // a new club comes with its own record: it may have qualified for Europe last season (not when joining half-way through)
+        const arrivalEurope = offer.source === 'renewal' || midway ? null : europeFor(club, Math.random);
+        const fresh = offer.source === 'renewal' ? season : generateSeason(year, club, Math.random, { europe: arrivalEurope });
+        const keepSeason = fresh && carry ? joinMidSeason(fresh, carry, Math.random) : fresh;
         set({
           player: moved,
           season: keepSeason,
@@ -756,6 +775,7 @@ export const useGameStore = create<GameStore>()(
           phase: 'playing',
           offers: [],
           pendingMove: null,
+          carry: null,
           news: addNews(news, mkNews(tr(offer.source === 'renewal' ? 'Contract signed with {club}.' : '🖊️ Signed for {club}!', { club: club.name }), 'gold'), ...(arrivalEurope ? [mkNews(tr('🌍 {club} qualified for the {comp} last season: continental nights ahead!', { club: club.name, comp: tr(arrivalEurope) }), 'good')] : [])),
         });
         useUiStore.getState().showSigning({
@@ -823,6 +843,7 @@ export const useGameStore = create<GameStore>()(
             approached: [],
             transferListed: false,
             pendingMove: null,
+            carry: null,
             news: nextNews,
           });
           return;
@@ -839,6 +860,7 @@ export const useGameStore = create<GameStore>()(
           ...(newClub ? { division: baseDivision(club), europe: arrivalEurope, worldClub: false } : {}),
           phase: 'playing',
           pendingMove: null,
+          carry: null,
           lastSummary: null,
           news: addNews(nextNews, mkNews(tr('Season {s} begins at {club}.', { s: seasonLabel(nextYear), club: club.name }), 'neutral')),
         });

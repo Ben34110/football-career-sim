@@ -18,6 +18,8 @@ export interface SigningEvent {
   years: number;
   /** €M */
   fee: number;
+  /** A new season begins with this deal: after the ceremony, land on the home screen rather than where it was signed */
+  goHome?: boolean;
 }
 
 export interface CallUpEvent {

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { PenLine } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Crest } from '@/components/ui/Crest';
@@ -19,7 +20,13 @@ const NUMBER: Record<Position, number> = { ST: 9, CAM: 10, RW: 7, LW: 11 };
 export function SigningCeremony() {
   const event = useUiStore((s) => s.signing);
   const close = useUiStore((s) => s.closeSigning);
-  return <AnimatePresence>{event && <Ceremony key={event.id} event={event} onClose={close} />}</AnimatePresence>;
+  const router = useRouter();
+  // a deal that opens a new season ends on the home screen, not on the transfers page it was signed from
+  const done = () => {
+    close();
+    if (event?.goHome) router.replace('/home');
+  };
+  return <AnimatePresence>{event && <Ceremony key={event.id} event={event} onClose={done} />}</AnimatePresence>;
 }
 
 function Ceremony({ event, onClose }: { event: SigningEvent; onClose: () => void }) {

@@ -727,7 +727,7 @@ export const useGameStore = create<GameStore>()(
           // After the season, the summer window ends the story: sign, watch the ceremony, and the new season starts
           if (phase === 'season-end') {
             if (offer.source === 'renewal') {
-              useUiStore.getState().showSigning({ kind: 'renewal', clubId: club.id, playerName: player.name, position: player.position, wage: offer.wage, years: offer.years, fee: offer.fee });
+              useUiStore.getState().showSigning({ kind: 'renewal', clubId: club.id, playerName: player.name, position: player.position, wage: offer.wage, years: offer.years, fee: offer.fee, goHome: true });
             }
             // a transfer shows its own ceremony as the new season begins
             get().startNextSeason();
@@ -796,6 +796,7 @@ export const useGameStore = create<GameStore>()(
               wage: pendingMove.wage,
               years: pendingMove.years,
               fee: pendingMove.fee,
+              goHome: true,
             });
           }
         } else if (p.contract && p.contract.yearsLeft <= 0) {

@@ -290,6 +290,8 @@ export interface Player {
   boosts?: Record<string, number>;
   /** Scandal strikes — three and the club terminates the contract */
   strikes?: number;
+  /** Rewarded ads watched today (per kind), to keep ads a bonus */
+  adsToday?: { day: string; lives: number; boost: number };
   /** Banned after a red card: matches still to miss, for the club or for the national team */
   suspension?: { matches: number; scope: 'club' | 'nation' };
   /** Permanent upgrades bought with money */

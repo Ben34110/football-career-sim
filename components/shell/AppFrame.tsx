@@ -1,9 +1,11 @@
 'use client';
 
+import { AdSimulator } from '@/components/ui/AdSimulator';
 import { Toaster } from '@/components/ui/Toaster';
 import { WaitScreen } from '@/components/ui/WaitScreen';
 import { TrophyCelebration } from '@/components/celebration/TrophyCelebration';
 import { CallUpPopup } from './CallUpPopup';
+import { NativeBridge } from './NativeBridge';
 import { SigningCeremony } from './SigningCeremony';
 import { useHydrated } from '@/lib/hooks';
 
@@ -23,6 +25,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           <WaitScreen message="Loading your career…" />
         )}
       </div>
+      <NativeBridge />
+      <AdSimulator />
       <CallUpPopup />
       <SigningCeremony />
       <TrophyCelebration />

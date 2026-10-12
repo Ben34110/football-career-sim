@@ -43,7 +43,7 @@ export function WaitScreen({
         <span aria-hidden className="absolute inset-[12%] rounded-full bg-neon-400/10 blur-xl" />
         <Logo size={logo} priority className="relative animate-floaty drop-shadow-[0_8px_24px_rgba(16,224,138,0.35)]" />
       </div>
-      {!compact && <div className="font-display text-xl font-extrabold uppercase leading-none tracking-wide text-zinc-100">Pitch <span className="text-gold-300">Legacy</span></div>}
+      {!compact && <div className="font-display text-xl font-extrabold uppercase leading-none tracking-wide text-zinc-100">Ultime <span className="text-gold-300">Player</span></div>}
       <div className="flex flex-col items-center gap-2.5">
         <div className="relative h-1 w-32 overflow-hidden rounded-full bg-white/10">
           <span className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-gradient-to-r from-neon-500 to-neon-300 animate-loadbar" />

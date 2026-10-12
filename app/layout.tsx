@@ -12,10 +12,10 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'Pitch Legacy — Football Career Sim', template: '%s · Pitch Legacy' },
+  title: { default: 'Ultime Player — Prends le contrôle de ta carrière', template: '%s · Ultime Player' },
   description: 'Build a football legend: locker rooms, press zones, clutch moments and 8-zone penalties.',
-  applicationName: 'Pitch Legacy',
-  appleWebApp: { capable: true, title: 'Pitch Legacy', statusBarStyle: 'black-translucent' },
+  applicationName: 'Ultime Player',
+  appleWebApp: { capable: true, title: 'Ultime Player', statusBarStyle: 'black-translucent' },
   formatDetection: { telephone: false },
 };
 

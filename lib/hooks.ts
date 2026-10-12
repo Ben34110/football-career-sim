@@ -5,6 +5,7 @@ import { BOOST_BY_ID } from './data/boosts';
 import { msToNextBolt, syncEnergy } from './engine/player';
 import { useT } from './i18n';
 import { useLangStore } from './i18n/lang';
+import { adsAvailable, adsLeft, getAdProvider, type AdKind } from './ads';
 import { boostProduct, getPaymentProvider } from './payments';
 import { useGameStore } from './store';
 import { toast } from './toast';
@@ -65,7 +66,8 @@ export function useBoostPurchase() {
     const r = await getPaymentProvider().purchase(boostProduct(def));
     setBusy(null);
     if (!r.ok) {
-      toast(t('Purchase unavailable right now.'), 'bad');
+      // closing the App Store sheet is not an error
+      if (r.error !== 'cancelled') toast(t('Purchase unavailable right now.'), 'bad');
       return false;
     }
     const g = grantBoost(id);
@@ -74,4 +76,31 @@ export function useBoostPurchase() {
   };
 
   return { busy, withMoney, withEuros };
+}
+
+/** Watching a rewarded ad for lives or for a boost. The reward is only given once the ad was watched to the end. */
+export function useAdReward() {
+  const t = useT();
+  const adsToday = useGameStore((s) => s.player?.adsToday);
+  const [busy, setBusy] = useState(false);
+
+  /** Ads still allowed today for this kind (0 when there is no ad to show at all) */
+  const left = (kind: AdKind) => (adsAvailable() ? adsLeft(adsToday, kind) : 0);
+
+  const watch = async (kind: AdKind, boostId?: string) => {
+    if (busy || left(kind) <= 0) return false;
+    setBusy(true);
+    const r = await getAdProvider().show();
+    setBusy(false);
+    if (!r.ok) {
+      if (r.error !== 'cancelled') toast(t('No ad available right now. Try again in a moment.'), 'bad');
+      else toast(t('Watch the ad to the end to get the reward.'), 'neutral');
+      return false;
+    }
+    const g = useGameStore.getState().claimAdReward(kind, boostId);
+    toast(g.msg, g.ok ? 'good' : 'bad');
+    return g.ok;
+  };
+
+  return { busy, left, watch };
 }

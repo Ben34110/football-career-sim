@@ -1,0 +1,137 @@
+{
+  "identifier": "A1B2C3D4",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "1.49",
+      "familyShareable": false,
+      "internalID": "6740000000",
+      "localizations": [
+        {
+          "description": "Five extra lives",
+          "displayName": "5 lives",
+          "locale": "en_US"
+        },
+        {
+          "description": "Cinq vies en plus",
+          "displayName": "5 vies",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.lives_5",
+      "referenceName": "5 lives",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "3.99",
+      "familyShareable": false,
+      "internalID": "6740000007",
+      "localizations": [
+        {
+          "description": "Fifteen extra lives",
+          "displayName": "15 lives",
+          "locale": "en_US"
+        },
+        {
+          "description": "Quinze vies en plus",
+          "displayName": "15 vies",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.lives_15",
+      "referenceName": "15 lives",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "6740000014",
+      "localizations": [
+        {
+          "description": "More chances for you in one match",
+          "displayName": "Attack boost",
+          "locale": "en_US"
+        },
+        {
+          "description": "Plus d’occasions pour toi sur un match",
+          "displayName": "Boost d’attaque",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.boost_attack",
+      "referenceName": "Attack boost",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "6740000021",
+      "localizations": [
+        {
+          "description": "Big moments are easier in one match",
+          "displayName": "Mental boost",
+          "locale": "en_US"
+        },
+        {
+          "description": "Les moments clés plus faciles sur un match",
+          "displayName": "Boost mental",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.boost_mental",
+      "referenceName": "Mental boost",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "6740000028",
+      "localizations": [
+        {
+          "description": "Fewer chances for them in one match",
+          "displayName": "Defence boost",
+          "locale": "en_US"
+        },
+        {
+          "description": "Moins d’occasions pour eux sur un match",
+          "displayName": "Boost de défense",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.boost_defence",
+      "referenceName": "Defence boost",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "6740000035",
+      "localizations": [
+        {
+          "description": "A bit of everything in one match",
+          "displayName": "All-round boost",
+          "locale": "en_US"
+        },
+        {
+          "description": "Un peu de tout sur un match",
+          "displayName": "Boost général",
+          "locale": "fr"
+        }
+      ],
+      "productID": "com.ben34110.pitchlegacy.boost_general",
+      "referenceName": "All-round boost",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_askToBuyEnabled": false
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

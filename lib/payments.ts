@@ -40,6 +40,8 @@ export interface PaymentProvider {
   /** false = test mode, nothing is charged */
   isReal: boolean;
   purchase: (product: PaymentProduct) => Promise<PaymentResult>;
+  /** The price the store shows for a product (localised, from the App Store tier), when it is known */
+  priceOf?: (productId: string) => string | undefined;
 }
 
 const testProvider: PaymentProvider = {
@@ -68,3 +70,6 @@ export const isTestPayments = () => paymentsAvailable() && !provider.isReal;
 
 export const formatEur = (n: number, lang: 'en' | 'fr') =>
   new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-IE', { style: 'currency', currency: 'EUR' }).format(n);
+
+/** What to show as the price of a product: the store's own price in the app, the euro price written in the game otherwise. */
+export const displayPrice = (product: PaymentProduct, lang: 'en' | 'fr') => provider.priceOf?.(product.id) ?? formatEur(product.priceEur, lang);

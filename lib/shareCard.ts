@@ -84,7 +84,7 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   g.textBaseline = 'alphabetic';
   g.fillStyle = '#f2c14e';
   g.font = '800 34px Inter, system-ui, sans-serif';
-  g.fillText('PITCH LEGACY', 100, 130);
+  g.fillText('ULTIME PLAYER', 100, 130);
 
   // OVR + position + flag
   g.fillStyle = '#fbe7a1';
@@ -166,7 +166,7 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
   }
   g.fillStyle = '#52525b';
   g.font = '500 30px Inter, system-ui, sans-serif';
-  g.fillText(t('Built in Pitch Legacy'), W / 2, 1270);
+  g.fillText(t('Built in Ultime Player'), W / 2, 1270);
 
   return new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('png'))), 'image/png'));
 }
@@ -179,7 +179,7 @@ export async function shareImage(blob: Blob, filename: string, text: string): Pr
     const file = new File([blob], filename, { type: 'image/png' });
     if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Pitch Legacy', text });
+        await navigator.share({ files: [file], title: 'Ultime Player', text });
         return 'shared';
       } catch (e) {
         if ((e as Error).name === 'AbortError') return 'cancelled';
@@ -240,7 +240,7 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
   g.textAlign = 'center';
   g.fillStyle = '#f2c14e';
   g.font = '800 32px Inter, system-ui, sans-serif';
-  g.fillText(`PITCH LEGACY · ${t('A Career Complete').toUpperCase()}`, W / 2, 112);
+  g.fillText(`ULTIME PLAYER · ${t('A Career Complete').toUpperCase()}`, W / 2, 112);
 
   const img = await loadAvatar(player.look, 340, club?.color, 'cheer');
   if (img) g.drawImage(img, W / 2 - 170, 140, 340, 340);
@@ -347,7 +347,7 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
 
   g.fillStyle = '#52525b';
   g.font = '500 28px Inter, system-ui, sans-serif';
-  g.fillText(t('Built in Pitch Legacy'), W / 2, 1290);
+  g.fillText(t('Built in Ultime Player'), W / 2, 1290);
   return new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('png'))), 'image/png'));
 }
 

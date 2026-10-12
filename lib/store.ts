@@ -46,6 +46,7 @@ import {
 import { clamp, uid } from './engine/rng';
 import { runBallonDor } from './engine/awards';
 import { sackChance } from './engine/discipline';
+import { AD_REWARD, adsLeft, bumpAds, type AdKind } from './ads';
 import { ordinalOf, translate as tr } from './i18n';
 import {
   applyDraw,
@@ -161,6 +162,8 @@ interface GameActions {
   grantLives: (n: number) => void;
   /** Adds a boost to the bag after a real-money purchase */
   grantBoost: (id: string) => Result;
+  /** An ad was watched to the end: 3 lives, or the boost `boostId`. Counts against the daily allowance. */
+  claimAdReward: (kind: AdKind, boostId?: string) => Result;
   ensureOffers: () => void;
   approach: (clubId: string) => Result;
   requestTransfer: () => Result;
@@ -674,6 +677,22 @@ export const useGameStore = create<GameStore>()(
         const have = player.boosts?.[id] ?? 0;
         if (have >= 9) return { ok: false, msg: tr('You can only carry 9 of each boost.') };
         set({ player: { ...player, boosts: { ...player.boosts, [id]: have + 1 } } });
+        return { ok: true, msg: tr('{name} added to your bag.', { name: tr(def.name) }) };
+      },
+
+      claimAdReward: (kind, boostId) => {
+        const { player } = get();
+        if (!player) return { ok: false, msg: tr('No active career.') };
+        if (adsLeft(player.adsToday, kind) <= 0) return { ok: false, msg: tr('No more ads for today: come back tomorrow.') };
+        if (kind === 'lives') {
+          set({ player: { ...player, energy: addPaidLives(player.energy, AD_REWARD.lives, Date.now()), adsToday: bumpAds(player.adsToday, 'lives') } });
+          return { ok: true, msg: tr('+{n} lives added!', { n: AD_REWARD.lives }) };
+        }
+        const def = boostId ? BOOST_BY_ID[boostId] : undefined;
+        if (!def || !boostId) return { ok: false, msg: tr('No active career.') };
+        const have = player.boosts?.[boostId] ?? 0;
+        if (have >= 9) return { ok: false, msg: tr('You can only carry 9 of each boost.') };
+        set({ player: { ...player, boosts: { ...player.boosts, [boostId]: have + 1 }, adsToday: bumpAds(player.adsToday, 'boost') } });
         return { ok: true, msg: tr('{name} added to your bag.', { name: tr(def.name) }) };
       },
 

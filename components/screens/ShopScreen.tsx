@@ -6,13 +6,14 @@ import { useState } from 'react';
 import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
+import { AdButton } from '@/components/ui/AdButton';
 import { WaitScreen } from '@/components/ui/WaitScreen';
 import { BOOSTS, boostPrice } from '@/lib/data/boosts';
 import { galaCost, levelOf, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost } from '@/lib/data/shop';
 import { fmtMoneyK } from '@/lib/engine/player';
 import { useBoostPurchase, useEnergy } from '@/lib/hooks';
 import { useLang, useT } from '@/lib/i18n';
-import { formatEur, getPaymentProvider, isTestPayments, LIFE_PACKS, paymentsAvailable, type LifePack } from '@/lib/payments';
+import { boostProduct, displayPrice, getPaymentProvider, isTestPayments, LIFE_PACKS, paymentsAvailable, type LifePack } from '@/lib/payments';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { cn, fmtCountdown } from '@/lib/utils';
@@ -45,7 +46,7 @@ export function ShopScreen() {
     if (r.ok) {
       grantLives(pack.lives);
       toast(t('+{n} lives added!', { n: pack.lives }), 'good');
-    } else {
+    } else if (r.error !== 'cancelled') {
       toast(t('Purchase unavailable right now.'), 'bad');
     }
   };
@@ -110,11 +111,12 @@ export function ShopScreen() {
                   <HeartPulse className="h-5 w-5 text-crimson-400" /> {pack.lives}
                 </div>
                 <div className="text-[11px] text-zinc-400">{t('lives')}</div>
-                <div className="mt-2 font-num text-lg font-bold text-gold-300">{formatEur(pack.priceEur, lang)}</div>
+                <div className="mt-2 font-num text-lg font-bold text-gold-300">{displayPrice(pack, lang)}</div>
                 {pack.id === 'lives_15' && <Chip tone="gold">{t('Best value')}</Chip>}
               </motion.button>
             ))}
           </div>
+          <AdButton kind="lives" />
           {!available && <p className="text-center text-[11px] text-zinc-500">{t('Life packs arrive with the App Store version.')}</p>}
           {isTestPayments() && <p className="text-center text-[11px] font-semibold text-gold-300">{t('Test mode: no real payment is made.')}</p>}
           <Button
@@ -161,7 +163,7 @@ export function ShopScreen() {
                     {fmtMoneyK(price)}
                   </Button>
                   <Button size="sm" variant="ghost" disabled={!available || owned >= 9 || boostBuy.busy !== null} onClick={() => void boostBuy.withEuros(b.id)}>
-                    {formatEur(b.priceEur, lang)}
+                    {displayPrice(boostProduct(b), lang)}
                   </Button>
                 </div>
               </div>

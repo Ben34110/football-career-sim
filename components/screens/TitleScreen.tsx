@@ -55,9 +55,12 @@ export function TitleScreen() {
           transition={{ delay: 0.15 }}
           className="font-display text-[64px] font-extrabold uppercase leading-[0.88] tracking-tight"
         >
-          <span className="block text-zinc-50">Pitch</span>
-          <span className="block bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent">Legacy</span>
+          <span className="block text-zinc-50">Ultime</span>
+          <span className="block bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent">Player</span>
         </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="mt-3 text-[13px] font-bold uppercase tracking-[0.14em] text-neon-300">
+          {t('Take control of your career')}
+        </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-4 max-w-[280px] text-sm leading-relaxed text-zinc-400">
           {t('From the lower leagues to World Nations Cup glory. Win the dressing room, own the press, step up when it matters.')}
         </motion.p>

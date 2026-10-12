@@ -1,4 +1,4 @@
-# Pitch Legacy — Football Career Simulation
+# Ultime Player — Prends le contrôle de ta carrière
 
 Mobile-first career sim built with Next.js 14 (App Router), TypeScript, Tailwind, Framer Motion, Lucide and Zustand (LocalStorage persistence).
 
@@ -28,3 +28,7 @@ npm run build && npm start
   - Apple requires In-App Purchase for digital consumables like these, takes a commission (15–30 %),
     and needs a privacy policy URL, an age rating and the price tiers configured in App Store Connect.
 - Everything runs in the browser (static pages + `localStorage`), so hosting costs no server CPU.
+
+## iPhone app
+
+The game also ships as an iPhone app (Capacitor + Xcode, with in-app purchases). See [IOS.md](IOS.md): `npm run ios`.

@@ -245,6 +245,17 @@ export const FR_UI: Record<string, string> = {
 
   '{club} stand by you: your performances earn you a last warning.': '{club} te soutient : tes performances t’épargnent, mais c’est le dernier avertissement.',
 
+  // rewarded ads
+  'Watch an ad · +{n} lives': 'Regarder une pub · +{n} vies',
+  'Watch an ad · get it free': 'Regarder une pub · l’obtenir gratuitement',
+  'Loading the ad…': 'Chargement de la pub…',
+  'Test ad': 'Pub de test',
+  'A real ad plays here in the app. Watch it to the end to earn the reward.': 'Une vraie pub passe ici dans l’app. Regarde-la jusqu’au bout pour gagner la récompense.',
+  Close: 'Fermer',
+  'No ad available right now. Try again in a moment.': 'Aucune pub disponible pour le moment. Réessaie dans un instant.',
+  'Watch the ad to the end to get the reward.': 'Regarde la pub jusqu’au bout pour obtenir la récompense.',
+  'No more ads for today: come back tomorrow.': 'Plus de pub pour aujourd’hui : reviens demain.',
+
   // waiting screens
   'Loading…': 'Chargement…',
   'Loading your career…': 'Chargement de ta carrière…',
@@ -428,7 +439,8 @@ export const FR_UI: Record<string, string> = {
   'Share my player card': 'Partager ma carte joueur',
   'Card saved as an image.': 'Carte enregistrée en image.',
   'Could not create the card.': 'Impossible de créer la carte.',
-  'Built in Pitch Legacy': 'Créé dans Pitch Legacy',
+  'Built in Ultime Player': 'Créé dans Ultime Player',
+  'Take control of your career': 'Prends le contrôle de ta carrière',
   '{name} — OVR {ovr} {pos}. Can you beat my career?': '{name} — OVR {ovr} {pos}. Peux-tu battre ma carrière ?',
 
   // mini-game intros

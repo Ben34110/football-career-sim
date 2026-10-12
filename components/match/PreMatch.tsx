@@ -3,6 +3,7 @@
 import { AlertTriangle, Heart, Home as HomeIcon, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { AdButton } from '@/components/ui/AdButton';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
@@ -140,10 +141,13 @@ export function PreMatch({
       )}
 
       {exhausted && (
-        <Link href="/shop" className="flex items-center justify-between rounded-xl border border-crimson-500/30 bg-crimson-500/10 px-3 py-2.5 text-xs font-semibold text-crimson-400 active:scale-[0.98]">
-          <span>{t('Out of lives? Get more in the shop.')}</span>
-          <Heart className="h-4 w-4 fill-current" />
-        </Link>
+        <div className="space-y-2">
+          <AdButton kind="lives" />
+          <Link href="/shop" className="flex items-center justify-between rounded-xl border border-crimson-500/30 bg-crimson-500/10 px-3 py-2.5 text-xs font-semibold text-crimson-400 active:scale-[0.98]">
+            <span>{t('Out of lives? Get more in the shop.')}</span>
+            <Heart className="h-4 w-4 fill-current" />
+          </Link>
+        </div>
       )}
 
       {/* The report on the opponent, then what to take into the match */}

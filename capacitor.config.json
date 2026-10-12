@@ -1,0 +1,18 @@
+{
+  "appId": "com.ben34110.pitchlegacy",
+  "appName": "Ultime Player",
+  "webDir": "out",
+  "backgroundColor": "#09090b",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#09090b",
+    "allowsLinkPreview": false,
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#09090b"
+    }
+  }
+}

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Check, Coins } from 'lucide-react';
 import { useState } from 'react';
+import { AdButton } from '@/components/ui/AdButton';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { GameIcon } from '@/components/ui/GameIcon';
@@ -12,7 +13,7 @@ import { BOOSTS, boostPrice, type BoostDef } from '@/lib/data/boosts';
 import { fmtMoneyK } from '@/lib/engine/player';
 import { useBoostPurchase } from '@/lib/hooks';
 import { useLang, useT } from '@/lib/i18n';
-import { formatEur, isTestPayments, paymentsAvailable } from '@/lib/payments';
+import { boostProduct, displayPrice, isTestPayments, paymentsAvailable } from '@/lib/payments';
 import { useGameStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
@@ -138,8 +139,9 @@ export function BoostPicker({ selected, onSelect, recommended }: { selected: str
                 disabled={full || !available || busy !== null}
                 onClick={async () => bought(buying, await withEuros(buying.id))}
               >
-                {t('Buy for {price}', { price: formatEur(buying.priceEur, lang) })}
+                {t('Buy for {price}', { price: displayPrice(boostProduct(buying), lang) })}
               </Button>
+              {!full && <AdButton kind="boost" boostId={buying.id} onDone={() => { setBuying(null); onSelect(buying.id); }} />}
               {!available && <p className="text-center text-[11px] text-zinc-500">{t('Real-money purchases arrive with the App Store version.')}</p>}
               {isTestPayments() && <p className="text-center text-[11px] font-semibold text-gold-300">{t('Test mode: no real payment is made.')}</p>}
               {full && <p className="text-center text-[11px] text-zinc-500">{t('You can only carry 9 of each boost.')}</p>}

@@ -79,7 +79,7 @@ export function Newspaper({
         kit,
         emotion: page.emotion,
         pose: page.pose,
-        footer: t("Built in Pitch Legacy"),
+        footer: t("Built in Ultime Player"),
       },
       t("{name} made the front page! Can you beat my career?", {
         name: String(vars.name),

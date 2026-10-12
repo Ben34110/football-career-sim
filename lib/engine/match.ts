@@ -314,10 +314,12 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   const manOpp = 0.4 ** redOpp * 1.8 ** redMe;
   const d = ctx.myStr - ctx.oppStr + 6 * (redOpp - redMe);
   const men = MENTALITY[m.mentality ?? 'balanced'];
-  const myRate = clamp(0.13 * ctx.myRateMul * men.my * chase(m) * manMe * Math.exp(d / 38 + m.momentum / 300), 0.03, 0.55);
+  const myRate = clamp(0.13 * ctx.myRateMul * men.my * chase(m) * manMe * Math.exp((d * men.gap) / 38 + m.momentum / 300), 0.03, 0.55);
   const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * manOpp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.03, 0.55);
-  const myConv = clamp(0.18 * men.myConv * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.06, 0.4);
-  const oppConv = clamp(0.22 * men.oppConv * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.06, 0.42);
+  const myConv = clamp(0.18 * men.myConv * Math.exp((d * men.gap) / 62) * (surging ? 0.85 : 1), 0.06, 0.4);
+  // the space left behind by an all-out attack is only dangerous against a side good enough to use it
+  const open = men.oppConv > 1 ? 1 + (men.oppConv - 1) * exposure(d) : men.oppConv;
+  const oppConv = clamp(0.22 * open * Math.exp((-d * men.gap) / 62) * (surging ? 1.35 : 1), 0.06, 0.42);
   const vars = { me: ctx.myTeam, opp: ctx.oppName };
 
   // My team attacks
@@ -606,12 +608,17 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
  *   chances are better (not more frequent); sitting deep shuts the door on them.
  * - `opp` is therefore always 1: you do not make them attack more or less.
  * - `share`: how much of your attack runs through the player.
+ * - `gap`: how much the difference in level counts. An open game lets quality decide: going all-out against a much weaker
+ *   side is a rout, against a much stronger one it is a hiding; sitting deep levels things out a little.
  */
-export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number; myConv: number; oppConv: number }> = {
-  attack: { my: 1.7, opp: 1, share: 1.2, myConv: 1.1, oppConv: 1.6 },
-  balanced: { my: 1, opp: 1, share: 1, myConv: 1, oppConv: 1 },
-  defend: { my: 0.6, opp: 1, share: 0.8, myConv: 0.9, oppConv: 0.65 },
+export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number; myConv: number; oppConv: number; gap: number }> = {
+  attack: { my: 1.7, opp: 1, share: 1.2, myConv: 1.1, oppConv: 1.6, gap: 1.6 },
+  balanced: { my: 1, opp: 1, share: 1, myConv: 1, oppConv: 1, gap: 1 },
+  defend: { my: 0.6, opp: 1, share: 0.8, myConv: 0.9, oppConv: 0.65, gap: 0.85 },
 };
+
+/** Against a much weaker side an open game costs you little; against a much stronger one it costs a lot. */
+const exposure = (d: number) => clamp(1 - d / 40, 0.4, 1.8);
 
 /** Pressing: an all-out attack gets sharper the further behind you are (up to three goals), because the whole team is chasing. */
 export const CHASE_PER_GOAL = 0.08;

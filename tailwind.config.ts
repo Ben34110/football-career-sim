@@ -28,11 +28,16 @@ const config: Config = {
           '100%': { transform: 'scale(1.6)', opacity: '0' },
         },
         floaty: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+        waitFade: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        loadbar: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(250%)' } },
       },
       animation: {
         shimmer: 'shimmer 2s infinite',
         pulseRing: 'pulseRing 1.6s ease-out infinite',
         floaty: 'floaty 3s ease-in-out infinite',
+        // appears only when the wait is not instant, so a quick load never flashes a splash
+        waitFade: 'waitFade 0.35s ease-out 0.25s both',
+        loadbar: 'loadbar 1.3s ease-in-out infinite',
       },
     },
   },

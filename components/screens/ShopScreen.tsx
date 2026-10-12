@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
+import { WaitScreen } from '@/components/ui/WaitScreen';
 import { BOOSTS, boostPrice } from '@/lib/data/boosts';
 import { galaCost, levelOf, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost } from '@/lib/data/shop';
 import { fmtMoneyK } from '@/lib/engine/player';
@@ -51,6 +52,7 @@ export function ShopScreen() {
 
   return (
     <div className="space-y-5">
+      {(busy !== null || boostBuy.busy !== null) && <WaitScreen variant="overlay" message="Processing your purchase…" />}
       <div>
         <div className="eyebrow">{t('Club shop')}</div>
         <h1 className="font-display text-4xl font-extrabold uppercase leading-none">{t('Shop')}</h1>

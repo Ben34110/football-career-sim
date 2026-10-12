@@ -1,7 +1,7 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/Toaster';
+import { WaitScreen } from '@/components/ui/WaitScreen';
 import { TrophyCelebration } from '@/components/celebration/TrophyCelebration';
 import { CallUpPopup } from './CallUpPopup';
 import { SigningCeremony } from './SigningCeremony';
@@ -20,9 +20,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         {hydrated ? (
           children
         ) : (
-          <div className="flex min-h-dvh items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-neon-400" />
-          </div>
+          <WaitScreen message="Loading your career…" />
         )}
       </div>
       <CallUpPopup />

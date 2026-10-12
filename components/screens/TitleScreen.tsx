@@ -6,6 +6,7 @@ import { ChevronRight, Play, Plus, Trophy, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Sheet } from '@/components/ui/Sheet';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
@@ -42,14 +43,10 @@ export function TitleScreen() {
           initial={{ scale: 0.6, opacity: 0, rotate: -40 }}
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 160, damping: 14 }}
-          className="relative mb-8 flex h-28 w-28 items-center justify-center rounded-full border border-neon-400/40 bg-gradient-to-b from-zinc-800 to-zinc-950 shadow-neon animate-floaty"
+          className="relative mb-6 flex h-36 w-36 items-center justify-center animate-floaty"
         >
           <span className="absolute inset-0 rounded-full border border-neon-400/40 animate-pulseRing" />
-          <svg viewBox="0 0 64 64" className="h-16 w-16" aria-hidden>
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#34d399" strokeWidth="2.5" />
-            <path d="M32 17l12 8.7-4.6 14.1H24.600L20 25.700z" fill="#f2c14e" />
-            <path d="M32 17V8M44 25.700l9-3M39.400 39.800l5.600 8M24.600 39.800l-5.600 8M20 25.700l-9-3" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
+          <Logo size={136} priority className="relative drop-shadow-[0_10px_28px_rgba(16,224,138,0.35)]" />
         </motion.div>
 
         <motion.h1

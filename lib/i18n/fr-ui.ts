@@ -243,6 +243,11 @@ export const FR_UI: Record<string, string> = {
   Profile: 'Profil',
   Boosts: 'Boosts',
 
+  // waiting screens
+  'Loading…': 'Chargement…',
+  'Loading your career…': 'Chargement de ta carrière…',
+  'Processing your purchase…': 'Achat en cours…',
+
   // boosts
   'Match-day boosts': 'Boosts de match',
   'Use one before kick-off. Small edge, one per match.': 'À utiliser avant le coup d’envoi. Petit avantage, un seul par match.',

@@ -1,9 +1,5 @@
-import { Loader2 } from 'lucide-react';
+import { WaitScreen } from '@/components/ui/WaitScreen';
 
 export default function Loading() {
-  return (
-    <div className="flex min-h-[50dvh] items-center justify-center" role="status" aria-label="Loading">
-      <Loader2 className="h-6 w-6 animate-spin text-neon-400" />
-    </div>
-  );
+  return <WaitScreen variant="compact" />;
 }

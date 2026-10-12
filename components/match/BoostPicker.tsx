@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { GameIcon } from '@/components/ui/GameIcon';
 import { Sheet } from '@/components/ui/Sheet';
+import { WaitScreen } from '@/components/ui/WaitScreen';
 import { BOOSTS, boostPrice, type BoostDef } from '@/lib/data/boosts';
 import { fmtMoneyK } from '@/lib/engine/player';
 import { useBoostPurchase } from '@/lib/hooks';
@@ -103,6 +104,8 @@ export function BoostPicker({ selected, onSelect, recommended }: { selected: str
           );
         })}
       </div>
+
+      {busy !== null && <WaitScreen variant="overlay" message="Processing your purchase…" />}
 
       <Sheet open={!!buying} dismissible onClose={() => setBuying(null)}>
         {buying && (

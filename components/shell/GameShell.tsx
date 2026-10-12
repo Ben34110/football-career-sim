@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { WaitScreen } from '@/components/ui/WaitScreen';
 import { useGameStore } from '@/lib/store';
 import { useUiStore } from '@/lib/ui';
 import { BottomNav } from './BottomNav';
@@ -17,7 +18,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
     if (!hasCareer) router.replace('/');
   }, [hasCareer, router]);
 
-  if (!hasCareer) return null;
+  if (!hasCareer) return <WaitScreen />;
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar />

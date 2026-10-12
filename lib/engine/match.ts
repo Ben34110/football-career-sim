@@ -314,7 +314,7 @@ export function tickMatch(input: MatchState, ctx: MatchCtx, rng: Rng): MatchStat
   const manOpp = 0.4 ** redOpp * 1.8 ** redMe;
   const d = ctx.myStr - ctx.oppStr + 6 * (redOpp - redMe);
   const men = MENTALITY[m.mentality ?? 'balanced'];
-  const myRate = clamp(0.13 * ctx.myRateMul * men.my * manMe * Math.exp(d / 38 + m.momentum / 300), 0.03, 0.55);
+  const myRate = clamp(0.13 * ctx.myRateMul * men.my * chase(m) * manMe * Math.exp(d / 38 + m.momentum / 300), 0.03, 0.55);
   const oppRate = clamp(0.19 * ctx.oppRateMul * men.opp * manOpp * (surging ? 1.7 : 1) * Math.exp(-d / 38 - m.momentum / 300), 0.03, 0.55);
   const myConv = clamp(0.18 * men.myConv * Math.exp(d / 62) * (surging ? 0.85 : 1), 0.06, 0.4);
   const oppConv = clamp(0.22 * men.oppConv * Math.exp(-d / 62) * (surging ? 1.35 : 1), 0.06, 0.42);
@@ -599,15 +599,23 @@ export function applyKick(m: MatchState, ctx: MatchCtx, kind: KickKind, result: 
 /* ───────────── Team mentality ───────────── */
 
 /**
- * What the team's approach does to the match. `my` and `opp` scale how often each side gets a chance, `myConv` and `oppConv`
- * how good those chances are: going all-out attack creates much more but leaves space behind (their counters are better),
- * defending shuts the game down but offers little up front.
+ * What the team's approach does to the match. The approach is about your own side only: it never changes how often the
+ * opposition attacks.
+ * - `my` and `myConv`: how often you create chances and how good they are.
+ * - `oppConv`: how dangerous the chances the opposition does get are. Going all-out attack leaves space behind, so their
+ *   chances are better (not more frequent); sitting deep shuts the door on them.
+ * - `opp` is therefore always 1: you do not make them attack more or less.
+ * - `share`: how much of your attack runs through the player.
  */
 export const MENTALITY: Record<Mentality, { my: number; opp: number; share: number; myConv: number; oppConv: number }> = {
-  attack: { my: 1.4, opp: 1.5, share: 1.2, myConv: 1.05, oppConv: 1.2 },
+  attack: { my: 1.7, opp: 1, share: 1.2, myConv: 1.1, oppConv: 1.6 },
   balanced: { my: 1, opp: 1, share: 1, myConv: 1, oppConv: 1 },
-  defend: { my: 0.55, opp: 0.56, share: 0.8, myConv: 0.88, oppConv: 0.88 },
+  defend: { my: 0.6, opp: 1, share: 0.8, myConv: 0.9, oppConv: 0.65 },
 };
+
+/** Pressing: an all-out attack gets sharper the further behind you are (up to three goals), because the whole team is chasing. */
+export const CHASE_PER_GOAL = 0.08;
+const chase = (m: MatchState) => ((m.mentality ?? 'balanced') === 'attack' ? 1 + CHASE_PER_GOAL * clamp(m.oppScore - m.myScore, 0, 3) : 1);
 
 /** Switch the team's approach: it stays until you change it again. */
 export function setMentality(m: MatchState, ctx: MatchCtx, mode: Mentality): MatchState {

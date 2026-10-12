@@ -4,6 +4,6 @@
  * and put the app id in ios/App/App/Info.plist (GADApplicationIdentifier) too.
  */
 export const ADMOB = {
-  rewardedUnitId: 'ca-app-pub-3940256099942544/1712485313',
+  rewardedUnitId: 'ca-app-pub-2564539089720466~2423151141',
   testing: true,
 };

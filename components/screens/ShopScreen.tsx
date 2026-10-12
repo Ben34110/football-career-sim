@@ -93,7 +93,7 @@ export function ShopScreen() {
       <div>
         <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Lives')}</SectionTitle>
         <Card className="space-y-3 p-4">
-          <p className="text-xs leading-snug text-zinc-400">{t('Each match costs one life. You get one back every 2 minutes (up to 5). Need more now?')}</p>
+          <p className="text-xs leading-snug text-zinc-400">{t('Each match costs one life. You get one back every 3 minutes (up to 5). Need more now?')}</p>
           {bolts < 5 && msToNext > 0 && <p className="text-xs font-semibold text-zinc-300">{t('Next life in {time}', { time: fmtCountdown(msToNext) })}</p>}
           <div className="grid grid-cols-2 gap-2.5">
             {LIFE_PACKS.map((pack) => (

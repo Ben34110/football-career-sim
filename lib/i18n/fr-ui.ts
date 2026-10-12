@@ -393,7 +393,7 @@ export const FR_UI: Record<string, string> = {
   'Best value': 'Meilleur prix',
   'Out of lives? Get more in the shop.': 'Plus de vies ? Prends-en dans la boutique.',
   'You earn money every match. Spend it on lasting upgrades.': 'Tu gagnes de l’argent à chaque match. Dépense-le dans des améliorations durables.',
-  'Each match costs one life. You get one back every 2 minutes (up to 5). Need more now?': 'Chaque match coûte une vie. Tu en récupères une toutes les 2 minutes (jusqu’à 5). Besoin de plus tout de suite ?',
+  'Each match costs one life. You get one back every 3 minutes (up to 5). Need more now?': 'Chaque match coûte une vie. Tu en récupères une toutes les 3 minutes (jusqu’à 5). Besoin de plus tout de suite ?',
   'Next life in {time}': 'Prochaine vie dans {time}',
   '+{n} lives added!': '+{n} vies ajoutées !',
   'Purchase unavailable right now.': 'Achat indisponible pour le moment.',

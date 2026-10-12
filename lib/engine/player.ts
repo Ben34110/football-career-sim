@@ -19,7 +19,7 @@ export const REP_KEYS: RepKey[] = ['coachTrust', 'fanPopularity', 'lockerRoom', 
 export const MAX_BOLTS = 5;
 /** Lives bought with real money can stack above the regenerating five */
 export const MAX_PAID_LIVES = 25;
-export const REGEN_MS = 2 * 60 * 1000;
+export const REGEN_MS = 3 * 60 * 1000;
 export type NationalLevel = 'A' | 'U23' | 'U20';
 /** How much weaker the national side is at each level (youth teams are not full strength). */
 export const LEVEL_STRENGTH: Record<NationalLevel, number> = { A: 0, U23: -4, U20: -8 };

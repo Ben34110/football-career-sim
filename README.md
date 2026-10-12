@@ -17,7 +17,7 @@ npm run build && npm start
 
 ## Lives, shop and the App Store
 
-- **Lives** regenerate one every 2 minutes (up to 5). A match costs one life.
+- **Lives** regenerate one every 3 minutes (up to 5). A match costs one life.
 - **Money** (earned every match) buys lasting upgrades in `/shop`: personal coach (more performance XP),
   nutritionist (less fatigue), media advisor (fewer scandals), agent (better contracts) and a yearly charity gala.
   Attributes themselves only grow through performance on the pitch — never through purchases.

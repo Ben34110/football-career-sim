@@ -1,3 +1,4 @@
+import { nationKit } from '../data/celebrations';
 import { NATIONALITIES } from '../data/nationalities';
 import type { DrawCandidate, Fixture, FixtureResult, Nationality, TableRow, TournamentState, TournamentTeam, TournamentTie } from '../types';
 import { GROUP_SCHEDULE, scoreOf, simulateScore, type OtherGame } from './livefeed';
@@ -72,7 +73,7 @@ export function createTournament(name: string, me: Nationality, level: NationalL
   const teams: Record<string, TournamentTeam> = {};
   const strengthOf = (n: Nationality) => clamp(Math.round(n.strength + LEVEL_STRENGTH[level] + rand(-2, 2, rng)), 50, 95);
   // your own side is exactly the strength the match screen shows: no random shift
-  teams[me.name] = { name: me.name, short: `${me.flag} ${me.code}`, strength: clamp(Math.round(me.strength + LEVEL_STRENGTH[level]), 50, 95) };
+  teams[me.name] = { name: me.name, short: `${me.flag} ${me.code}`, color: nationKit(me.code), strength: clamp(Math.round(me.strength + LEVEL_STRENGTH[level]), 50, 95) };
   // the strongest nations usually qualify, with the odd surprise; guests only fill the empty places
   const { core, guests } = tournamentField(name, me);
   const noisy = core
@@ -80,7 +81,7 @@ export function createTournament(name: string, me: Nationality, level: NationalL
     .sort((a, b) => b.k - a.k)
     .map(({ n }) => n);
   const others = [...noisy.slice(0, 15), ...guests].slice(0, 15);
-  others.forEach((n) => (teams[n.name] = { name: n.name, short: `${n.flag} ${n.code}`, strength: strengthOf(n) }));
+  others.forEach((n) => (teams[n.name] = { name: n.name, short: `${n.flag} ${n.code}`, color: nationKit(n.code), strength: strengthOf(n) }));
   const { pots, drawPots, potOrder } = seedPots(teams, me.name, rng);
 
   const tourney: TournamentState = { level, teams, me: me.name, pots, drawPots, potOrder, drawn: false, groups: [], myGroup: 0, rounds: [] };

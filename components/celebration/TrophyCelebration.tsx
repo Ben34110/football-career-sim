@@ -41,7 +41,7 @@ const ROW_B = [
 const Teammate = memo(function Teammate({ look, kit, height, delay, badge }: { look: Look; kit: string; height: number; delay: number; badge?: { short: string; color: string } }) {
   return (
     // the bounce is a CSS animation on its own compositor layer: the (filtered) drawing is rasterised once, then only moved
-    <div className="cheer" style={{ animationDelay: `${delay}s` }}>
+    <div className="cheer" style={{ animationDelay: `${delay}s`, animationDuration: `${(0.56 + ((delay * 1.7) % 0.26)).toFixed(2)}s` }}>
       <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} badge={badge} />
     </div>
   );
@@ -71,7 +71,8 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
   }, []);
 
   const heroH = Math.round(Math.max(250, Math.min(vh * 0.37, 380)));
-  const stageH = 112;
+  // tall enough that the team name sits above the Continue button, which covers the bottom of the screen
+  const stageH = 192;
   // seeded, so the squad is the same on every render
   const squad = useMemo(() => {
     const r = (() => {
@@ -145,7 +146,7 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
             animate={{ y: 0, opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
           >
-            <div className={lifted ? 'cheer' : undefined}>
+            <div className={lifted ? 'cheer' : 'idle-sway'}>
               <MomentScene look={look} kit={event.kit} pose={phase >= 1 ? 'trophy' : 'arms'} expression="cheer" height={heroH} hideTrophy badge={event.badge} />
             </div>
             {/* the trophy comes down from the sky into your hands */}

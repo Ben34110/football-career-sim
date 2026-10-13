@@ -32,6 +32,7 @@ import type { Fixture, FixtureResult, MatchState, SeasonState } from '@/lib/type
 import { CupDraw } from './CupDraw';
 import { GroupDraw } from './GroupDraw';
 import { tournamentShort } from '@/lib/data/competitions';
+import { nationKit } from '@/lib/data/celebrations';
 import { LiveMatch, type LiveBoard, type TeamBadge } from './LiveMatch';
 import { MatchSummary, type ExpectationOutcome, type Snapshot } from './MatchSummary';
 import { PreMatch } from './PreMatch';
@@ -51,9 +52,10 @@ function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: Other
       table: fixture.knockout ? null : tr.groups[tr.myGroup],
       games,
       opponent: fixture.opponent.replace(/ (U20|U23)$/, ''),
-      heading: fixture.knockout ? name : t('Group {l}', { l: 'ABCD'[tr.myGroup] }),
+      // the competition is named once (under the title); the title says which round, the list below just says "elsewhere"
+      heading: fixture.knockout ? t(fixture.label) : t('Group {l}', { l: 'ABCD'[tr.myGroup] }),
       subtitle: name,
-      gamesTitle: `${name} · ${t('Elsewhere right now')}`,
+      gamesTitle: t('Elsewhere right now'),
     };
   }
   const table =
@@ -125,7 +127,7 @@ export function MatchScreen() {
     const nat = getNationality(player.nationality);
     const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
     const me: TeamBadge = national
-      ? { name: `${t(nat.name)}${fixture.level ? ' ' + fixture.level : ''}`, short: nat.flag, color: '#fbbf24' }
+      ? { name: `${t(nat.name)}${fixture.level ? ' ' + fixture.level : ''}`, short: nat.flag, color: nationKit(nat.code) }
       : { name: club?.name ?? t('Free agent'), short: club?.short ?? 'FA', color: club?.color ?? '#a1a1aa' };
     const opp: TeamBadge = { name: t(fixture.opponent), short: crestFace(fixture.opponentShort), color: fixture.opponentColor };
     const strength = national ? nat.strength + LEVEL_STRENGTH[fixture.level ?? 'A'] : club?.strength ?? 55;

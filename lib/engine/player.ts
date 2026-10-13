@@ -20,7 +20,7 @@ export const MAX_BOLTS = 5;
 export const REGEN_MS = 3 * 60 * 1000;
 export type NationalLevel = 'A' | 'U23' | 'U20';
 /** How much weaker the national side is at each level (youth teams are not full strength). */
-export const LEVEL_STRENGTH: Record<NationalLevel, number> = { A: 0, U23: -4, U20: -8 };
+export const LEVEL_STRENGTH: Record<NationalLevel, number> = { A: 0, U23: -7, U20: -13 };
 
 /**
  * The national side you can be picked for, by age alone: U20 up to 20, U23 up to 23, then the senior team.

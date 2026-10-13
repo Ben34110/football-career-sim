@@ -151,6 +151,19 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
     setMini(null);
   };
 
+  // the position and points above the crests follow the live table: they change with every goal, here and elsewhere
+  const liveRank = useMemo(() => {
+    if (!board.table) return null;
+    const rows = sortTable(liveTable(board.table, board.opponent, m.myScore, m.oppScore, board.games, m.minute));
+    const pts = t('Pts').toLowerCase();
+    const at = (pred: (r: (typeof rows)[number]) => boolean) => {
+      const i = rows.findIndex(pred);
+      return i >= 0 ? `#${i + 1} · ${rows[i].pts} ${pts}` : undefined;
+    };
+    return { me: at((r) => !!r.isMe), opp: at((r) => r.name === board.opponent) };
+  }, [board.table, board.opponent, board.games, m.myScore, m.oppScore, m.minute, t]);
+  const meShown = liveRank?.me ? { ...me, rank: liveRank.me } : me;
+  const oppShown = liveRank?.opp ? { ...opp, rank: liveRank.opp } : opp;
   const homeBadge = meHome ? me : opp;
   const awayBadge = meHome ? opp : me;
   const homeScore = meHome ? m.myScore : m.oppScore;
@@ -190,7 +203,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
           </span>
         </div>
         <div className="relative flex items-center justify-between">
-          <TeamSide badge={meHome ? me : opp} you={meHome} reds={meHome ? m.redsMe : m.redsOpp} />
+          <TeamSide badge={meHome ? meShown : oppShown} you={meHome} reds={meHome ? m.redsMe : m.redsOpp} />
           <div className="text-center">
             <div className="font-num text-[44px] font-extrabold leading-none tracking-tight">
               <motion.span key={`h${homeScore}`} initial={{ scale: 1.6, color: meHome ? '#6ee7b7' : '#fb4b5e' }} animate={{ scale: 1, color: '#fafafa' }} transition={{ duration: 0.9 }} className="inline-block">
@@ -206,7 +219,7 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
               {finished ? t('FULL TIME') : `${m.minute}'`}
             </div>
           </div>
-          <TeamSide badge={meHome ? opp : me} you={!meHome} reds={meHome ? m.redsOpp : m.redsMe} />
+          <TeamSide badge={meHome ? oppShown : meShown} you={!meHome} reds={meHome ? m.redsOpp : m.redsMe} />
         </div>
 
         {/* Timeline (clutch moments stay a surprise) */}

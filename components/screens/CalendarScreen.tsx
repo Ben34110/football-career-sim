@@ -10,7 +10,7 @@ import { Crest } from '@/components/ui/Crest';
 import { getClub } from '@/lib/data/clubs';
 import { challengeCup, continentOf, eliteCup } from '@/lib/data/continental';
 import { getNationality, nationalTournament } from '@/lib/data/nationalities';
-import { nationalLevel, nextNationalGoal, ovrOf, seasonLabel } from '@/lib/engine/player';
+import { callUpNeed, nationalLevel, nextNationalGoal, ovrOf, seasonLabel } from '@/lib/engine/player';
 import { selectionChance } from '@/lib/engine/selection';
 import { deriveEuroTable, seasonZones, sortTable } from '@/lib/engine/season';
 import { fixtureDate, fmtShortDate } from '@/lib/dates';
@@ -40,7 +40,12 @@ export function CalendarScreen() {
   // the coach picks the best: your chance this window, from your level, your form and your numbers
   const chance = selectionChance({ level, stage: 'window', ovr, natStrength: nat.strength, form: player.form, contributions: (season?.stats.goals ?? 0) + (season?.stats.assists ?? 0), apps: season?.stats.apps ?? 0, omittedBefore: !!season?.callUpOmitted });
   const caps = (player.national?.caps ?? 0) + (player.national?.youthCaps ?? 0);
-  const called = !!season && ((season.callUpQueued && !season.callUpOmitted) || (season.tournamentQueued && !season.tournamentOmitted && !season.tournamentFailed)) || caps > 0;
+  // each side has its own bar: moving up from U20 to U23, or to the senior team, starts a fresh one
+  const need = callUpNeed(level ?? 'A', nat.strength);
+  const barFloor = level === 'A' ? callUpNeed('U23', nat.strength) : level === 'U23' ? callUpNeed('U20', nat.strength) : 55;
+  const goodEnough = ovr >= need;
+  // caps won with a lower side do not make you a regular of the next one
+  const called = !!season && ((season.callUpQueued && !season.callUpOmitted) || (season.tournamentQueued && !season.tournamentOmitted && !season.tournamentFailed)) || (caps > 0 && goodEnough);
   const teamName = `${t(nat.name)}${level && level !== 'A' ? ' ' + level : ''}`;
   const nextTournament = nationalTournament(level ?? 'A', year + 1, nat, player.age, ovr);
   const upcoming = [1, 2, 3, 4, 5]
@@ -92,7 +97,7 @@ export function CalendarScreen() {
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-              <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200" animate={{ width: `${Math.min(100, ((ovr - 55) / (goal.ovr - 55)) * 100)}%` }} />
+              <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200" animate={{ width: `${Math.max(0, Math.min(100, ((ovr - barFloor) / Math.max(1, goal.ovr - barFloor)) * 100))}%` }} />
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { CLUBS, COUNTRY_RIVALS, getClub, getClubBoost, LEAGUE_RIVALS, LOCAL_RIVALS, setClubYear } from '../data/clubs';
 import { challengeCup, continentOf, eliteCup, isElite, isWorldClubLabel, localComp, REGION, WORLD_CLUB_CUP } from '../data/continental';
+import { nationKit } from '../data/celebrations';
 import { NATIONS_LEAGUE, nationalTournament, OPPONENT_NATIONS } from '../data/nationalities';
 import type {
   Club,
@@ -726,7 +727,7 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
     opponent: level === 'A' ? opp.name : `${opp.name} ${level}`,
     opponentShort: `${opp.flag} ${opp.code}`,
     opponentStrength: clamp(Math.round(opp.strength + LEVEL_STRENGTH[level] + boost + rand(-2, 2, rng)), 50, 95),
-    opponentColor: '#fbbf24',
+    opponentColor: nationKit(opp.code),
     home: rng() < 0.5,
     knockout,
     status: 'upcoming',

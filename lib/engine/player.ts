@@ -17,8 +17,6 @@ export const ATTR_KEYS: AttrKey[] = ['finishing', 'composure', 'vision', 'stamin
 export const REP_KEYS: RepKey[] = ['coachTrust', 'fanPopularity', 'lockerRoom', 'mediaHeat'];
 
 export const MAX_BOLTS = 5;
-/** Lives bought with real money can stack above the regenerating five */
-export const MAX_PAID_LIVES = 25;
 export const REGEN_MS = 3 * 60 * 1000;
 export type NationalLevel = 'A' | 'U23' | 'U20';
 /** How much weaker the national side is at each level (youth teams are not full strength). */
@@ -138,7 +136,8 @@ export const seasonLabel = (year: number) => `${year}/${String((year + 1) % 100)
 /* ───────── Energy (5 bolts) ───────── */
 
 export function syncEnergy(e: EnergyState, now: number): EnergyState {
-  if (e.bolts >= MAX_BOLTS) return { bolts: e.bolts, at: now };
+  // never more than five lives, whatever an older save holds
+  if (e.bolts >= MAX_BOLTS) return { bolts: MAX_BOLTS, at: now };
   const gained = Math.floor((now - e.at) / REGEN_MS);
   if (gained <= 0) return e;
   const bolts = Math.min(MAX_BOLTS, e.bolts + gained);
@@ -154,10 +153,11 @@ export function spendBolts(e: EnergyState, n: number, now: number): EnergyState 
   return { bolts: s.bolts - n, at: s.bolts >= MAX_BOLTS ? now : s.at };
 }
 
-/** Lives added through a purchase. */
-export function addPaidLives(e: EnergyState, n: number, now: number): EnergyState {
+/** Lives given by a reward (a watched ad): never above the five lives. */
+export function addLives(e: EnergyState, n: number, now: number): EnergyState {
   const s = syncEnergy(e, now);
-  return { bolts: Math.min(MAX_PAID_LIVES, s.bolts + n), at: s.bolts >= MAX_BOLTS ? now : s.at };
+  const bolts = Math.min(MAX_BOLTS, s.bolts + n);
+  return { bolts, at: bolts >= MAX_BOLTS ? now : s.at };
 }
 
 export function msToNextBolt(e: EnergyState, now: number): number {

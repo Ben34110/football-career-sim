@@ -945,4 +945,5 @@ export const FR_UI: Record<string, string> = {
   'A rival has just scored in the Golden Star race. And you?': 'Un rival vient de marquer dans la course à l’Étoile d’Or. Et toi ?',
   '{goals} goals this season: that deserves better than a touchline.': '{goals} buts cette saison : ça mérite mieux qu’un banc de touche.',
   'Other clubs': 'Autres clubs',
+  'Your lives are already full.': 'Tes vies sont déjà au complet.',
 };

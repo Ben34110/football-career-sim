@@ -32,7 +32,8 @@ import {
   rebalanceCostPerPoint,
   createPlayer,
   fmtMoneyK,
-  addPaidLives,
+  addLives,
+  MAX_BOLTS,
   gainMatchXp,
   ovrOf,
   seasonDevelopment,
@@ -677,8 +678,12 @@ export const useGameStore = create<GameStore>()(
         if (!player) return { ok: false, msg: tr('No active career.') };
         if (adsLeft(player.adsToday, kind) <= 0) return { ok: false, msg: tr('No more ads for today: come back tomorrow.') };
         if (kind === 'lives') {
-          set({ player: { ...player, energy: addPaidLives(player.energy, AD_REWARD.lives, Date.now()), adsToday: bumpAds(player.adsToday, 'lives') } });
-          return { ok: true, msg: tr('+{n} lives added!', { n: AD_REWARD.lives }) };
+          const now = Date.now();
+          const before = syncEnergy(player.energy, now).bolts;
+          if (before >= MAX_BOLTS) return { ok: false, msg: tr('Your lives are already full.') };
+          const energy = addLives(player.energy, AD_REWARD.lives, now);
+          set({ player: { ...player, energy, adsToday: bumpAds(player.adsToday, 'lives') } });
+          return { ok: true, msg: tr('+{n} lives added!', { n: energy.bolts - before }) };
         }
         const def = boostId ? BOOST_BY_ID[boostId] : undefined;
         if (!def || !boostId) return { ok: false, msg: tr('No active career.') };

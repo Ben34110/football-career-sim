@@ -3,43 +3,43 @@
   "nonRenewingSubscriptions": [],
   "products": [
     {
-      "displayPrice": "1.49",
+      "displayPrice": "3.99",
       "familyShareable": false,
-      "internalID": "6740000000",
+      "internalID": "6741000000",
       "localizations": [
         {
-          "description": "Five extra lives",
-          "displayName": "5 lives",
+          "description": "Unlimited lives for 3 hours",
+          "displayName": "Unlimited lives · 3 h",
           "locale": "en_US"
         },
         {
-          "description": "Cinq vies en plus",
-          "displayName": "5 vies",
+          "description": "Vies illimitées pendant 3 heures",
+          "displayName": "Vies illimitées · 3 h",
           "locale": "fr"
         }
       ],
-      "productID": "com.ben34110.pitchlegacy.lives_5",
-      "referenceName": "5 lives",
+      "productID": "com.ben34110.pitchlegacy.unlimited_3h",
+      "referenceName": "Unlimited lives · 3 h",
       "type": "Consumable"
     },
     {
-      "displayPrice": "3.99",
+      "displayPrice": "4.99",
       "familyShareable": false,
-      "internalID": "6740000007",
+      "internalID": "6741000011",
       "localizations": [
         {
-          "description": "Fifteen extra lives",
-          "displayName": "15 lives",
+          "description": "Unlimited lives for 24 hours",
+          "displayName": "Unlimited lives · 24 h",
           "locale": "en_US"
         },
         {
-          "description": "Quinze vies en plus",
-          "displayName": "15 vies",
+          "description": "Vies illimitées pendant 24 heures",
+          "displayName": "Vies illimitées · 24 h",
           "locale": "fr"
         }
       ],
-      "productID": "com.ben34110.pitchlegacy.lives_15",
-      "referenceName": "15 lives",
+      "productID": "com.ben34110.pitchlegacy.unlimited_24h",
+      "referenceName": "Unlimited lives · 24 h",
       "type": "Consumable"
     },
     {

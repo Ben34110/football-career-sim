@@ -246,7 +246,7 @@ export async function buildPaperImage(p: PaperImage): Promise<Blob> {
 
 export async function sharePaper(p: PaperImage, text: string): Promise<ShareResult> {
   try {
-    return await shareImage(await buildPaperImage(p), 'pitch-legacy-front-page.png', text);
+    return await shareImage(await buildPaperImage(p), 'ultime-player-front-page.png', text);
   } catch {
     return 'failed';
   }

@@ -22,9 +22,9 @@ npm run ios        # exports the game, copies it into ios/, opens Xcode
 3. Pick a simulator or your iPhone and press **Run**.
 
 ## Testing purchases without App Store Connect
-The shared scheme already points to `ios/App/PitchLegacy.storekit` (6 consumables: `lives_5`, `lives_15`,
+The shared scheme already points to `ios/App/PitchLegacy.storekit` (6 consumables: `unlimited_3h`, `unlimited_24h`,
 `boost_attack`, `boost_mental`, `boost_defence`, `boost_general`, all behind the bundle prefix). Run from Xcode and the
-shop, the boost picker and the life packs go through real StoreKit with fake money. Transactions can be inspected and
+shop, the boost picker and the unlimited-lives passes go through real StoreKit with fake money. Transactions can be inspected and
 refunded in **Debug → StoreKit → Manage Transactions**.
 If the scheme's StoreKit file is lost: **Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration**.
 

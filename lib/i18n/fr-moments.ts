@@ -38,6 +38,7 @@ export const FR_MOMENTS: Record<string, string> = {
   'Close him down': 'Le fermer',
   'Force a mistake': 'Provoquer l’erreur',
   'Hold your run': 'Retenir ta course',
+  'Let the ball come to you': 'Laisse le ballon venir à toi',
   'Let a teammate arrive': 'Laisser un partenaire arriver',
   'Break the line': 'Casser la ligne',
   'Go early and trust the pass': 'Partir tôt et faire confiance à la passe',

@@ -56,7 +56,9 @@
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-2564539089720466~2423151141</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ultime Player saves your player card and front pages to your photos when you choose Save Image.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Your data is used to show you ads that are more relevant to you. You can say no and still play and watch ads.</string>
 	<key>SKAdNetworkItems</key>

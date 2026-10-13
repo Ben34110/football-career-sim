@@ -145,17 +145,13 @@ export function syncEnergy(e: EnergyState, now: number): EnergyState {
   return bolts >= MAX_BOLTS ? { bolts, at: now } : { bolts, at: e.at + gained * REGEN_MS };
 }
 
+/** Milliseconds of unlimited lives left (0 when there is none). */
+export const unlimitedMsLeft = (p: { unlimitedUntil?: number }, now: number) => Math.max(0, (p.unlimitedUntil ?? 0) - now);
+
 export function spendBolts(e: EnergyState, n: number, now: number): EnergyState | null {
   const s = syncEnergy(e, now);
   if (s.bolts < n) return null;
   return { bolts: s.bolts - n, at: s.bolts >= MAX_BOLTS ? now : s.at };
-}
-
-export function gainBolts(e: EnergyState, n: number, now: number): EnergyState {
-  const s = syncEnergy(e, now);
-  // the clinic refills the regenerating lives only; bought lives are never reduced
-  const bolts = Math.max(s.bolts, Math.min(MAX_BOLTS, s.bolts + n));
-  return { bolts, at: bolts >= MAX_BOLTS ? now : s.at };
 }
 
 /** Lives added through a purchase. */

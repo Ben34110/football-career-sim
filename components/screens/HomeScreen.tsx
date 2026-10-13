@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Briefcase, ChevronRight, HeartPulse, Newspaper, Play, Trophy, Zap } from 'lucide-react';
+import { Briefcase, ChevronRight, Newspaper, Play, Trophy, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { AttributeBars, RepBars } from '@/components/ui/Bars';
@@ -40,9 +40,8 @@ export function HomeScreen() {
   const phase = useGameStore((s) => s.phase);
   const year = useGameStore((s) => s.year);
   const news = useGameStore((s) => s.news);
-  const physio = useGameStore((s) => s.physio);
   const offers = useGameStore((s) => s.offers);
-  const { bolts, msToNext } = useEnergy();
+  const { bolts, msToNext, unlimitedMs } = useEnergy();
   // a trophy won earlier (season end) is celebrated as soon as you are back on the home screen
   useEffect(() => {
     useUiStore.getState().releaseCelebrations();
@@ -92,7 +91,7 @@ export function HomeScreen() {
       {/* Next fixture */}
       {fixture && (
         <div>
-          <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Next fixture')}</SectionTitle>
+          <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} unlimitedMs={unlimitedMs} showTimer size="sm" />}>{t('Next fixture')}</SectionTitle>
           <Card strong className="overflow-hidden p-4">
             <div className="flex items-center justify-between">
               <Chip tone={fixture.kind === 'league' ? 'neutral' : 'gold'}>{fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : t(fixture.kind === 'league' ? 'League' : fixture.kind === 'cup' ? 'Cup' : fixture.kind === 'euro' ? 'Europe' : 'International')}</Chip>
@@ -137,20 +136,9 @@ export function HomeScreen() {
       {/* your role in the squad, under the match button so it never pushes it down */}
       <SquadStatusCard compact />
 
-      {/* Recovery: money buys lives back; attributes only grow by playing well */}
+      {/* attributes only grow by playing well */}
       {season && phase === 'playing' && (
-        <Card className="space-y-2.5 p-3.5">
-          <Button
-            block
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const r = physio();
-              toast(r.msg, r.ok ? 'good' : 'bad');
-            }}
-          >
-            <HeartPulse className="h-4 w-4 text-crimson-400" /> {t('Recovery clinic · +2 lives')} ({fmtMoneyK((player.contract?.wage ?? 0) * 3)})
-          </Button>
+        <Card className="p-3.5">
           <p className="px-1 text-[11px] leading-snug text-zinc-500">{t('Your attributes grow by playing well: goals, assists, high ratings and winning decisions.')}</p>
         </Card>
       )}

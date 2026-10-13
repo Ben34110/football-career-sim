@@ -248,12 +248,17 @@ export function generateSeason(year: number, club: Club, rng: Rng, opts: SeasonO
   // The opponent of each round is only known after the draw: four balls, four possible clubs
   const cupSource = local ? pool : shuffle(LEAGUE_RIVALS[clamp(tier - 1, 1, 5) as 1 | 2 | 3 | 4 | 5], rng);
   const usedCup = new Set<string>();
+  // clubs you do not meet in the league come first in the draw, and the club you have just played is never in the balls
+  // (the cup rounds follow league matchdays 3, 6 and 9)
+  const leagueSet = new Set(names);
+  const cupOrder = [...cupSource.filter((n) => !leagueSet.has(n)), ...cupSource.filter((n) => leagueSet.has(n))];
+  const justPlayed = [names[2], names[5], names[8]];
   const cup: Fixture[] = cupLabels.map((label, i) => {
     const names: string[] = [];
-    for (const n of cupSource) {
+    for (const n of cupOrder) {
       // quarter-final: four balls; semi-final: three clubs left; the final is decided by the other semi
       if (names.length === (i === 1 ? 3 : i === 2 ? 1 : 4)) break;
-      if (!usedCup.has(n)) names.push(n);
+      if (!usedCup.has(n) && n !== justPlayed[i]) names.push(n);
     }
     names.forEach((n) => usedCup.add(n));
     const spread = shuffle([-5, -1, 2, 6], rng);

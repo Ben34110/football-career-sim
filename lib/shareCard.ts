@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import type { Expression } from '@/components/ui/HeadAvatar';
 import { getClub } from './data/clubs';
 import { flagUrl } from './flags';
@@ -176,6 +177,24 @@ export type ShareResult = 'shared' | 'downloaded' | 'cancelled' | 'failed';
 /** Opens the native share sheet with an image (phones), or saves it (desktop). */
 export async function shareImage(blob: Blob, filename: string, text: string): Promise<ShareResult> {
   try {
+    // inside the iPhone app the web download does nothing: hand the picture to the system share sheet instead
+    // (it has "Save Image" for the gallery, plus messages and social apps)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const [{ Filesystem, Directory }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')]);
+        const data = await new Promise<string>((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(String(r.result).split(',')[1] ?? '');
+          r.onerror = () => rej(r.error);
+          r.readAsDataURL(blob);
+        });
+        const { uri } = await Filesystem.writeFile({ path: filename, data, directory: Directory.Cache });
+        await Share.share({ title: 'Ultime Player', text, files: [uri], dialogTitle: 'Ultime Player' });
+        return 'shared';
+      } catch (e) {
+        return /cancel/i.test(e instanceof Error ? e.message : String(e)) ? 'cancelled' : 'failed';
+      }
+    }
     const file = new File([blob], filename, { type: 'image/png' });
     if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
       try {

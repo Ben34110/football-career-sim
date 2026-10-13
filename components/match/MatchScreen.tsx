@@ -18,7 +18,7 @@ import { buildScouting } from '@/lib/data/scouting';
 import { EXPECTATION_TARGET, expectationEffect } from '@/lib/data/speeches';
 import { repetition, scaleStance } from '@/lib/data/talks';
 import { buildCtx, buildResult, startsOnBench, type MatchCtx } from '@/lib/engine/match';
-import { LEVEL_STRENGTH, ovrOf, syncEnergy } from '@/lib/engine/player';
+import { LEVEL_STRENGTH, ovrOf } from '@/lib/engine/player';
 import { buildOtherGames, type OtherGame } from '@/lib/engine/livefeed';
 import { currentFixture, deriveEuroTable, leaguePosition } from '@/lib/engine/season';
 import { useEnergy } from '@/lib/hooks';
@@ -167,7 +167,6 @@ export function MatchScreen() {
   const kickoff = (rawStance: RitualOption, usedRitual: Ritual, boostId: string | null) => {
     const store = useGameStore.getState();
     const p0 = store.player!;
-    const boltsBefore = syncEnergy(p0.energy, Date.now()).bolts;
     if (!store.beginMatch()) {
       toast(t('Not enough energy to play.'), 'bad');
       return;
@@ -189,7 +188,6 @@ export function MatchScreen() {
         attrs: p.attrs,
         ovr: ovrOf(p),
         morale: p.morale,
-        boltsBefore,
         rep: p.rep,
         myTeam: badges.me.name,
         myNames: surnamesFor(national ? p.nationality : getClub(p.clubId)?.country),
@@ -203,7 +201,6 @@ export function MatchScreen() {
         mods: { perfBonus: stance.perfBonus, expectation: stance.expectation, ratingTarget: EXPECTATION_TARGET[stance.expectation] + (stance.brief?.target ?? 0), brief: mergeBrief(stance.brief, boost?.effect) },
         benched: startsOnBench(p0.rep.coachTrust, p0.form, fixture.kind),
         meHome: fixture.home,
-        fatigueRelief: p.upgrades?.nutrition ?? 0,
       }),
     );
     setOthers(season ? buildOtherGames(season, fixture, Math.random) : []);
@@ -302,7 +299,6 @@ export function MatchScreen() {
           oppRecord={oppRecordFor(season, fixture)}
           bolts={bolts}
           msToNext={msToNext}
-          fatigueRelief={player.upgrades?.nutrition ?? 0}
           date={season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date()}
           benchWhy={
             startsOnBench(player.rep.coachTrust, player.form, fixture.kind)

@@ -21,12 +21,6 @@ export const UPGRADES: UpgradeDef[] = [
     weeks: [8, 20, 45],
   },
   {
-    id: 'nutrition',
-    name: 'Nutritionist & sleep plan',
-    levels: ['Ignore 1 life of fatigue', 'Ignore 2 lives of fatigue', 'Ignore 3 lives of fatigue'],
-    weeks: [8, 20, 44],
-  },
-  {
     id: 'pr',
     name: 'Media advisor',
     levels: ['−15% scandal risk · better reactions', '−30% scandal risk · better reactions', '−45% scandal risk · better reactions'],

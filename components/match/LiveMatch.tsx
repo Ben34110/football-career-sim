@@ -168,6 +168,8 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
 
   return (
     <div className="space-y-3">
+      {/* Scoreboard and controls stay put under the top bar: only the ticker scrolls */}
+      <div className="sticky top-[calc(3.5rem+1px+env(safe-area-inset-top))] z-20 -mx-4 -mt-4 space-y-3 bg-zinc-950 px-4 pb-3 pt-4 shadow-[0_10px_16px_-8px_rgba(0,0,0,0.65)]">
       {/* Scoreboard */}
       <Card strong gold className="relative overflow-hidden p-4">
         <AnimatePresence>
@@ -318,6 +320,8 @@ export function LiveMatch({ ctx, competition, board, meHome, me, opp, finishing,
             </button>
           </div>
         )}
+      </div>
+
       </div>
 
       {/* Ticker */}

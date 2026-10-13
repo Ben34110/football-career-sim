@@ -36,7 +36,6 @@ export function PreMatch({
   oppRecord,
   bolts,
   msToNext,
-  fatigueRelief = 0,
   benchWhy,
   date,
   onKickoff,
@@ -53,7 +52,6 @@ export function PreMatch({
   oppRecord?: Record3;
   bolts: number;
   msToNext: number;
-  fatigueRelief?: number;
   benchWhy: 'trust' | 'form' | null;
   date: Date;
   onKickoff: (o: RitualOption, ritual: typeof TRAINING_RITUAL, boostId: string | null) => void;
@@ -123,20 +121,13 @@ export function PreMatch({
         {fixture.knockout && <p className="mt-2 text-center text-[11px] text-gold-300">{t('Knockout tie — a draw goes to penalties.')}</p>}
       </Card>
 
-      {(benchWhy || (bolts >= 1 && bolts + fatigueRelief < 5)) && (
+      {benchWhy && (
         <div className="space-y-2">
-          {benchWhy && (
-            <Warn>
-              {benchWhy === 'trust'
-                ? t('Coach Trust is low — you’ll start on the bench and come on after 55 minutes.')
-                : t('Your recent form is poor — the coach will leave you on the bench and bring you on after 55 minutes.')}
-            </Warn>
-          )}
-          {bolts + fatigueRelief < 5 && bolts >= 1 && (
-            <Warn>
-              {t('Playing on {n} life/lives: fatigue costs you −{m} effective OVR.', { n: bolts, m: Math.max(0, 5 - bolts - fatigueRelief) })}
-            </Warn>
-          )}
+          <Warn>
+            {benchWhy === 'trust'
+              ? t('Coach Trust is low — you’ll start on the bench and come on after 55 minutes.')
+              : t('Your recent form is poor — the coach will leave you on the bench and bring you on after 55 minutes.')}
+          </Warn>
         </div>
       )}
 

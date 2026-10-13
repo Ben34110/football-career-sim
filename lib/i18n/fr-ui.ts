@@ -245,6 +245,13 @@ export const FR_UI: Record<string, string> = {
 
   '{club} stand by you: your performances earn you a last warning.': '{club} te soutient : tes performances t’épargnent, mais c’est le dernier avertissement.',
 
+  // unlimited lives
+  'Unlimited lives': 'Vies illimitées',
+  'unlimited lives': 'vies illimitées',
+  'Unlimited lives for {n} h!': 'Vies illimitées pendant {n} h !',
+  'Unlimited lives: {time} left': 'Vies illimitées : encore {time}',
+  'Unlimited-lives passes arrive with the App Store version.': 'Les pass de vies illimitées arrivent avec la version App Store.',
+
   // rewarded ads
   'Watch an ad · +{n} lives': 'Regarder une pub · +{n} vies',
   'Watch an ad · get it free': 'Regarder une pub · l’obtenir gratuitement',
@@ -403,10 +410,7 @@ export const FR_UI: Record<string, string> = {
   '+25% performance XP': '+25 % d’XP de performance',
   '+50% performance XP': '+50 % d’XP de performance',
   '+75% performance XP': '+75 % d’XP de performance',
-  'Nutritionist & sleep plan': 'Nutritionniste et plan sommeil',
   'Ignore 1 life of fatigue': 'Ignore 1 vie de fatigue',
-  'Ignore 2 lives of fatigue': 'Ignore 2 vies de fatigue',
-  'Ignore 3 lives of fatigue': 'Ignore 3 vies de fatigue',
   'Media advisor': 'Conseiller média',
   '−15% scandal risk · better reactions': '−15 % de risque de scandale · meilleures réactions',
   '−30% scandal risk · better reactions': '−30 % de risque de scandale · meilleures réactions',
@@ -585,7 +589,6 @@ export const FR_UI: Record<string, string> = {
   'Go to match day': 'Aller au jour de match',
   'Exhausted · {time}': 'Épuisé · {time}',
   '{n} sessions left before kickoff': '{n} séances restantes avant le coup d’envoi',
-  'Recovery clinic · +2 lives': 'Clinique de récupération · +2 vies',
   'Home|nav': 'Accueil',
   'League|tile': 'Rang',
   GA: 'B+PD',
@@ -603,7 +606,6 @@ export const FR_UI: Record<string, string> = {
   'Knockout tie — a draw goes to penalties.': 'Match à élimination directe — en cas d’égalité, c’est aux tirs au but.',
   'Coach Trust is low — you’ll start on the bench and come on after 55 minutes.': 'La confiance du coach est faible — tu commenceras sur le banc et entreras après 55 minutes.',
   'Your recent form is poor — the coach will leave you on the bench and bring you on after 55 minutes.': 'Ta forme récente est mauvaise — le coach te laissera sur le banc et te fera entrer après 55 minutes.',
-  'Playing on {n} life/lives: fatigue costs you −{m} effective OVR.': 'Tu joues avec {n} vie(s) : la fatigue te coûte −{m} d’OVR effectif.',
   Favourites: 'Favoris',
   Underdogs: 'Outsiders',
   'Even match': 'Match équilibré',
@@ -859,8 +861,6 @@ export const FR_UI: Record<string, string> = {
   'Breakthrough! {attr} +1': 'Déclic ! {attr} +1',
   'Solid session. Progress banked.': 'Séance solide. Progrès engrangés.',
   'You’re already fully charged.': 'Tu es déjà à fond.',
-  'You need {cost} for the recovery clinic.': 'Il te faut {cost} pour la clinique de récupération.',
-  'Recovery clinic: +2 lives (−{cost}).': 'Clinique de récupération : +2 vies (−{cost}).',
   'Unknown club.': 'Club inconnu.',
   'The transfer window is closed.': 'Le mercato est fermé.',
   'Your agent already tried this window.': 'Ton agent a déjà essayé pendant ce mercato.',

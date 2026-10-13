@@ -31,11 +31,10 @@ export interface MatchCtx {
   attrs: Attributes;
   ovr: number;
   morale: number;
-  boltsBefore: number;
   rep: Reputation;
   myTeam: string;
   oppName: string;
-  /** Effective player rating this match (OVR + bonuses − fatigue) */
+  /** Effective player rating this match (OVR + bonuses) */
   effOvr: number;
   myStr: number;
   oppStr: number;
@@ -63,7 +62,6 @@ export interface BuildCtxInput {
   attrs: Attributes;
   ovr: number;
   morale: number;
-  boltsBefore: number;
   rep: Reputation;
   myTeam: string;
   /** Base strength of the team being represented (club or nation) */
@@ -76,8 +74,6 @@ export interface BuildCtxInput {
   mods: MatchModifiers;
   benched: boolean;
   meHome: boolean;
-  /** Levels of the nutrition upgrade: that many lives of fatigue are ignored */
-  fatigueRelief?: number;
   myNames?: readonly string[];
   oppNames?: readonly string[];
 }
@@ -98,9 +94,8 @@ export function startsOnBench(coachTrust: number, form: number[], kind: FixtureK
 }
 
 export function buildCtx(i: BuildCtxInput): MatchCtx {
-  const fatigue = Math.max(0, 5 - i.boltsBefore - (i.fatigueRelief ?? 0));
   const brief = i.mods.brief ?? {};
-  const effOvr = i.ovr + i.mods.perfBonus + (brief.perf ?? 0) + (i.morale - 50) / 12 - fatigue - (brief.fatigue ?? 0);
+  const effOvr = i.ovr + i.mods.perfBonus + (brief.perf ?? 0) + (i.morale - 50) / 12 - (brief.fatigue ?? 0);
   const home = i.home ? 1.5 + (i.rep.fanPopularity - 50) / 40 : 0;
   const myStr = i.teamStrength + (effOvr - i.teamStrength) * 0.12 + (i.rep.lockerRoom - 50) / 25 + home;
   return {
@@ -109,7 +104,6 @@ export function buildCtx(i: BuildCtxInput): MatchCtx {
     attrs: i.attrs,
     ovr: i.ovr,
     morale: i.morale,
-    boltsBefore: i.boltsBefore,
     rep: i.rep,
     myTeam: i.myTeam,
     oppName: i.oppName,
@@ -388,7 +382,7 @@ export function successChance(opt: ClutchOption, ctx: MatchCtx, m: MatchState): 
   // Better opposition makes every decision harder
   const opposition = (ctx.oppStr - ctx.myStr) / 100;
   return clamp(
-    ctx.clutchBonus + (m.clutchBoost ?? 0) + (m.redsOpp ?? 0) * 0.05 - (m.redsMe ?? 0) * 0.06 + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - Math.max(0, 5 - ctx.boltsBefore) / 90 - opposition,
+    ctx.clutchBonus + (m.clutchBoost ?? 0) + (m.redsOpp ?? 0) * 0.05 - (m.redsMe ?? 0) * 0.06 + opt.base * 0.52 + (attr - 70) / 240 + m.momentum / 650 + ctx.mods.perfBonus / 150 + (ctx.morale - 50) / 500 - opposition,
     0.05,
     0.86,
   );

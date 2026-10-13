@@ -33,13 +33,13 @@ import {
   createPlayer,
   fmtMoneyK,
   addPaidLives,
-  gainBolts,
   gainMatchXp,
   ovrOf,
   seasonDevelopment,
   seasonLabel,
   spendBolts,
   syncEnergy,
+  unlimitedMsLeft,
   wageFor,
   type CreateInput,
 } from './engine/player';
@@ -149,7 +149,6 @@ interface GameActions {
   resolveControversy: (e: Effect, title: string) => boolean;
   /** Feed the media with an extra headline (+Media Heat, small fan boost) */
   stirMedia: () => void;
-  physio: () => Result;
   buyUpgrade: (id: UpgradeId) => Result;
   buyBoost: (id: string) => Result;
   /** Moves attribute points around (the total stays the same); costs money per point moved */
@@ -158,8 +157,8 @@ interface GameActions {
   consumeBoost: (id: string) => void;
   /** Charity gala: once a season, money for goodwill */
   donate: () => Result;
-  /** Adds lives after a successful purchase */
-  grantLives: (n: number) => void;
+  /** Starts (or extends) unlimited lives for `hours` after a successful purchase */
+  grantUnlimited: (hours: number) => void;
   /** Adds a boost to the bag after a real-money purchase */
   grantBoost: (id: string) => Result;
   /** An ad was watched to the end: 3 lives, or the boost `boostId`. Counts against the daily allowance. */
@@ -257,6 +256,8 @@ export const useGameStore = create<GameStore>()(
       beginMatch: () => {
         const { player } = get();
         if (!player) return false;
+        // unlimited lives: the match costs nothing
+        if (unlimitedMsLeft(player, Date.now()) > 0) return true;
         const e = spendBolts(player.energy, 1, Date.now());
         if (!e) return false;
         set({ player: { ...player, energy: e } });
@@ -591,18 +592,6 @@ export const useGameStore = create<GameStore>()(
         set({ player: { ...player, rep: applyRep(player.rep, { mediaHeat: 6, fanPopularity: 2, coachTrust: -1 }) } });
       },
 
-      physio: () => {
-        const { player } = get();
-        if (!player || !player.contract) return { ok: false, msg: tr('No active career.') };
-        const now = Date.now();
-        const e = syncEnergy(player.energy, now);
-        if (e.bolts >= 5) return { ok: false, msg: tr('You’re already fully charged.') };
-        const cost = player.contract.wage * 3;
-        if (player.money < cost) return { ok: false, msg: tr('You need {cost} for the recovery clinic.', { cost: fmtMoneyK(cost) }) };
-        set({ player: { ...player, money: player.money - cost, energy: gainBolts(e, 2, now) } });
-        return { ok: true, msg: tr('Recovery clinic: +2 lives (−{cost}).', { cost: fmtMoneyK(cost) }) };
-      },
-
       buyUpgrade: (id) => {
         const { player } = get();
         const def = UPGRADES.find((u) => u.id === id);
@@ -664,10 +653,13 @@ export const useGameStore = create<GameStore>()(
         return { ok: true, msg: tr('The gala was a success: fans and media love it.') };
       },
 
-      grantLives: (n) => {
+      grantUnlimited: (hours) => {
         const { player } = get();
         if (!player) return;
-        set({ player: { ...player, energy: addPaidLives(player.energy, n, Date.now()) } });
+        const now = Date.now();
+        // bought again while it runs: the time adds up
+        const start = Math.max(now, player.unlimitedUntil ?? 0);
+        set({ player: { ...player, unlimitedUntil: start + hours * 3_600_000 } });
       },
 
       grantBoost: (id) => {

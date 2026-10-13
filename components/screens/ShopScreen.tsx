@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Coins, Gift, HeartPulse, Sparkles } from 'lucide-react';
+import { Coins, Gift, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
@@ -13,10 +13,10 @@ import { galaCost, levelOf, MAX_UPGRADE_LEVEL, UPGRADES, upgradeCost } from '@/l
 import { fmtMoneyK } from '@/lib/engine/player';
 import { useBoostPurchase, useEnergy } from '@/lib/hooks';
 import { useLang, useT } from '@/lib/i18n';
-import { boostProduct, displayPrice, getPaymentProvider, isTestPayments, LIFE_PACKS, paymentsAvailable, type LifePack } from '@/lib/payments';
+import { boostProduct, displayPrice, getPaymentProvider, isTestPayments, LIFE_PASSES, paymentsAvailable, type LifePass } from '@/lib/payments';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
-import { cn, fmtCountdown } from '@/lib/utils';
+import { cn, fmtCountdown, fmtHms } from '@/lib/utils';
 import { GameIcon } from '@/components/ui/GameIcon';
 
 export function ShopScreen() {
@@ -26,9 +26,8 @@ export function ShopScreen() {
   const year = useGameStore((s) => s.year);
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
   const donate = useGameStore((s) => s.donate);
-  const physio = useGameStore((s) => s.physio);
-  const grantLives = useGameStore((s) => s.grantLives);
-  const { bolts, msToNext } = useEnergy();
+  const grantUnlimited = useGameStore((s) => s.grantUnlimited);
+  const { bolts, msToNext, unlimitedMs } = useEnergy();
   const [busy, setBusy] = useState<string | null>(null);
   const boostBuy = useBoostPurchase();
   const [tab, setTab] = useState<'lives' | 'boosts' | 'upgrades'>('lives');
@@ -39,13 +38,13 @@ export function ShopScreen() {
   const galaDone = player.donatedYear === year;
   const available = paymentsAvailable();
 
-  const buyPack = async (pack: LifePack) => {
-    setBusy(pack.id);
-    const r = await getPaymentProvider().purchase(pack);
+  const buyPass = async (pass: LifePass) => {
+    setBusy(pass.id);
+    const r = await getPaymentProvider().purchase(pass);
     setBusy(null);
     if (r.ok) {
-      grantLives(pack.lives);
-      toast(t('+{n} lives added!', { n: pack.lives }), 'good');
+      grantUnlimited(pass.hours);
+      toast(t('Unlimited lives for {n} h!', { n: pass.hours }), 'good');
     } else if (r.error !== 'cancelled') {
       toast(t('Purchase unavailable right now.'), 'bad');
     }
@@ -91,45 +90,38 @@ export function ShopScreen() {
       {tab === 'lives' && (
         <>
       <div>
-        <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />}>{t('Lives')}</SectionTitle>
+        <SectionTitle right={<Bolts bolts={bolts} msToNext={msToNext} unlimitedMs={unlimitedMs} showTimer size="sm" />}>{t('Lives')}</SectionTitle>
         <Card className="space-y-3 p-4">
           <p className="text-xs leading-snug text-zinc-400">{t('Each match costs one life. You get one back every 3 minutes (up to 5). Need more now?')}</p>
-          {bolts < 5 && msToNext > 0 && <p className="text-xs font-semibold text-zinc-300">{t('Next life in {time}', { time: fmtCountdown(msToNext) })}</p>}
+          {unlimitedMs > 0 ? (
+            <p className="text-xs font-semibold text-gold-300">{t('Unlimited lives: {time} left', { time: fmtHms(unlimitedMs) })}</p>
+          ) : (
+            bolts < 5 && msToNext > 0 && <p className="text-xs font-semibold text-zinc-300">{t('Next life in {time}', { time: fmtCountdown(msToNext) })}</p>
+          )}
           <div className="grid grid-cols-2 gap-2.5">
-            {LIFE_PACKS.map((pack) => (
+            {LIFE_PASSES.map((pass) => (
               <motion.button
-                key={pack.id}
+                key={pass.id}
                 whileTap={{ scale: 0.97 }}
                 disabled={!available || busy !== null}
-                onClick={() => buyPack(pack)}
+                onClick={() => buyPass(pass)}
                 className={cn(
                   'gloss-edge rounded-2xl border p-3 text-left transition-opacity disabled:opacity-50',
-                  pack.id === 'lives_15' ? 'border-gold-400/50 bg-gold-400/10' : 'border-white/[0.1] bg-white/[0.05]',
+                  pass.hours >= 24 ? 'border-gold-400/50 bg-gold-400/10' : 'border-white/[0.1] bg-white/[0.05]',
                 )}
               >
                 <div className="flex items-center gap-1.5 font-display text-3xl font-extrabold">
-                  <HeartPulse className="h-5 w-5 text-crimson-400" /> {pack.lives}
+                  <span className="text-gold-300">∞</span> {pass.hours} h
                 </div>
-                <div className="text-[11px] text-zinc-400">{t('lives')}</div>
-                <div className="mt-2 font-num text-lg font-bold text-gold-300">{displayPrice(pack, lang)}</div>
-                {pack.id === 'lives_15' && <Chip tone="gold">{t('Best value')}</Chip>}
+                <div className="text-[11px] text-zinc-400">{t('unlimited lives')}</div>
+                <div className="mt-2 font-num text-lg font-bold text-gold-300">{displayPrice(pass, lang)}</div>
+                {pass.hours >= 24 && <Chip tone="gold">{t('Best value')}</Chip>}
               </motion.button>
             ))}
           </div>
           <AdButton kind="lives" />
-          {!available && <p className="text-center text-[11px] text-zinc-500">{t('Life packs arrive with the App Store version.')}</p>}
+          {!available && <p className="text-center text-[11px] text-zinc-500">{t('Unlimited-lives passes arrive with the App Store version.')}</p>}
           {isTestPayments() && <p className="text-center text-[11px] font-semibold text-gold-300">{t('Test mode: no real payment is made.')}</p>}
-          <Button
-            block
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const r = physio();
-              toast(r.msg, r.ok ? 'good' : 'bad');
-            }}
-          >
-            <HeartPulse className="h-4 w-4 text-crimson-400" /> {t('Recovery clinic · +2 lives')} ({fmtMoneyK(wage * 3)})
-          </Button>
         </Card>
       </div>
 

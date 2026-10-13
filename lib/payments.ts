@@ -1,5 +1,5 @@
 /**
- * Real-money purchases (extra lives and match-day boosts).
+ * Real-money purchases (unlimited-lives passes and match-day boosts).
  *
  * The web build has no payment processor, and Apple requires In-App Purchase for digital
  * consumables in an App Store app. So purchases go through a provider that the native shell
@@ -17,17 +17,18 @@ export interface PaymentProduct {
   priceEur: number;
 }
 
-export interface LifePack extends PaymentProduct {
-  id: 'lives_5' | 'lives_15';
-  lives: number;
+/** Unlimited lives for a while: no life is spent and none is missed until the time runs out. Stacks if bought again. */
+export interface LifePass extends PaymentProduct {
+  id: 'unlimited_3h' | 'unlimited_24h';
+  hours: number;
 }
 
 /** A match-day boost sold for real money (`boost_attack`, `boost_mental`, …). */
 export const boostProduct = (b: { id: string; priceEur: number }): PaymentProduct => ({ id: `boost_${b.id}`, priceEur: b.priceEur });
 
-export const LIFE_PACKS: LifePack[] = [
-  { id: 'lives_5', lives: 5, priceEur: 1.49 },
-  { id: 'lives_15', lives: 15, priceEur: 3.99 },
+export const LIFE_PASSES: LifePass[] = [
+  { id: 'unlimited_3h', hours: 3, priceEur: 3.99 },
+  { id: 'unlimited_24h', hours: 24, priceEur: 4.99 },
 ];
 
 export interface PaymentResult {

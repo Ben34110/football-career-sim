@@ -7,3 +7,6 @@ next-env.d.ts
 .DS_Store
 graphify-out
 .claude
+
+# Xcode archives / exports
+/build

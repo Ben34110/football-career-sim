@@ -18,6 +18,9 @@ export function Sheet({
   onClose?: () => void;
 }) {
   const controls = useDragControls();
+  // the frame is a pseudo-element of the sheet: if the sheet itself scrolled, the frame would scroll away with the content
+  const scrolls = /\boverflow-y-auto\b/.test(className ?? '');
+  const outer = (className ?? '').replace(/\boverflow-y-auto\b/g, '');
   return (
     <AnimatePresence>
       {open && (
@@ -31,7 +34,7 @@ export function Sheet({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className={cn('glass-strong gloss-edge relative w-full rounded-b-none rounded-t-[28px] px-4 pt-3 pb-safe', className)}
+            className={cn('glass-strong gloss-edge relative flex w-full flex-col rounded-b-none rounded-t-[28px] px-4 pt-3 pb-safe', outer)}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -53,7 +56,7 @@ export function Sheet({
             >
               <div className="h-1 w-10 rounded-full bg-white/25" />
             </div>
-            <div className="pb-4">{children}</div>
+            <div className={cn('pb-4', scrolls && 'min-h-0 flex-1 overflow-y-auto overscroll-contain')}>{children}</div>
           </motion.div>
         </motion.div>
       )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BOOST_BY_ID } from './data/boosts';
-import { msToNextBolt, syncEnergy } from './engine/player';
+import { MAX_BOLTS, msToNextBolt, syncEnergy, unlimitedMsLeft } from './engine/player';
 import { useT } from './i18n';
 import { useLangStore } from './i18n/lang';
 import { adsAvailable, adsLeft, getAdProvider, type AdKind } from './ads';
@@ -35,10 +35,14 @@ export function useNow(intervalMs = 1000) {
 /** Live bolt count with regen countdown. */
 export function useEnergy() {
   const energy = useGameStore((s) => s.player?.energy);
+  const unlimitedUntil = useGameStore((s) => s.player?.unlimitedUntil);
   const now = useNow(1000);
-  if (!energy) return { bolts: 0, msToNext: 0 };
+  if (!energy) return { bolts: 0, msToNext: 0, unlimitedMs: 0 };
+  // unlimited lives: always a full set, and the time left is shown instead of the regeneration
+  const unlimitedMs = unlimitedMsLeft({ unlimitedUntil }, now);
+  if (unlimitedMs > 0) return { bolts: MAX_BOLTS, msToNext: 0, unlimitedMs };
   const synced = syncEnergy(energy, now);
-  return { bolts: synced.bolts, msToNext: msToNextBolt(synced, now) };
+  return { bolts: synced.bolts, msToNext: msToNextBolt(synced, now), unlimitedMs: 0 };
 }
 
 /** Buying a boost, with game money or with real money; both put one in the bag and say how it went. */

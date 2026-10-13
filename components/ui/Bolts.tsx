@@ -4,11 +4,33 @@ import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { MAX_BOLTS } from '@/lib/engine/player';
 import { useT } from '@/lib/i18n';
-import { cn, fmtCountdown } from '@/lib/utils';
+import { cn, fmtCountdown, fmtHms } from '@/lib/utils';
 
-export function Bolts({ bolts, msToNext, showTimer, size = 'md' }: { bolts: number; msToNext?: number; showTimer?: boolean; size?: 'sm' | 'md' }) {
+export function Bolts({
+  bolts,
+  msToNext,
+  showTimer,
+  unlimitedMs = 0,
+  size = 'md',
+}: {
+  bolts: number;
+  msToNext?: number;
+  showTimer?: boolean;
+  /** Unlimited lives: the time left */
+  unlimitedMs?: number;
+  size?: 'sm' | 'md';
+}) {
   const t = useT();
   const dim = size === 'sm' ? 'h-3.5 w-3.5' : 'h-5 w-5';
+  if (unlimitedMs > 0) {
+    return (
+      <div className="flex items-center gap-1.5" aria-label={t('Unlimited lives')}>
+        <Heart className={cn(dim, 'fill-gold-300 text-gold-300 drop-shadow-[0_0_6px_rgba(242,193,78,0.7)]')} />
+        <span className="font-num text-sm font-extrabold leading-none text-gold-300">∞</span>
+        <span className="font-num text-xs font-semibold text-gold-300/80">{fmtHms(unlimitedMs)}</span>
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-1.5" aria-label={t('{n} of {max} lives', { n: bolts, max: MAX_BOLTS })}>
       <div className="flex items-center gap-0.5">

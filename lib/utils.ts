@@ -5,6 +5,12 @@ export const fmtCountdown = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
+/** "2:41:03" — for waits of hours */
+export const fmtHms = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
 export const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
 /** Letters-only 3 char crest code ("🇫🇷 FRA" → "FRA") */

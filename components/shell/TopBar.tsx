@@ -16,7 +16,7 @@ export function TopBar() {
   const player = useGameStore((s) => s.player);
   const year = useGameStore((s) => s.year);
   const phase = useGameStore((s) => s.phase);
-  const { bolts, msToNext } = useEnergy();
+  const { bolts, msToNext, unlimitedMs } = useEnergy();
   // during a live match, shop and profile stay out of reach
   const locked = useUiStore((s) => s.immersive);
   if (!player) return null;
@@ -51,7 +51,7 @@ export function TopBar() {
               <span className="font-num">{fmtMoneyK(player.money)}</span>
             </Link>
           )}
-          <Bolts bolts={bolts} msToNext={msToNext} showTimer size="sm" />
+          <Bolts bolts={bolts} msToNext={msToNext} unlimitedMs={unlimitedMs} showTimer size="sm" />
         </div>
       </div>
     </header>

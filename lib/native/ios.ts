@@ -4,13 +4,13 @@ import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import { registerAdProvider } from '../ads';
 import { BOOSTS } from '../data/boosts';
 import { ADMOB } from './ads-config';
-import { boostProduct, LIFE_PACKS, registerPaymentProvider, type PaymentProduct } from '../payments';
+import { boostProduct, LIFE_PASSES, registerPaymentProvider, type PaymentProduct } from '../payments';
 
 /**
  * Everything that only exists inside the iPhone app. Loaded on demand (never in the browser), once, at start-up.
  *
  * Product ids in App Store Connect (and in `ios/App/PitchLegacy.storekit` for local testing) are the game's own ids behind
- * this prefix: com.ben34110.pitchlegacy.lives_5, …boost_attack, and so on. Keep it in step with the bundle id.
+ * this prefix: com.ben34110.pitchlegacy.unlimited_3h, …unlimited_24h, …boost_attack, and so on. Keep it in step with the bundle id.
  */
 export const IAP_PREFIX = 'com.ben34110.pitchlegacy.';
 
@@ -22,7 +22,7 @@ export async function initNative() {
     /* not available */
   }
 
-  const ids = [...LIFE_PACKS.map((p) => p.id), ...BOOSTS.map((b) => boostProduct(b).id)];
+  const ids = [...LIFE_PASSES.map((p) => p.id), ...BOOSTS.map((b) => boostProduct(b).id)];
   // the price tier set in App Store Connect is the one to show (it can differ from the euro price written in the game)
   const prices: Record<string, string> = {};
   let supported = false;
@@ -61,9 +61,14 @@ export function initAds() {
   let setup: Promise<boolean> | null = null;
   let loaded = false;
 
+  // an ad unit id has a "/" (the app id, with a "~", is not one): a wrong id must not ship as broken ads
+  const unitOk = /^ca-app-pub-\d+\/\d+$/.test(ADMOB.rewardedUnitId);
+  if (!unitOk && !ADMOB.testing) return;
+  const unitId = unitOk ? ADMOB.rewardedUnitId : 'ca-app-pub-3940256099942544/1712485313';
+
   const load = async () => {
     try {
-      await AdMob.prepareRewardVideoAd({ adId: ADMOB.rewardedUnitId, isTesting: ADMOB.testing });
+      await AdMob.prepareRewardVideoAd({ adId: unitId, isTesting: ADMOB.testing });
       loaded = true;
     } catch {
       loaded = false;

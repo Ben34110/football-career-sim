@@ -43,7 +43,7 @@ import { GameIcon } from '@/components/ui/GameIcon';
 type Stage = 'brief' | 'live' | 'shootout' | 'press' | 'summary';
 
 /** What the live-table sheet shows: the table that matters and the games played at the same time. */
-function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: OtherGame[], t: (k: string, v?: Record<string, string | number>) => string): LiveBoard {
+function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: OtherGame[], t: (k: string, v?: Record<string, string | number>) => string, clubId: string | null): LiveBoard {
   const tr = season?.tourney;
   if (fixture.kind === 'tournament' && tr?.drawn) {
     const name = t(season?.tournamentName ?? 'Tournament');
@@ -52,6 +52,7 @@ function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: Other
       games,
       opponent: fixture.opponent.replace(/ (U20|U23)$/, ''),
       heading: fixture.knockout ? name : t('Group {l}', { l: 'ABCD'[tr.myGroup] }),
+      subtitle: name,
       gamesTitle: `${name} · ${t('Elsewhere right now')}`,
     };
   }
@@ -61,7 +62,19 @@ function liveBoardFor(season: SeasonState | null, fixture: Fixture, games: Other
       : fixture.kind === 'euro' && !fixture.knockout
         ? season?.euroTable ?? (season ? deriveEuroTable(season) ?? null : null)
         : null;
-  return { table, games, opponent: fixture.opponent };
+  // the competition being played, under the title of the sheet
+  const club = getClub(clubId);
+  const subtitle =
+    fixture.kind === 'league' && club
+      ? `${t(club.league)} · ${t(club.country)}`
+      : fixture.kind === 'euro' && isWorldClubLabel(fixture.label)
+        ? t(WORLD_CLUB_CUP)
+        : fixture.kind === 'euro' && season?.europe
+          ? t(regionOfComp(season.europe))
+          : fixture.kind === 'cup' && club
+            ? `${t('Domestic Cup')} · ${t(club.country)}`
+            : undefined;
+  return { table, games, opponent: fixture.opponent, subtitle };
 }
 
 /** Where the opposition comes from: the nation itself, or the country of the club. */
@@ -311,7 +324,7 @@ export function MatchScreen() {
         />
       )}
       {stage === 'live' && ctx && (
-        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label, name: fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined }} board={liveBoardFor(season, fixture, others, t)} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
+        <LiveMatch ctx={ctx} meHome={fixture.home} competition={{ kind: fixture.kind, label: fixture.label, name: fixture.kind === 'tournament' ? tournamentShort(season?.tournamentName, t) : undefined }} board={liveBoardFor(season, fixture, others, t, player.clubId)} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} onFinished={onLiveFinished} />
       )}
       {stage === 'shootout' && ctx && finalMatch && (
         <Shootout ctx={ctx} me={badges.me} opp={badges.opp} finishing={ctx.attrs.finishing} composure={ctx.attrs.composure} playerOut={finalMatch.subbedOffAt !== undefined} onDone={(r) => finalise(finalMatch, r)} />

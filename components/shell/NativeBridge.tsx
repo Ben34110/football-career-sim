@@ -17,6 +17,10 @@ export function NativeBridge() {
       .then(async (m) => {
         m.initAds();
         await m.initNative();
+        const gc = await import('@/lib/native/gamecenter');
+        await gc.initGameCenter();
+        const nt = await import('@/lib/native/notifications');
+        nt.initNotifications();
       })
       .catch(() => undefined);
   }, []);

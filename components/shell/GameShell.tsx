@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { NotificationPrompt } from '@/components/ui/NotificationPrompt';
 import { WaitScreen } from '@/components/ui/WaitScreen';
 import { useGameStore } from '@/lib/store';
 import { useUiStore } from '@/lib/ui';
@@ -24,6 +25,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <TopBar />
       <main className={immersive ? 'flex-1 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4' : 'flex-1 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4'}>{children}</main>
       {!immersive && <BottomNav />}
+      <NotificationPrompt />
     </div>
   );
 }

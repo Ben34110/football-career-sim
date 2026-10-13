@@ -206,14 +206,15 @@ function OfferCard({ offer, open, immediate, onRun }: { offer: Offer; open: bool
           <Mini label={t('Contract')} value={`${offer.years} ${t('yrs')}`} />
           <Mini label={t('Fee')} value={offer.fee > 0 ? fmtMoneyM(offer.fee) : '—'} />
         </div>
-        <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-2">
-          <Button disabled={!open} onClick={() => onRun(store().signOffer(offer.id))}>
+        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+          {/* the main action has the whole row: a long label (French) fits on one line */}
+          <Button className="col-span-2 h-auto min-h-11 py-2 text-center leading-tight" disabled={!open} onClick={() => onRun(store().signOffer(offer.id))}>
             {immediate ? t('Accept') : t('Agree for next season')}
           </Button>
-          <Button variant="ghost" disabled={!open || offer.countered} onClick={() => setCountering((v) => !v)} aria-label={t('Counter offer')}>
+          <Button className="h-auto min-h-11 py-2" variant="ghost" disabled={!open || offer.countered} onClick={() => setCountering((v) => !v)} aria-label={t('Counter offer')}>
             {t('Counter')}
           </Button>
-          <Button variant="ghost" onClick={() => store().declineOffer(offer.id)} aria-label={t('Decline offer')}>
+          <Button className="h-auto min-h-11 py-2" variant="ghost" onClick={() => store().declineOffer(offer.id)} aria-label={t('Decline offer')}>
             <Ban className="h-4 w-4" />
           </Button>
         </div>

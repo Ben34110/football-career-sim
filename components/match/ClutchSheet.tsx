@@ -70,15 +70,20 @@ export function ClutchSheet({
                       <Icon className="h-3.5 w-3.5 text-neon-300" />
                       {t(ATTR_LABEL[o.attr])} <span className="font-num text-sm text-zinc-100">{ctx.attrs[o.attr]}</span>
                     </span>
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10" aria-label={t('Chance of success')}>
-                      <div
-                        className={cn(
-                          'h-full rounded-full',
-                          chance > 0.6 ? 'bg-neon-400' : chance > 0.4 ? 'bg-gold-400' : 'bg-crimson-500',
-                        )}
-                        style={{ width: `${Math.round(chance * 100)}%` }}
-                      />
+                    {/* the bar is the attribute itself (99 fills it); the chance of success is the figure next to it */}
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10" aria-label={ATTR_LABEL[o.attr]}>
+                      <div className="h-full rounded-full bg-neon-400" style={{ width: `${Math.max(4, Math.min(100, ctx.attrs[o.attr]))}%` }} />
                     </div>
+                    {o.base >= 1 ? (
+                      <span className="min-w-[44px] text-right text-[11px] font-bold text-zinc-300">{t('Mini-game')}</span>
+                    ) : (
+                      <span
+                        className={cn('min-w-[44px] text-right font-num text-sm font-bold', chance > 0.6 ? 'text-neon-300' : chance > 0.4 ? 'text-gold-300' : 'text-crimson-400')}
+                        aria-label={t('Chance of success')}
+                      >
+                        {Math.round(chance * 100)}%
+                      </span>
+                    )}
                   </div>
                 </motion.button>
               );

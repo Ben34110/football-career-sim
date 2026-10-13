@@ -118,3 +118,19 @@ export function initAds() {
     },
   });
 }
+
+/**
+ * The "ad privacy options" entry point (GDPR): shows Google's consent form again so the player can change the choice.
+ * Resolves false when no such form applies in the player's region.
+ */
+export async function openAdPrivacyOptions(): Promise<boolean> {
+  try {
+    await AdMob.initialize({ initializeForTesting: ADMOB.testing });
+    const info = await AdMob.requestConsentInfo();
+    if (info.privacyOptionsRequirementStatus !== 'REQUIRED') return false;
+    await AdMob.showPrivacyOptionsForm();
+    return true;
+  } catch {
+    return false;
+  }
+}

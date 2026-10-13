@@ -92,7 +92,27 @@ function generate(w: WorldCountry & { flag: string }): Club[] {
   // hand-written countries keep their curated clubs but still get a full set of local opponents
   if (HAND_CRAFTED.has(w.code)) {
     COUNTRY_RIVALS[w.name] = names;
-    return [];
+    // more places to start from than the few written by hand, in the same league as the hand-written starters
+    const base = CURATED_CLUBS.filter((c) => c.country === w.name && c.starter);
+    if (!base.length) return [];
+    const taken = new Set(CURATED_CLUBS.map((c) => c.name));
+    const avg = Math.round(base.reduce((a, c) => a + c.strength, 0) / base.length);
+    return names
+      .slice(20, 26)
+      .filter((n) => !taken.has(n))
+      .map<Club>((name, i) => ({
+        id: `${w.code.toLowerCase()}-s${i + 1}`,
+        name,
+        short: shortFrom(name),
+        league: base[0].league,
+        country: w.name,
+        flag: w.flag,
+        tier: base[0].tier,
+        strength: avg - 3 + (hash(name) % 7),
+        budget: Math.round((0.5 + (hash(name + 'b') % 10) / 10) * 10) / 10,
+        color: PALETTE[hash(name) % PALETTE.length],
+        starter: true,
+      }));
   }
   COUNTRY_RIVALS[w.name] = names.slice(4);
   const id = w.code.toLowerCase();
@@ -127,7 +147,21 @@ function generate(w: WorldCountry & { flag: string }): Club[] {
     color: PALETTE[hash(name) % PALETTE.length],
     starter: true,
   }));
-  return [top, ...starters];
+  // more places to start from: the career offers a different few each time (see starterOptions)
+  const extraStarters = names.slice(20, 26).map<Club>((name, i) => ({
+    id: `${id}-${i + 4}`,
+    name,
+    short: shortFrom(name),
+    league: w.lowLeague,
+    country: w.name,
+    flag: w.flag,
+    tier: 5,
+    strength: 54 + (hash(name) % 7),
+    budget: Math.round((0.5 + (hash(name + 'b') % 10) / 10) * 10) / 10,
+    color: PALETTE[hash(name) % PALETTE.length],
+    starter: true,
+  }));
+  return [top, ...starters, ...extraStarters];
 }
 
 const GENERATED_CLUBS = WORLD.flatMap(generate);
@@ -141,6 +175,28 @@ export const getClub = (id: string | null): Club | undefined => (id ? BY_ID.get(
 export const STARTER_CLUBS = CLUBS.filter((c) => c.starter);
 
 export const startersFor = (country: string) => STARTER_CLUBS.filter((c) => c.country === country);
+
+/**
+ * The few starter clubs offered for a country this time: a different draw for each seed, and never the club the
+ * player started with last time (when there is a choice).
+ */
+export function starterOptions(country: string, seed: number, n = 3, avoid?: string | null): Club[] {
+  const pool = startersFor(country);
+  if (pool.length <= n) return pool;
+  let s = (seed >>> 0) || 1;
+  const rnd = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  // the previous club goes to the back so it is only offered when nothing else is left
+  const ordered = [...shuffled.filter((c) => c.id !== avoid), ...shuffled.filter((c) => c.id === avoid)];
+  return ordered.slice(0, n);
+}
 
 /** Fake sparring partners for a club's domestic league table */
 export const LEAGUE_RIVALS: Record<number, string[]> = {

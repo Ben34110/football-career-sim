@@ -101,3 +101,138 @@ textarea {
     background-size: 28px 28px;
   }
 }
+
+/* Trophy ceremony: transform-only animations that run on the compositor */
+@keyframes cheer-bounce {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -9px, 0);
+  }
+}
+.cheer {
+  animation: cheer-bounce 0.62s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes ceremony-push {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+.ceremony-push {
+  animation: ceremony-push 6.4s ease-in-out forwards;
+  transform-origin: 50% 72%;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cheer,
+  .ceremony-push {
+    animation: none;
+  }
+}
+
+/* no scrollbar thumb on the side while scrolling (it looked like a glitch in the app) */
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Trophy ceremony effects: each one is its own layer, animated with transform / opacity only */
+@keyframes fx-confetti {
+  from {
+    transform: translate3d(0, -60%, 0);
+  }
+  to {
+    transform: translate3d(0, 55%, 0);
+  }
+}
+.fx-confetti {
+  animation: fx-confetti 5s linear infinite;
+  will-change: transform;
+}
+@keyframes fx-burst {
+  0% {
+    transform: scale(0.05);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  55% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+.fx-burst {
+  animation: fx-burst 1.6s ease-out infinite;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+@keyframes fx-sway {
+  from {
+    transform: rotate(var(--from, -10deg));
+  }
+  to {
+    transform: rotate(var(--to, 10deg));
+  }
+}
+.fx-sway {
+  animation: fx-sway 7s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes fx-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.fx-twinkle {
+  animation: fx-twinkle 3s ease-in-out infinite;
+  will-change: opacity;
+}
+@keyframes fx-flash {
+  0%,
+  16%,
+  100% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+}
+.fx-flash {
+  animation: fx-flash 2.4s linear infinite;
+  will-change: opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-confetti,
+  .fx-burst,
+  .fx-sway,
+  .fx-twinkle,
+  .fx-flash {
+    animation: none;
+  }
+  .fx-burst,
+  .fx-flash {
+    opacity: 0;
+  }
+}

@@ -62,3 +62,9 @@ If the scheme's StoreKit file is lost: **Product → Scheme → Edit Scheme → 
 - **Save data** lives in the web view's `localStorage`. iOS can clear it when the device is very short of space; for a
   long career, mirror the save in native storage (`@capacitor/preferences`) before a public release.
 - **Sharing** the player card uses the web share sheet (works on iOS 15+); `@capacitor/share` is the native option.
+
+## Game Center (goals leaderboard)
+
+- Swift plugin: `ios/App/App/GameCenterPlugin.swift`, registered by `AppViewController.swift` (set as the storyboard's view controller); the Game Center entitlement is in `ios/App/App/App.entitlements`.
+- JS side: `lib/native/gamecenter.ts` (sign-in at start-up, score = goals of every career on the phone, sent a few seconds after each change). The button is in the Profile screen (`components/ui/LeaderboardButton.tsx`).
+- App Store Connect → Game Center → Leaderboards: one leaderboard, ID `com.ben34110.pitchlegacy.goals`, Integer, Best Score, High to Low, range 0 – 100000.

@@ -1,7 +1,7 @@
 'use client';
 
 import { Flag } from '@/components/ui/Flag';
-import { RotateCcw, Scale } from 'lucide-react';
+import { ChevronRight, RotateCcw, Scale, Settings } from 'lucide-react';
 import { Honours } from '@/components/ui/Honours';
 import { SquadStatusCard } from '@/components/ui/SquadStatusCard';
 import { useRouter } from 'next/navigation';
@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { RebalanceSheet } from './RebalanceSheet';
+import { LeaderboardButton } from '@/components/ui/LeaderboardButton';
 import { ShareCardButton } from '@/components/ui/ShareCardButton';
 import { Sheet } from '@/components/ui/Sheet';
 import { getNationality } from '@/lib/data/nationalities';
 import { fmtMoneyK, POSITION_LABEL } from '@/lib/engine/player';
-import { LangToggle } from '@/components/ui/LangToggle';
+import Link from 'next/link';
 import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 
@@ -35,6 +36,7 @@ export function ProfileScreen() {
     <div className="space-y-5">
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
       <ShareCardButton player={player} />
+      <LeaderboardButton />
       <SquadStatusCard />
 
       <div className="flex flex-wrap gap-2">
@@ -115,10 +117,14 @@ export function ProfileScreen() {
         <span className="font-num text-lg font-extrabold text-gold-300">{fmtMoneyK(player.money)}</span>
       </Card>
 
-      <Card className="flex items-center justify-between p-4">
-        <span className="text-sm text-zinc-400">{t('Language')}</span>
-        <LangToggle />
-      </Card>
+      <Link href="/settings" className="block">
+        <Card className="flex items-center justify-between p-4 active:scale-[0.99]">
+          <span className="flex items-center gap-2.5 text-sm font-semibold text-zinc-100">
+            <Settings className="h-4 w-4 text-zinc-400" /> {t('Settings')}
+          </span>
+          <ChevronRight className="h-4 w-4 text-zinc-500" />
+        </Card>
+      </Link>
 
       <div className="grid grid-cols-2 gap-3">
         <Button variant="ghost" onClick={() => setSheet('retire')}>

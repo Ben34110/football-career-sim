@@ -2,7 +2,7 @@
 
 import { Flag } from '@/components/ui/Flag';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Check, ChevronRight, Dices, Footprints, Minus, Plus, Mars, Venus } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Dices, Footprints, Minus, Plus, Mars, Venus, Shuffle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -10,10 +10,9 @@ import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { CountryPicker } from './CountryPicker';
 import { HeadAvatar } from '@/components/ui/HeadAvatar';
-import { LangToggle } from '@/components/ui/LangToggle';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { RepBars } from '@/components/ui/Bars';
-import { startersFor } from '@/lib/data/clubs';
+import { starterOptions } from '@/lib/data/clubs';
 import {
   BEARD_LABEL,
   BEARD_STYLES,
@@ -81,7 +80,16 @@ export function CreateWizard() {
   const [position, setPosition] = useState<Position>('ST');
   const [foot, setFoot] = useState<Foot>('Right');
   const [clubCountry, setClubCountry] = useState('France');
-  const [clubId, setClubId] = useState(startersFor('France')[0].id);
+  // the clubs offered change on every new career (and with "Other clubs"), and skip the one you started with last time
+  const [lastClub] = useState<string | null>(() => {
+    try {
+      return window.localStorage.getItem('fcs-last-club');
+    } catch {
+      return null;
+    }
+  });
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 0x7fffffff));
+  const [clubId, setClubId] = useState(() => starterOptions('France', seed, 3, lastClub)[0].id);
   const [alloc, setAlloc] = useState<Attributes>({ finishing: 0, composure: 0, vision: 0, stamina: 0 });
 
   const used = ATTR_KEYS.reduce((s, k) => s + alloc[k], 0);
@@ -107,18 +115,32 @@ export function CreateWizard() {
   };
 
   const finish = () => {
+    try {
+      window.localStorage.setItem('fcs-last-club', clubId);
+    } catch {
+      /* private mode */
+    }
     createCareer({ name, nationality, position, foot, clubId, allocation: alloc, look });
     router.replace('/home');
   };
 
-  const clubs = startersFor(clubCountry);
+  const clubs = starterOptions(clubCountry, seed, 3, lastClub);
 
   /** Pick where the career starts; the nationality's own country is the default. */
   const chooseClubCountry = (name: string) => {
-    const first = startersFor(name)[0];
+    const first = starterOptions(name, seed, 3, lastClub)[0];
     if (!first) return;
     setClubCountry(name);
     setClubId(first.id);
+  };
+
+  /** Three other starter clubs of the same country */
+  const otherClubs = () => {
+    const next = Math.floor(Math.random() * 0x7fffffff);
+    setSeed(next);
+    const first = starterOptions(clubCountry, next, 3, lastClub)[0];
+    if (first) setClubId(first.id);
+    haptic(8);
   };
 
   return (
@@ -142,7 +164,6 @@ export function CreateWizard() {
         <span className="font-num text-sm font-semibold text-zinc-500">
           {step + 1}/{STEPS.length}
         </span>
-        <LangToggle />
       </div>
 
       <div className="relative flex-1">
@@ -464,6 +485,9 @@ export function CreateWizard() {
                     );
                   })}
                 </div>
+                <Button variant="ghost" block onClick={otherClubs}>
+                  <Shuffle className="h-4 w-4" /> {t('Other clubs')}
+                </Button>
               </>
             )}
 

@@ -11,7 +11,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { getClub } from '@/lib/data/clubs';
 import { getNationality } from '@/lib/data/nationalities';
 import { ovrOf, seasonLabel } from '@/lib/engine/player';
-import { LangToggle } from '@/components/ui/LangToggle';
+import { SettingsLink } from '@/components/ui/SettingsLink';
 import { useT } from '@/lib/i18n';
 import { useGameStore } from '@/lib/store';
 import { useArchiveStore } from '@/lib/archive';
@@ -33,7 +33,7 @@ export function TitleScreen() {
           <UserRound className="h-4 w-4" />
           {archived > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-400 px-1 text-[10px] font-extrabold text-zinc-950">{archived}</span>}
         </button>
-        <LangToggle />
+        <SettingsLink />
       </div>
       <CareerArchive open={archiveOpen} onClose={() => setArchiveOpen(false)} />
       <div aria-hidden className="pitch-lines pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_50%_30%,black,transparent_70%)]" />

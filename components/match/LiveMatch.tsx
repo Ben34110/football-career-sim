@@ -39,6 +39,8 @@ export interface LiveBoard {
   opponent: string;
   /** Title of the table ("Group A") and of the other games (tournament name), already translated */
   heading?: string;
+  /** The competition being played, shown under the title ("Fourth Division · England"), already translated */
+  subtitle?: string;
   gamesTitle?: string;
 }
 
@@ -509,6 +511,7 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
         <h3 className="font-display text-3xl font-extrabold uppercase leading-none">{board.heading ?? t(board.table ? 'Live table' : 'Other matches')}</h3>
         <span className="font-num text-sm font-bold text-crimson-400">● {clock}</span>
       </div>
+      {board.subtitle && <p className="-mt-3 text-[13px] font-semibold text-zinc-400">{board.subtitle}</p>}
 
       {live && before && (
         <div className="overflow-hidden rounded-2xl border border-white/[0.08]">

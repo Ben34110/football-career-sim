@@ -9,7 +9,7 @@ import { Bolts } from '@/components/ui/Bolts';
 import { Button } from '@/components/ui/Button';
 import { Card, Chip, SectionTitle } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
-import { LangToggle } from '@/components/ui/LangToggle';
+import { SettingsLink } from '@/components/ui/SettingsLink';
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { getClub } from '@/lib/data/clubs';
 import { challengeCup, continentOf, eliteCup } from '@/lib/data/continental';
@@ -64,7 +64,7 @@ export function HomeScreen() {
       <div className="-mb-2 flex items-center justify-between px-1">
         <span className="eyebrow capitalize">{fmtGameDate(gameDate(season, year), lang)}</span>
         <div className="flex items-center gap-2">
-          <LangToggle />
+          <SettingsLink />
         </div>
       </div>
       {phase === 'season-end' && <SeasonEnd />}

@@ -35,16 +35,15 @@ const ROW_A = [
 const ROW_B = [
   { x: -62, s: 0.66 },
   { x: 62, s: 0.66 },
-  { x: -190, s: 0.6 },
-  { x: 190, s: 0.6 },
 ];
 
 /** One of the squad, cheering: heavy to draw, so it only renders again if its props change. */
 const Teammate = memo(function Teammate({ look, kit, height, delay, badge }: { look: Look; kit: string; height: number; delay: number; badge?: { short: string; color: string } }) {
   return (
-    <motion.div animate={{ y: [0, -9, 0] }} transition={{ duration: 0.62, repeat: Infinity, delay, ease: 'easeInOut' }}>
+    // the bounce is a CSS animation on its own compositor layer: the (filtered) drawing is rasterised once, then only moved
+    <div className="cheer" style={{ animationDelay: `${delay}s` }}>
       <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} badge={badge} />
-    </motion.div>
+    </div>
   );
 });
 
@@ -87,7 +86,6 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
   const solo = event.solo;
   const lifted = phase >= 2;
   const trophyUnit = heroH / 170;
-  const camera = reduce ? { rotateY: [-4, 4], z: [0, 30] } : { rotateY: [-14, 9], z: [0, 95], y: [0, -8] };
 
   return (
     <motion.div className="fixed inset-0 z-[90] overflow-hidden bg-black text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
@@ -96,8 +94,8 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
       <Beams color={palette.glow} />
 
       {/* the 3D stage: layers sit at different depths and the camera swings and pushes in */}
-      <div className="absolute inset-0 mx-auto max-w-[430px]" style={{ perspective: 1000, perspectiveOrigin: '50% 40%' }}>
-        <motion.div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }} animate={camera} transition={{ duration: CEREMONY_SECONDS + 0.4, ease: 'easeInOut' }}>
+      <div className="absolute inset-0 mx-auto max-w-[430px]">
+        <div className={reduce ? 'absolute inset-0' : 'ceremony-push absolute inset-0'}>
           {/* the stands */}
           <div
             className="absolute"
@@ -106,7 +104,8 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
               right: '-80%',
               top: '5%',
               height: '52%',
-              transform: 'translateZ(-430px)',
+              transform: 'scale(0.72)',
+              willChange: 'transform',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 24%, #000 70%, transparent 100%)',
               maskImage: 'linear-gradient(to bottom, transparent 0%, #000 24%, #000 70%, transparent 100%)',
             }}
@@ -118,13 +117,13 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           {/* the squad, back row first */}
           {!solo &&
             ROW_B.map((p, i) => (
-              <div key={`b${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 34, transform: 'translate3d(-50%,0,-190px)', opacity: phase >= 0 ? 1 : 0 }}>
+              <div key={`b${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 34, transform: 'translateX(-50%) scale(0.88)', transformOrigin: '50% 100%' }}>
                 <Teammate look={squad.b[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.11} badge={event.badge} />
               </div>
             ))}
           {!solo &&
             ROW_A.map((p, i) => (
-              <div key={`a${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 8, transform: 'translate3d(-50%,0,-95px)' }}>
+              <div key={`a${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 8, transform: 'translateX(-50%) scale(0.94)', transformOrigin: '50% 100%' }}>
                 <Teammate look={squad.a[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.09 + 0.05} badge={event.badge} />
               </div>
             ))}
@@ -132,7 +131,7 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           {/* spotlight on the captain (the beam grows when the trophy lands) */}
           <motion.div
             className="absolute left-1/2 top-0"
-            style={{ width: heroH * 1.5, height: '100%', marginLeft: -heroH * 0.75, transform: 'translateZ(-30px)', background: `radial-gradient(ellipse at 50% 0%, ${palette.glow}55, transparent 70%)`, clipPath: 'polygon(42% 0, 58% 0, 100% 100%, 0 100%)' }}
+            style={{ width: heroH * 1.5, height: '100%', marginLeft: -heroH * 0.75, background: `radial-gradient(ellipse at 50% 0%, ${palette.glow}55, transparent 70%)`, clipPath: 'polygon(42% 0, 58% 0, 100% 100%, 0 100%)' }}
             initial={{ opacity: solo ? 0.7 : 0.15 }}
             animate={{ opacity: lifted ? 0.85 : solo ? 0.7 : 0.25 }}
             transition={{ duration: 0.6 }}
@@ -141,12 +140,14 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           {/* you */}
           <motion.div
             className="absolute left-1/2"
-            style={{ bottom: stageH - Math.round(heroH * (20 / 170)), width: Math.round((heroH * 200) / 170), marginLeft: -Math.round((heroH * 100) / 170), z: 40 }}
+            style={{ bottom: stageH - Math.round(heroH * (20 / 170)), width: Math.round((heroH * 200) / 170), marginLeft: -Math.round((heroH * 100) / 170) }}
             initial={{ y: 60, opacity: 0, scale: 0.92 }}
-            animate={{ y: lifted ? [0, -9, 0] : 0, opacity: 1, scale: 1 }}
-            transition={lifted ? { y: { duration: 0.62, repeat: Infinity, ease: 'easeInOut' }, opacity: { duration: 0.5 } } : { duration: 0.8, ease: 'easeOut' }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
           >
-            <MomentScene look={look} kit={event.kit} pose={phase >= 1 ? 'trophy' : 'arms'} expression="cheer" height={heroH} hideTrophy badge={event.badge} />
+            <div className={lifted ? 'cheer' : undefined}>
+              <MomentScene look={look} kit={event.kit} pose={phase >= 1 ? 'trophy' : 'arms'} expression="cheer" height={heroH} hideTrophy badge={event.badge} />
+            </div>
             {/* the trophy comes down from the sky into your hands */}
             {phase >= 1 && (
               <>
@@ -164,7 +165,7 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
                   animate={{ y: 0, scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 70, damping: 11, mass: 1.1 }}
                 >
-                  <svg viewBox="-20 -30 40 60" className="h-full w-full overflow-visible drop-shadow-[0_0_18px_rgba(251,191,36,0.8)]">
+                  <svg viewBox="-20 -30 40 60" className="h-full w-full overflow-visible">
                     <TrophyArt kind={event.trophyKind} accent={event.accent} />
                   </svg>
                 </motion.div>
@@ -173,12 +174,12 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           </motion.div>
 
           {/* the front of the stage (hides the lower bodies) */}
-          <div className="absolute" style={{ left: '-40%', right: '-40%', bottom: 0, height: stageH, transform: 'translateZ(70px)' }}>
+          <div className="absolute" style={{ left: '-40%', right: '-40%', bottom: 0, height: stageH, }}>
             <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${event.kit}, #000)` }} />
             <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
             <div className="absolute inset-x-0 top-3 flex items-center justify-center font-display text-3xl font-extrabold uppercase tracking-[0.18em] text-white/90">{event.team}</div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* effects over everything */}

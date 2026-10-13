@@ -9,7 +9,7 @@ export type AdKind = 'lives' | 'boost';
 
 /** What one ad is worth, and how many can be watched in a day (so ads stay a bonus, not the way to play). */
 export const AD_REWARD = { lives: 3 } as const;
-export const AD_DAILY_CAP: Record<AdKind, number> = { lives: 5, boost: 3 };
+export const AD_DAILY_CAP: Record<AdKind, number> = { lives: 10, boost: 3 };
 
 export interface AdResult {
   /** The reward was earned (the ad was watched to the end) */

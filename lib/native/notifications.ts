@@ -10,7 +10,8 @@ import { NOTIF_TITLE, planNotifications } from './notificationPlan';
  */
 const ON = 'fcs-notifs';
 const ASKED = 'fcs-notifs-asked';
-const FIRES = 'fcs-notifs-fires';
+// v2: the first version counted every re-plan as a reminder, which filled the day's three and silenced the lives reminder
+const FIRES = 'fcs-notifs-fires-v2';
 
 const read = (k: string) => {
   try {

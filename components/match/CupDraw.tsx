@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { Crest } from '@/components/ui/Crest';
 import { FloatingAction } from '@/components/ui/FloatingAction';
+import { useDrawStore } from '@/lib/drawProgress';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import type { Fixture } from '@/lib/types';
@@ -14,11 +15,15 @@ import { cn, crestFace } from '@/lib/utils';
 import type { TeamBadge } from './LiveMatch';
 
 /** The draw: the player picks one of four balls, which decides the opponent of the round. */
-export function CupDraw({ fixture, me, myStrength, division, onDraw }: { fixture: Fixture; me: TeamBadge; myStrength: number; /** Your own division, to compare with the opponent's */ division?: number; onDraw: (index: number) => void }) {
+export function CupDraw({ fixture, me, myStrength, division, drawKey, onDraw }: { fixture: Fixture; me: TeamBadge; myStrength: number; /** Your own division, to compare with the opponent's */ division?: number; /** Where the pick is kept until you confirm it */ drawKey: string; onDraw: (index: number) => void }) {
   const t = useT();
   const pool = fixture.pool ?? [];
-  const [picked, setPicked] = useState<number | null>(null);
-  const [opened, setOpened] = useState(false);
+  // the ball you picked stays picked if you leave the page: the draw cannot be started again
+  const [picked, setPicked] = useState<number | null>(() => {
+    const s = useDrawStore.getState().saved[drawKey]?.current;
+    return typeof s === 'number' && s >= 0 && s < pool.length ? s : null;
+  });
+  const [opened, setOpened] = useState(() => picked !== null);
   const result = picked !== null ? pool[picked] : null;
   const diff = result ? myStrength - result.opponentStrength : 0;
   const tag = diff >= 4 ? { t: 'Favourites', tone: 'good' as const } : diff <= -4 ? { t: 'Underdogs', tone: 'bad' as const } : { t: 'Even match', tone: 'gold' as const };
@@ -28,6 +33,7 @@ export function CupDraw({ fixture, me, myStrength, division, onDraw }: { fixture
     if (picked !== null) return;
     haptic([20, 30, 20]);
     setPicked(i);
+    useDrawStore.getState().put(drawKey, { picks: [], current: i });
     window.setTimeout(() => {
       setOpened(true);
       haptic([40, 40, 90]);
@@ -156,7 +162,15 @@ export function CupDraw({ fixture, me, myStrength, division, onDraw }: { fixture
               </div>
             )}
             <FloatingAction>
-              <Button block size="lg" onClick={() => picked !== null && onDraw(picked)}>
+              <Button
+                block
+                size="lg"
+                onClick={() => {
+                  if (picked === null) return;
+                  useDrawStore.getState().drop(drawKey);
+                  onDraw(picked);
+                }}
+              >
                 {t('To the match')}
               </Button>
             </FloatingAction>

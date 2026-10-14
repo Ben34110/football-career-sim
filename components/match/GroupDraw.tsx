@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, Chip } from '@/components/ui/Card';
 import { FloatingAction } from '@/components/ui/FloatingAction';
 import { flagUrl } from '@/lib/flags';
+import { useDrawStore } from '@/lib/drawProgress';
 import { haptic } from '@/lib/haptics';
 import { useT } from '@/lib/i18n';
 import { drawPotsOf, potTeams } from '@/lib/engine/tournament';
@@ -36,13 +37,22 @@ const shuffled = (n: number) => {
 };
 
 /** The tournament group draw: one ball from each of the three pots makes your group of four. */
-export function GroupDraw({ tourney, tournament, onDraw }: { tourney: TournamentState; tournament: string; onDraw: (picks: number[]) => void }) {
+export function GroupDraw({ tourney, tournament, drawKey, onDraw }: { tourney: TournamentState; tournament: string; /** Where the draw in progress is kept */ drawKey: string; onDraw: (picks: number[]) => void }) {
   const t = useT();
-  const [picks, setPicks] = useState<number[]>([]);
-  const [current, setCurrent] = useState<number | null>(null);
-  const [opened, setOpened] = useState(false);
   // you draw from every pot but your own, strongest pot first
   const drawPots = drawPotsOf(tourney);
+  // a draw left half way is picked up where it was (same balls, same places)
+  const restored = useMemo(() => {
+    const s = useDrawStore.getState().saved[drawKey];
+    if (!s || !s.orders || s.orders.length !== drawPots.length) return null;
+    const sizes = drawPots.map((pi) => potTeams(tourney, pi).length);
+    const ok = s.orders.every((o, i) => o.length === sizes[i]) && s.picks.length <= drawPots.length && s.picks.every((p, i) => Number.isInteger(p) && p >= 0 && p < sizes[i]);
+    return ok ? s : null;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [picks, setPicks] = useState<number[]>(() => restored?.picks ?? []);
+  const [current, setCurrent] = useState<number | null>(() => (restored && restored.picks.length < drawPots.length ? restored.current : null));
+  // a ball that was picked before leaving comes back already open
+  const [opened, setOpened] = useState(() => !!restored && restored.picks.length < drawPots.length && restored.current !== null);
   const step = picks.length;
   const potIdx = drawPots[Math.min(step, drawPots.length - 1)];
   const pot = potTeams(tourney, potIdx);
@@ -50,7 +60,10 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
   const chosen = picks.map((p, i) => tourney.teams[potTeams(tourney, drawPots[i])[p]]);
   const myPot = tourney.pots.findIndex((p) => p.includes(tourney.me));
   // the balls are shuffled for every pot: ball number i hides a random team of the pot
-  const orders = useMemo(() => drawPots.map((pi) => shuffled(potTeams(tourney, pi).length)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const orders = useMemo(() => restored?.orders ?? drawPots.map((pi) => shuffled(potTeams(tourney, pi).length)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    useDrawStore.getState().put(drawKey, { picks, current, orders });
+  }, [drawKey, picks, current, orders]);
   const order = orders[Math.min(step, orders.length - 1)];
   // the balls are tumbled in the drum before each draw
   const [mixing, setMixing] = useState(true);
@@ -209,7 +222,14 @@ export function GroupDraw({ tourney, tournament, onDraw }: { tourney: Tournament
 
       <FloatingAction>
         {done ? (
-          <Button block size="lg" onClick={() => onDraw(picks)}>
+          <Button
+            block
+            size="lg"
+            onClick={() => {
+              useDrawStore.getState().drop(drawKey);
+              onDraw(picks);
+            }}
+          >
             {t('To the group stage')}
           </Button>
         ) : (

@@ -2,8 +2,9 @@
  * Poacher — the rules of the scene, with no drawing in it so they can be tested.
  *
  * Seen from above, the goal at the top. A teammate shoots from outside the box, the keeper parries it and the ball runs loose
- * across the six-yard box: it leaves his gloves in a straight line and slows down on the turf, no tricks. A defender breaks
- * towards it. You steer your striker with your thumb and touch it first, and it is in. Three loose balls, three chances.
+ * across the six-yard box: it leaves his gloves, rolls on for as long as the round lasts and bounces off the edges of the
+ * area (with a little hop each time), slowing down on the turf. A defender breaks towards it. You steer your striker with
+ * your thumb and touch it first, and it is in. Three loose balls, three chances.
  *
  * Coordinates are metres: `x` across the pitch (0 = middle of the goal), `y` the distance from the goal line.
  */
@@ -20,8 +21,13 @@ export interface ReboundRound {
   dir: V;
   v0: number;
   decel: number;
-  /** Seconds until it comes to rest (counted from the parry) */
+  /** Seconds until it comes to rest (counted from the parry): after the defender is there in all but the slowest rounds */
   tStop: number;
+  /** The ball's path: one point (and its speed) every `DT` seconds from the parry, bounces included */
+  path: V[];
+  speeds: number[];
+  /** When it bounces off an edge of the area (seconds from the parry) */
+  bounces: number[];
   /** The side of the keeper's dive: where the shot came from */
   keeperSide: 1 | -1;
   /** Where your striker waits */
@@ -77,21 +83,83 @@ const inField = (p: V, pad = 0) => p.x >= FIELD.xMin - pad && p.x <= FIELD.xMax 
 
 /* ───────── the ball ───────── */
 
-/** Distance rolled along the parry `t` seconds after it. */
-const rolled = (r: Pick<ReboundRound, 'v0' | 'decel' | 'tStop'>, t: number) => (t >= r.tStop ? (r.v0 * r.v0) / (2 * r.decel) : r.v0 * t - 0.5 * r.decel * t * t);
+/** The ball's model: where it starts and how fast, and (once simulated) its whole path. */
+type Ball = Pick<ReboundRound, 'hit' | 'dir' | 'v0' | 'decel' | 'tStop'> & { path?: V[]; speeds?: number[]; bounces?: number[] };
+
+/** How far the ball can roll, in seconds from the parry: longer than any round. */
+const BALL_SECONDS = 9;
+/** What an edge gives back of the ball's speed */
+const RESTITUTION = 0.72;
+/** Below this the ball is at rest (m/s) */
+const REST = 0.25;
+/** The edges the ball bounces off: the sides and the back of the area, and the goal line (where the keeper and the posts are) */
+const WALL = { xMin: FIELD.xMin, xMax: FIELD.xMax, yMin: 0.45, yMax: FIELD.yMax };
+
+/** Rolls the ball off the keeper's gloves: friction, and a bounce off every edge of the area. */
+function rollBall(hit: V, dir: V, v0: number, decel: number): { path: V[]; speeds: number[]; bounces: number[]; tStop: number } {
+  const path: V[] = [{ ...hit }];
+  const speeds: number[] = [v0];
+  const bounces: number[] = [];
+  let p = { ...hit };
+  let vx = dir.x * v0;
+  let vy = dir.y * v0;
+  let tStop = BALL_SECONDS;
+  let resting = false;
+  for (let i = 1; i <= BALL_SECONDS / DT; i++) {
+    if (!resting) {
+      const sp = Math.hypot(vx, vy);
+      const k = Math.max(0, sp - decel * DT) / (sp || 1);
+      vx *= k;
+      vy *= k;
+      p = { x: p.x + vx * DT, y: p.y + vy * DT };
+      let hitEdge = false;
+      if (p.x < WALL.xMin) ((p.x = WALL.xMin + (WALL.xMin - p.x)), (vx = -vx * RESTITUTION), (hitEdge = true));
+      else if (p.x > WALL.xMax) ((p.x = WALL.xMax - (p.x - WALL.xMax)), (vx = -vx * RESTITUTION), (hitEdge = true));
+      if (p.y < WALL.yMin) ((p.y = WALL.yMin + (WALL.yMin - p.y)), (vy = -vy * RESTITUTION), (hitEdge = true));
+      else if (p.y > WALL.yMax) ((p.y = WALL.yMax - (p.y - WALL.yMax)), (vy = -vy * RESTITUTION), (hitEdge = true));
+      if (hitEdge) bounces.push(i * DT);
+      if (Math.hypot(vx, vy) < REST) {
+        resting = true;
+        vx = 0;
+        vy = 0;
+        tStop = i * DT;
+      }
+    }
+    path.push({ ...p });
+    speeds.push(Math.hypot(vx, vy));
+  }
+  return { path, speeds, bounces, tStop };
+}
+
 /** The loose ball, before anybody touches it. */
-export const rollAt = (r: Pick<ReboundRound, 'hit' | 'dir' | 'v0' | 'decel' | 'tStop'>, t: number): V => {
-  const s = rolled(r, Math.max(0, t));
+export const rollAt = (r: Ball, t: number): V => {
+  if (r.path) {
+    const f = Math.max(0, t) / DT;
+    const i = Math.min(r.path.length - 1, Math.floor(f));
+    const a = r.path[i];
+    const b = r.path[Math.min(r.path.length - 1, i + 1)];
+    return { x: lerp(a.x, b.x, f - i), y: lerp(a.y, b.y, f - i) };
+  }
+  const tt = Math.max(0, t);
+  const s = tt >= r.tStop ? (r.v0 * r.v0) / (2 * r.decel) : r.v0 * tt - 0.5 * r.decel * tt * tt;
   return { x: r.hit.x + r.dir.x * s, y: r.hit.y + r.dir.y * s };
 };
 /** How fast the loose ball is moving (m/s). */
-export const rollSpeed = (r: Pick<ReboundRound, 'v0' | 'decel' | 'tStop'>, t: number) => (t >= r.tStop ? 0 : Math.max(0, r.v0 - r.decel * t));
+export const rollSpeed = (r: Ball, t: number): number => {
+  if (r.speeds) return r.speeds[Math.min(r.speeds.length - 1, Math.max(0, Math.round(t / DT)))];
+  return t >= r.tStop ? 0 : Math.max(0, r.v0 - r.decel * t);
+};
+/** 0 … 1 … 0 for 0.22 s after the ball hits an edge: the hop the ball makes there. */
+export const bounceHop = (r: Pick<ReboundRound, 'bounces'>, t: number): number => {
+  for (const tb of r.bounces) if (t >= tb && t < tb + 0.22) return Math.sin(((t - tb) / 0.22) * Math.PI);
+  return 0;
+};
 
 /* ───────── the defender ───────── */
 
 /** Runs the defender at the ball and returns his path and the time he gets there. */
 function chase(
-  round: Pick<ReboundRound, 'hit' | 'dir' | 'v0' | 'decel' | 'tStop'>,
+  round: Ball,
   def0: V,
   react: number,
   speed: number,
@@ -183,10 +251,10 @@ export function ballAt(r: ReboundRound, t: number, tTouch: number | null): V {
   return rollAt(r, t);
 }
 
-/** What the touch at `tTouch` was worth: first time while it is still rolling is perfect. */
+/** What the touch at `tTouch` was worth: well before the defender is perfect, just ahead of him is good. */
 export function judge(r: ReboundRound, tTouch: number | null): ReboundVerdict {
   if (tTouch === null || tTouch >= r.tDef) return 'late';
-  return rollSpeed(r, tTouch) >= 0.3 * r.v0 ? 'perfect' : 'good';
+  return r.tDef - tTouch >= 0.25 ? 'perfect' : 'good';
 }
 
 /* ───────── the next three loose balls ───────── */
@@ -197,7 +265,7 @@ const norm = (v: V): V => {
 };
 
 /** The earliest a runner with a human reaction can be on the ball. */
-function bestTime(round: Pick<ReboundRound, 'hit' | 'dir' | 'v0' | 'decel' | 'tStop'>, me0: V, speed: number) {
+function bestTime(round: Ball, me0: V, speed: number) {
   for (let t = 0; t < round.tStop + 1.5; t += 0.02) {
     const b = rollAt(round, t);
     if (REACT + TAU * 0.7 + Math.max(0, dist(me0, b) - RT) / speed <= t) return t;
@@ -220,11 +288,11 @@ export function makeRebound(pressure: number, difficulty: number, bonus: number,
     const kind = rnd();
     const ang = ((kind < 0.12 ? -(6 + rnd() * 14) : 10 + rnd() * 44) * Math.PI) / 180;
     const dir = norm({ x: -side * Math.sin(ang), y: Math.cos(ang) });
-    let v0 = 6.3 + rnd() * 2.1;
-    const decel = 3.3 + rnd() * 0.5;
-    const stopAt = (v: number) => ({ x: hit.x + dir.x * (v * v) / (2 * decel), y: hit.y + dir.y * (v * v) / (2 * decel) });
-    while (!inField(stopAt(v0), -0.6) && v0 > 4.5) v0 *= 0.95;
-    const base = { hit, dir, v0, decel, tStop: v0 / decel };
+    // it rolls on (and bounces) for the whole round: a slow friction, the edges keep it in play
+    const v0 = 6.3 + rnd() * 2.1;
+    const decel = 1.0 + rnd() * 0.5;
+    const roll = rollBall(hit, dir, v0, decel);
+    const base: Ball = { hit, dir, v0, decel, tStop: roll.tStop, path: roll.path, speeds: roll.speeds, bounces: roll.bounces };
     // where you wait: on the edge of the six-yard box, never on the ball's way
     let me0: V = { x: 0, y: 6 };
     let tBest = 0;
@@ -247,7 +315,8 @@ export function makeRebound(pressure: number, difficulty: number, bonus: number,
     const defSpeed = 5.8 + difficulty * 1;
     const defReact = 0.32 - 0.12 * difficulty;
     const target = tBest + margin;
-    const stop = stopAt(v0);
+    // he is placed around where the ball will be when he should get there
+    const stop = rollAt(base, target);
     let best: { def0: V; t: number; path: V[] } | null = null;
     for (let a = 0; a < 28 && !best; a++) {
       const th = rnd() * Math.PI * 2;
@@ -280,6 +349,9 @@ export function makeRebound(pressure: number, difficulty: number, bonus: number,
       v0,
       decel,
       tStop: base.tStop,
+      path: roll.path,
+      speeds: roll.speeds,
+      bounces: roll.bounces,
       keeperSide: side,
       me0,
       def0: best.def0,

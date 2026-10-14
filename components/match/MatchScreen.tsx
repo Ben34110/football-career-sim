@@ -282,13 +282,13 @@ export function MatchScreen() {
   return (
     <div className="pb-4">
       {stage === 'brief' && fixture.drawn === false && fixture.kind === 'tournament' && season?.tourney && !season.tourney.drawn && (
-        <GroupDraw tourney={season.tourney} tournament={season.tournamentName ?? ''} onDraw={(picks) => useGameStore.getState().drawTournamentGroup(picks)} />
+        <GroupDraw tourney={season.tourney} tournament={season.tournamentName ?? ''} drawKey={`${player.careerId ?? 'c'}|${season.year}|group|${season.tournamentName ?? ''}`} onDraw={(picks) => useGameStore.getState().drawTournamentGroup(picks)} />
       )}
       {stage === 'brief' && fixture.drawn === false && fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw && !season.euroDraw.drawn && (
-        <GroupDraw tourney={season.euroDraw} tournament={season.europe ?? 'Europe Elite Cup'} onDraw={(picks) => useGameStore.getState().drawEuroGroup(picks)} />
+        <GroupDraw tourney={season.euroDraw} tournament={season.europe ?? 'Europe Elite Cup'} drawKey={`${player.careerId ?? 'c'}|${season.year}|euro|${season.europe ?? ''}`} onDraw={(picks) => useGameStore.getState().drawEuroGroup(picks)} />
       )}
       {stage === 'brief' && fixture.drawn === false && !(fixture.kind === 'tournament' && season?.tourney) && !(fixture.kind === 'euro' && !fixture.knockout && season?.euroDraw) && (
-        <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} division={season?.division ?? 1} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
+        <CupDraw fixture={fixture} me={badges.me} myStrength={badges.strength} division={season?.division ?? 1} drawKey={`${player.careerId ?? 'c'}|${fixture.id}`} onDraw={(i) => useGameStore.getState().drawFixture(fixture.id, i)} />
       )}
       {stage === 'brief' && banned && badges && (
         <SuspendedScreen

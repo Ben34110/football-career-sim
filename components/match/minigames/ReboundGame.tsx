@@ -11,6 +11,7 @@ import {
   RT,
   ROUNDS,
   ballAt,
+  bounceHop,
   defAt,
   judge,
   makeRebound,
@@ -479,9 +480,11 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
   const target = S.target && touch === null && verdict === undefined ? S.target : null;
   const showTarget = playing && target && Math.hypot(target.x - S.me.x, target.y - S.me.y) > 0.35;
 
-  // the loose ball's path, once it has left his gloves
-  const stop = rollAt(rd, 99);
-  const showPath = playing && lt > 0.04 && touch === null && lt < rd.tStop && lt < rd.tDef;
+  // the loose ball's path for the next moments, bounces included, once it has left his gloves
+  const showPath = playing && lt > 0.04 && touch === null && lt < rd.tDef;
+  const ahead = showPath ? [0.15, 0.3, 0.45, 0.6, 0.75].map((k) => rollAt(rd, lt + k)) : [];
+  // the ball hops each time it hits an edge of the area
+  const hop = playing && touch === null && lt >= 0 && lt < rd.tDef ? bounceHop(rd, lt) : 0;
   const trail = moving
     ? [1, 2, 3, 4, 5, 6].map((k) => ballAt(rd, lt - 0.028 * k, touch))
     : [];
@@ -521,12 +524,18 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           <g transform={`translate(${W / 2} ${H / 2}) scale(${S.cam.z.toFixed(4)}) translate(${-px(S.cam.x)} ${-py(S.cam.y)})`}>
           <Pitch ripple={ripple} />
 
-          {/* where the ball is going to stop */}
-          {showPath && (
-            <g opacity={0.55 * clamp01(1 - lt / rd.tStop + 0.25)}>
-              <line x1={px(ball.x)} y1={py(ball.y)} x2={px(stop.x)} y2={py(stop.y)} stroke="#fff" strokeWidth="1.4" strokeDasharray="3 5" strokeLinecap="round" />
-              <circle cx={px(stop.x)} cy={py(stop.y)} r="6" fill="none" stroke="#fff" strokeWidth="1.2" strokeDasharray="2 3" />
-            </g>
+          {/* where the ball is going next (it bends where it bounces) */}
+          {showPath && ahead.length > 0 && (
+            <polyline
+              points={[ball, ...ahead].map((q) => `${px(q.x).toFixed(1)},${py(q.y).toFixed(1)}`).join(' ')}
+              fill="none"
+              stroke="#fff"
+              strokeWidth="1.4"
+              strokeDasharray="3 5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity=".45"
+            />
           )}
           {showTarget && target && (
             <g>
@@ -552,8 +561,8 @@ export function ReboundGame({ bonus, pressure, difficulty, locked, kit, oppKit, 
           {trail.map((q, k) => (
             <circle key={k} cx={px(q.x)} cy={py(q.y)} r={Math.max(1.4, 4 - k * 0.5)} fill="#fff" opacity={0.3 - k * 0.045} />
           ))}
-          <ellipse cx={px(ball.x) + 1.4} cy={py(ball.y) + 1.8} rx="4.4" ry="3.2" fill="#000" opacity=".3" />
-          <g transform={`translate(${px(ball.x)} ${py(ball.y)}) rotate(${S.spin.toFixed(0)})`}>
+          <ellipse cx={px(ball.x) + 1.4 + hop * 2.2} cy={py(ball.y) + 1.8 + hop * 3} rx={4.4 - hop * 0.8} ry={3.2 - hop * 0.6} fill="#000" opacity={0.3 - hop * 0.1} />
+          <g transform={`translate(${px(ball.x)} ${py(ball.y) - hop * 4}) scale(${(1 + hop * 0.5).toFixed(3)}) rotate(${S.spin.toFixed(0)})`}>
             <circle r="4.2" fill="#fafafa" stroke="#18181b" strokeWidth=".8" />
             <circle r="1.6" fill="#18181b" />
             <circle cx="2.5" cy="-1.8" r=".9" fill="#18181b" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
 /** iOS-style bottom sheet: swipe the handle down, or tap outside, to close (when dismissible). */
@@ -21,7 +22,7 @@ export function Sheet({
   // the frame is a pseudo-element of the sheet: if the sheet itself scrolled, the frame would scroll away with the content
   const scrolls = /\boverflow-y-auto\b/.test(className ?? '');
   const outer = (className ?? '').replace(/\boverflow-y-auto\b/g, '');
-  return (
+  const tree = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -62,4 +63,6 @@ export function Sheet({
       )}
     </AnimatePresence>
   );
+  // outside the pages, which are moved by the swipe: a fixed sheet would otherwise move with them
+  return typeof document === 'undefined' ? tree : createPortal(tree, document.body);
 }

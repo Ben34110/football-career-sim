@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { Logo } from '@/components/ui/Logo';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,7 @@ export function WaitScreen({
   const text = t(message ?? 'Loading…');
   const compact = variant === 'compact';
   const logo = compact ? 56 : 112;
-  return (
+  const screen = (
     <div
       role="status"
       aria-live="polite"
@@ -52,4 +53,6 @@ export function WaitScreen({
       </div>
     </div>
   );
+  // an overlay sits outside the pages, which are moved by the swipe
+  return variant === 'overlay' && typeof document !== 'undefined' ? createPortal(screen, document.body) : screen;
 }

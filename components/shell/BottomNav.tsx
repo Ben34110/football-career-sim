@@ -1,10 +1,12 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useMotionValueEvent, useTransform } from 'framer-motion';
 import { CalendarDays, Home, ShoppingBag, UserRound, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { haptic } from '@/lib/haptics';
+import { PAGER_PAGES, pagerIndexOf, pagerProgress } from '@/lib/pager';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -19,14 +21,27 @@ const TABS = [
 export function BottomNav() {
   const t = useT();
   const pathname = usePathname();
+  const inPager = pagerIndexOf(pathname) >= 0;
+  // the tab under the finger while swiping: the nearest page
+  const [near, setNear] = useState(Math.max(0, pagerIndexOf(pathname)));
+  useMotionValueEvent(pagerProgress, 'change', (v) => setNear((n) => (Math.round(v) === n ? n : Math.max(0, Math.min(PAGER_PAGES.length - 1, Math.round(v))))));
+  // the pill glides with the strip: page 0..3 sits on column 0, 1, 3, 4 of the five tabs (the middle one is "Play")
+  const pillX = useTransform(pagerProgress, [0, 1, 2, 3], ['0%', '100%', '300%', '400%']);
   return (
     <nav
       aria-label={t('Primary')}
       className="pb-safe fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[430px] border-t border-white/[0.08] bg-zinc-950/80 backdrop-blur-2xl"
     >
-      <ul className="grid grid-cols-5 items-end px-2 pt-1.5">
+      <ul className="relative grid grid-cols-5 items-end px-2 pt-1.5">
+        {inPager && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-2 top-[10px] h-8">
+            <motion.div className="flex h-full w-1/5 items-center justify-center" style={{ x: pillX }}>
+              <span className="h-8 w-12 rounded-full bg-neon-400/15" />
+            </motion.div>
+          </div>
+        )}
         {TABS.map(({ href, label, icon: Icon, hero }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          const active = inPager ? PAGER_PAGES[near] === href : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href}>
               <Link
@@ -49,13 +64,7 @@ export function BottomNav() {
                   </motion.span>
                 ) : (
                   <motion.span whileTap={{ scale: 0.85 }} className="relative flex h-8 w-12 items-center justify-center">
-                    {active && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full bg-neon-400/15"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
+                    {active && !inPager && <span className="absolute inset-0 rounded-full bg-neon-400/15" />}
                     <Icon className={cn('relative h-[22px] w-[22px] transition-colors', active ? 'text-neon-300' : 'text-zinc-500')} />
                   </motion.span>
                 )}

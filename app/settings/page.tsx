@@ -2,6 +2,7 @@
 
 import { BellRing, ChevronLeft, ChevronRight, ExternalLink, FileText, HelpCircle, LifeBuoy, Mail, Megaphone, Shield, Trash2, Vibrate } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, SectionTitle } from '@/components/ui/Card';
@@ -14,6 +15,7 @@ import { useT } from '@/lib/i18n';
 import { isNativeApp } from '@/lib/platform';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
+import { useSwipe } from '@/lib/swipe';
 import { cn } from '@/lib/utils';
 
 function Row({ icon, label, hint, href, external, onClick }: { icon: React.ReactNode; label: string; hint?: string; href?: string; external?: boolean; onClick?: () => void }) {
@@ -57,6 +59,9 @@ export default function SettingsPage() {
   const [haptics, setHaptics] = useState(true);
   const [notifs, setNotifs] = useState(false);
   const [wipe, setWipe] = useState(false);
+  const router = useRouter();
+  // swipe right to go back, like every page of the game
+  const swipe = useSwipe(undefined, () => router.push(hasCareer ? '/home' : '/'));
 
   useEffect(() => {
     const isNative = isNativeApp();
@@ -76,7 +81,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]">
+    <div className="min-h-dvh px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]" {...swipe}>
       <div className="mb-5 flex items-center gap-3">
         <Link href={hasCareer ? '/home' : '/'} aria-label={t('Back')} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 active:scale-90">
           <ChevronLeft className="h-5 w-5" />

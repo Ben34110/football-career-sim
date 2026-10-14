@@ -155,19 +155,52 @@ export async function buildCardImage(player: Player, t: T): Promise<Blob> {
     g.fillText(t(label), x + boxW / 2, 1015);
   });
 
-  // career line
-  const trophies = player.trophies.length;
-  g.fillStyle = '#d4d4d8';
-  g.font = '600 42px Inter, system-ui, sans-serif';
-  g.fillText(`${player.totals.apps} ${t('Apps')} · ${player.totals.goals} ${t('Goals')} · ${player.totals.assists} ${t('Assists')} · ${trophies} ${t('Honours')}`, W / 2, 1140);
+  // career numbers: four small boxes, so nothing overflows however big the numbers get
+  const career: [string, number][] = [
+    [t('Apps'), player.totals.apps],
+    [t('Goals'), player.totals.goals],
+    [t('Assists'), player.totals.assists],
+    [t('Trophies'), player.trophies.length],
+  ];
+  const cW = 200;
+  const cGap = 30;
+  const cX = (W - (cW * 4 + cGap * 3)) / 2;
+  career.forEach(([label, v], i) => {
+    const x = cX + i * (cW + cGap);
+    g.fillStyle = 'rgba(0,0,0,0.32)';
+    g.beginPath();
+    g.roundRect(x, 1070, cW, 124, 30);
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.08)';
+    g.lineWidth = 2;
+    g.stroke();
+    // the number and the label shrink until they fit their box
+    let np = 60;
+    g.font = `800 ${np}px Inter, system-ui, sans-serif`;
+    while (g.measureText(String(v)).width > cW - 36 && np > 28) {
+      np -= 2;
+      g.font = `800 ${np}px Inter, system-ui, sans-serif`;
+    }
+    g.fillStyle = '#fafafa';
+    g.fillText(String(v), x + cW / 2, 1131);
+    const text = label.toUpperCase();
+    let lp = 25;
+    g.font = `700 ${lp}px Inter, system-ui, sans-serif`;
+    while (g.measureText(text).width > cW - 24 && lp > 14) {
+      lp -= 1;
+      g.font = `700 ${lp}px Inter, system-ui, sans-serif`;
+    }
+    g.fillStyle = '#f2c14e';
+    g.fillText(text, x + cW / 2, 1174);
+  });
   if (player.national && player.national.caps > 0) {
     g.fillStyle = '#a1a1aa';
-    g.font = '500 36px Inter, system-ui, sans-serif';
-    g.fillText(`${player.national.caps} ${t('Caps')} · ${player.national.goals} ${t('Goals')}`, W / 2, 1200);
+    g.font = '500 34px Inter, system-ui, sans-serif';
+    g.fillText(`${player.national.caps} ${t('Caps')} · ${player.national.goals} ${t('Goals')}`, W / 2, 1236);
   }
   g.fillStyle = '#52525b';
-  g.font = '500 30px Inter, system-ui, sans-serif';
-  g.fillText(t('Built in Ultime Player'), W / 2, 1270);
+  g.font = '500 28px Inter, system-ui, sans-serif';
+  g.fillText(t('Built in Ultime Player'), W / 2, 1278);
 
   return new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('png'))), 'image/png'));
 }
@@ -308,7 +341,7 @@ export async function buildCareerCardImage(player: Player, history: SeasonRecord
   const groups = groupHonours(player.trophies, history, player.clubId);
   g.fillStyle = '#f2c14e';
   g.font = '800 30px Inter, system-ui, sans-serif';
-  g.fillText(`${t('Honours').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
+  g.fillText(`${t('Trophies').toUpperCase()}  ·  ${player.trophies.length}`, W / 2, 900);
   // every title fits: the more there are, the smaller the lines, and past seven they go in two or three columns
   const top = 950;
   const room = 305;

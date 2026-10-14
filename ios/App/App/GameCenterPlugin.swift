@@ -54,13 +54,37 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin, GKGameCenterControll
             return
         }
         DispatchQueue.main.async {
+            // the sign-in may still be in progress (or may have been lost): ask again before giving up
+            if !GKLocalPlayer.local.isAuthenticated {
+                GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, error in
+                    if let viewController = viewController {
+                        self?.bridge?.viewController?.present(viewController, animated: true)
+                        return
+                    }
+                    self?.presentLeaderboard(id, call, error)
+                }
+                return
+            }
+            self.presentLeaderboard(id, call, nil)
+        }
+    }
+
+    private func presentLeaderboard(_ id: String, _ call: CAPPluginCall, _ error: Error?) {
+        DispatchQueue.main.async {
             guard GKLocalPlayer.local.isAuthenticated else {
-                call.resolve(["shown": false])
+                call.resolve(["shown": false, "reason": "not-signed-in", "detail": error?.localizedDescription ?? ""])
+                return
+            }
+            guard let host = self.bridge?.viewController else {
+                call.resolve(["shown": false, "reason": "no-view", "detail": ""])
                 return
             }
             let controller = GKGameCenterViewController(leaderboardID: id, playerScope: .global, timeScope: .allTime)
             controller.gameCenterDelegate = self
-            self.bridge?.viewController?.present(controller, animated: true)
+            // present from the top-most view controller, whatever is already on screen
+            var top = host
+            while let next = top.presentedViewController { top = next }
+            top.present(controller, animated: true)
             call.resolve(["shown": true])
         }
     }

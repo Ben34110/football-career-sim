@@ -946,4 +946,9 @@ export const FR_UI: Record<string, string> = {
   '{goals} goals this season: that deserves better than a touchline.': '{goals} buts cette saison : ça mérite mieux qu’un banc de touche.',
   'Other clubs': 'Autres clubs',
   'Your lives are already full.': 'Tes vies sont déjà au complet.',
+  'Game Center is not available right now.': 'Game Center n’est pas disponible pour le moment.',
+  'Send a test notification': 'Envoyer une notification de test',
+  'It arrives in a few seconds: leave the app to see it.': 'Elle arrive dans quelques secondes : quitte l’app pour la voir.',
+  'Test: notifications work on this iPhone.': 'Test : les notifications fonctionnent sur cet iPhone.',
+  'Sent: leave the app and wait a few seconds.': 'Envoyée : quitte l’app et patiente quelques secondes.',
 };

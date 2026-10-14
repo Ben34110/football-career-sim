@@ -4,6 +4,7 @@ import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import { registerAdProvider } from '../ads';
 import { BOOSTS } from '../data/boosts';
 import { ADMOB } from './ads-config';
+import { isTestFlight } from './env';
 import { boostProduct, LIFE_PASSES, registerPaymentProvider, type PaymentProduct } from '../payments';
 
 /**
@@ -65,10 +66,12 @@ export function initAds() {
   const unitOk = /^ca-app-pub-\d+\/\d+$/.test(ADMOB.rewardedUnitId);
   if (!unitOk && !ADMOB.testing) return;
   const unitId = unitOk ? ADMOB.rewardedUnitId : 'ca-app-pub-3940256099942544/1712485313';
+  // real ads only in the App Store release: testers (TestFlight) always get Google's test ads
+  const adsInTestMode = async () => ADMOB.testing || (await isTestFlight());
 
   const load = async () => {
     try {
-      await AdMob.prepareRewardVideoAd({ adId: unitId, isTesting: ADMOB.testing });
+      await AdMob.prepareRewardVideoAd({ adId: unitId, isTesting: await adsInTestMode() });
       loaded = true;
     } catch {
       loaded = false;
@@ -78,7 +81,7 @@ export function initAds() {
   const prepare = () =>
     (setup ??= (async () => {
       try {
-        await AdMob.initialize({ initializeForTesting: ADMOB.testing });
+        await AdMob.initialize({ initializeForTesting: await adsInTestMode() });
         try {
           const info = await AdMob.requestConsentInfo();
           if (info.isConsentFormAvailable && info.status === AdmobConsentStatus.REQUIRED) await AdMob.showConsentForm();
@@ -125,7 +128,7 @@ export function initAds() {
  */
 export async function openAdPrivacyOptions(): Promise<boolean> {
   try {
-    await AdMob.initialize({ initializeForTesting: ADMOB.testing });
+    await AdMob.initialize({ initializeForTesting: ADMOB.testing || (await isTestFlight()) });
     const info = await AdMob.requestConsentInfo();
     if (info.privacyOptionsRequirementStatus !== 'REQUIRED') return false;
     await AdMob.showPrivacyOptionsForm();

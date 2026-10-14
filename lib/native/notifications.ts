@@ -57,6 +57,19 @@ export async function enableNotifications(): Promise<boolean> {
   }
 }
 
+/** One notification in a few seconds, to check that the phone shows them (put the app in the background to see it). */
+export async function sendTestNotification(body: string): Promise<'sent' | 'denied'> {
+  try {
+    let p = await LocalNotifications.checkPermissions();
+    if (p.display === 'prompt' || p.display === 'prompt-with-rationale') p = await LocalNotifications.requestPermissions();
+    if (p.display !== 'granted') return 'denied';
+    await LocalNotifications.schedule({ notifications: [{ id: 99, title: NOTIF_TITLE, body, schedule: { at: new Date(Date.now() + 6000) } }] });
+    return 'sent';
+  } catch {
+    return 'denied';
+  }
+}
+
 export async function disableNotifications() {
   write(ON, 'off');
   try {

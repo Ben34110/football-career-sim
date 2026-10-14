@@ -20,7 +20,10 @@ export function LeaderboardButton({ className }: { className?: string }) {
       className={className}
       onClick={async () => {
         const m = await import('@/lib/native/gamecenter');
-        if (!(await m.showGoalsLeaderboard())) toast(t('Sign in to Game Center in Settings to see the leaderboard.'), 'bad');
+        const r = await m.showGoalsLeaderboard();
+        if (r.ok) return;
+        if (r.reason === 'not-signed-in') toast(t('Sign in to Game Center in Settings to see the leaderboard.'), 'bad');
+        else toast(`${t('Game Center is not available right now.')} ${r.detail}`.trim(), 'bad');
       }}
     >
       <Trophy className="h-4 w-4 text-gold-300" /> {t('Goals leaderboard')}

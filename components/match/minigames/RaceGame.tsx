@@ -20,10 +20,10 @@ export function RaceGame({ bonus, pressure, difficulty, locked, kit, oppKit, ski
   const [stumble, setStumble] = useState(0);
   const done = useRef(false);
   // the better the opposition and the bigger the match, the faster he runs — and the harder he surges in the middle
-  const [cruise] = useState(() => 14 + difficulty * 6.5 + pressure * 2.5 + Math.random() * 1.4);
-  const surge = 7 + difficulty * 9 + pressure * 3;
+  const [cruise] = useState(() => 19 + difficulty * 7.5 + pressure * 3 + Math.random() * 1.6);
+  const surge = 9 + difficulty * 10 + pressure * 3.5;
   // against the best, a second burst near the end
-  const surge2 = difficulty * 6 + pressure * 2;
+  const surge2 = 4 + difficulty * 7 + pressure * 2.5;
 
   // the defender: steady, with a burst between 2 and 3.2 seconds
   const opp = Math.min(FINISH, cruise * clock + (clock > 2 ? Math.min(1.2, clock - 2) * surge : 0) + (clock > 4 ? Math.min(1, clock - 4) * surge2 : 0));

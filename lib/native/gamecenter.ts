@@ -8,7 +8,7 @@ export const GOALS_BOARD = 'com.ben34110.pitchlegacy.goals';
 interface GameCenterPlugin {
   signIn(): Promise<{ signedIn: boolean }>;
   submitScore(o: { leaderboardId: string; score: number }): Promise<{ submitted: boolean }>;
-  showLeaderboard(o: { leaderboardId: string }): Promise<{ shown: boolean }>;
+  showLeaderboard(o: { leaderboardId: string }): Promise<{ shown: boolean; reason?: string; detail?: string }>;
 }
 
 /** Implemented in Swift (ios/App/App/GameCenterPlugin.swift). */
@@ -60,14 +60,20 @@ export async function initGameCenter() {
   useArchiveStore.subscribe(later);
 }
 
-/** Opens the Game Center leaderboard; false when the player is not signed in to Game Center. */
-export async function showGoalsLeaderboard(): Promise<boolean> {
+export type LeaderboardResult = { ok: true } | { ok: false; reason: 'not-signed-in' | 'error'; detail: string };
+
+/** Opens the Game Center leaderboard; says why when it could not (not signed in, or the plugin / Game Center refused). */
+export async function showGoalsLeaderboard(): Promise<LeaderboardResult> {
   try {
-    if (!signedIn) signedIn = (await GameCenter.signIn()).signedIn;
-    if (!signedIn) return false;
-    await send();
-    return (await GameCenter.showLeaderboard({ leaderboardId: GOALS_BOARD })).shown;
-  } catch {
-    return false;
+    // never rely on a sign-in made earlier: the native side checks again and waits for it
+    void send();
+    const r = await GameCenter.showLeaderboard({ leaderboardId: GOALS_BOARD });
+    if (r.shown) {
+      signedIn = true;
+      return { ok: true };
+    }
+    return { ok: false, reason: r.reason === 'not-signed-in' ? 'not-signed-in' : 'error', detail: r.detail ?? r.reason ?? '' };
+  } catch (e) {
+    return { ok: false, reason: 'error', detail: e instanceof Error ? e.message : String(e) };
   }
 }

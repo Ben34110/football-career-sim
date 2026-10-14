@@ -7,5 +7,6 @@ class AppViewController: CAPBridgeViewController {
         webView?.scrollView.showsVerticalScrollIndicator = false
         webView?.scrollView.showsHorizontalScrollIndicator = false
         bridge?.registerPluginInstance(GameCenterPlugin())
+        bridge?.registerPluginInstance(AppEnvPlugin())
     }
 }

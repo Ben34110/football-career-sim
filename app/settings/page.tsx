@@ -148,6 +148,18 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
+            {native && (
+              <Row
+                icon={<BellRing className="h-4 w-4" />}
+                label={t('Send a test notification')}
+                hint={t('It arrives in a few seconds: leave the app to see it.')}
+                onClick={async () => {
+                  const m = await import('@/lib/native/notifications');
+                  const r = await m.sendTestNotification(t('Test: notifications work on this iPhone.'));
+                  toast(r === 'sent' ? t('Sent: leave the app and wait a few seconds.') : t('Allow notifications for Ultime Player in iPhone Settings › Notifications.'), r === 'sent' ? 'good' : 'bad');
+                }}
+              />
+            )}
           </Card>
         </div>
 

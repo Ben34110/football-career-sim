@@ -956,4 +956,6 @@ export const FR_UI: Record<string, string> = {
   'next': 'prochaine',
   'iPhone permission': 'Autorisation iPhone',
   'scheduled': 'programmées',
+  'Team OVR': 'OVR équipe',
+  'vs your club': 'vs ton club',
 };

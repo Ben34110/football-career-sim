@@ -71,6 +71,11 @@ export function TransfersScreen() {
           <div className="flex-1">
             <div className="text-sm font-bold">{club?.name ?? t('Free agent')}</div>
             <div className="text-xs text-zinc-500">{club ? t(club.league) : t('No contract')}</div>
+            {club && (
+              <div className="mt-1 whitespace-nowrap">
+                <Chip tone="info">{`${t('Team OVR')} ${club.strength}`}</Chip>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="eyebrow">{t('Market value')}</div>
@@ -135,7 +140,7 @@ export function TransfersScreen() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-bold">{c.name}</div>
                   <div className="text-[11px] text-zinc-500">
-                    <Flag emoji={c.flag} size={11} /> {t(c.league)} · {t(TIER_LABEL[c.tier])} · {c.strength}
+                    <Flag emoji={c.flag} size={11} /> {t(c.league)} · {t(TIER_LABEL[c.tier])} · {t('Team OVR')} <b className="font-num text-zinc-300">{c.strength}</b>
                   </div>
                 </div>
                 <Chip tone={label[1] as 'good' | 'gold' | 'bad'}>{t(label[0])}</Chip>
@@ -183,6 +188,9 @@ function OfferCard({ offer, open, immediate, onRun }: { offer: Offer; open: bool
   const [countering, setCountering] = useState(false);
   const c = getClub(offer.clubId);
   if (!c) return null;
+  // the level of the squad, and how it compares with the club you are at
+  const mine = getClub(player.clubId)?.strength;
+  const gap = mine !== undefined ? c.strength - mine : 0;
   const current = player.contract?.wage ?? 0;
   const rise = current ? Math.round(((offer.wage - current) / current) * 100) : 0;
   return (
@@ -194,6 +202,12 @@ function OfferCard({ offer, open, immediate, onRun }: { offer: Offer; open: bool
             <div className="truncate text-[15px] font-bold">{c.name}</div>
             <div className="text-xs text-zinc-500">
               <Flag emoji={c.flag} size={11} /> {t(c.league)} · {t(TIER_LABEL[c.tier])}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
+              <Chip tone="info">{`${t('Team OVR')} ${c.strength}`}</Chip>
+              {mine !== undefined && gap !== 0 && c.id !== player.clubId && (
+                <span className={cn('text-[11px] font-bold', gap > 0 ? 'text-neon-300' : 'text-crimson-400')}>{`${gap > 0 ? '+' : ''}${gap} ${t('vs your club')}`}</span>
+              )}
             </div>
           </div>
           <Chip tone={offer.source === 'renewal' ? 'info' : offer.source === 'approach' ? 'gold' : 'neutral'}>

@@ -173,13 +173,15 @@ export function MatchScreen() {
     return [...stars, ...stars, ...stars, ...surnamesFor(country)];
   };
 
-  // banned after a red card: the club (or the nation) plays this match without you. The last match of a season is never missed.
+  // banned after a red card: your side plays the next matches without you, club or country. The last match of a season is never missed.
   const national = fixture.kind === 'intl' || fixture.kind === 'tournament';
   const ban = player.suspension;
-  const banned = !!ban && ban.matches > 0 && (ban.scope === 'nation') === national && fixture.drawn !== false && (season?.fixtures.filter((f) => f.status === 'upcoming').length ?? 0) > 1;
+  const banned = !!ban && ban.matches > 0 && fixture.drawn !== false && (season?.fixtures.filter((f) => f.status === 'upcoming').length ?? 0) > 1;
   const fixtureDateOf = () => (season ? fixtureDate(season, Math.max(0, season.fixtures.findIndex((f) => f.id === fixture.id))) : new Date());
 
   const kickoff = (rawStance: RitualOption, usedRitual: Ritual, boostId: string | null) => {
+    // a suspended player never plays: no decision, no mini-game, no tactics
+    if (banned) return;
     const store = useGameStore.getState();
     const p0 = store.player!;
     if (!store.beginMatch()) {

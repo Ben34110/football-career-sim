@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Tutorial } from '@/components/tutorial/Tutorial';
 import { NotificationPrompt } from '@/components/ui/NotificationPrompt';
 import { WaitScreen } from '@/components/ui/WaitScreen';
 import { PAGER_PAGES, pagerIndexOf } from '@/lib/pager';
@@ -36,6 +37,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
         </main>
         <BottomNav />
         <NotificationPrompt />
+        <Tutorial />
       </div>
     );
   }
@@ -45,6 +47,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <main className={immersive ? 'flex-1 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4' : 'flex-1 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4'}>{children}</main>
       {!immersive && <BottomNav />}
       <NotificationPrompt />
+      <Tutorial />
     </div>
   );
 }

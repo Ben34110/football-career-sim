@@ -1,6 +1,6 @@
 'use client';
 
-import { BellRing, ChevronLeft, ChevronRight, ExternalLink, FileText, HelpCircle, LifeBuoy, Mail, Megaphone, Shield, Trash2, Vibrate } from 'lucide-react';
+import { BellRing, Sparkles, ChevronLeft, ChevronRight, ExternalLink, FileText, HelpCircle, LifeBuoy, Mail, Megaphone, Shield, Trash2, Vibrate } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ import { isNativeApp } from '@/lib/platform';
 import { useGameStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useSwipe } from '@/lib/swipe';
+import { useTutorial } from '@/lib/tutorial';
 import { cn } from '@/lib/utils';
 
 function Row({ icon, label, hint, href, external, onClick }: { icon: React.ReactNode; label: string; hint?: string; href?: string; external?: boolean; onClick?: () => void }) {
@@ -189,6 +190,17 @@ export default function SettingsPage() {
           <Card className="divide-y divide-white/[0.06] p-0">
             <Row icon={<Mail className="h-4 w-4" />} label={t('Contact support')} hint={CONTACT_EMAIL} href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(APP_NAME)}`} />
             <Row icon={<HelpCircle className="h-4 w-4" />} label={t('Help and FAQ')} href="/support" />
+            {hasCareer && (
+              <Row
+                icon={<Sparkles className="h-4 w-4" />}
+                label={t('Replay the tutorial')}
+                hint={t('A quick tour of the game and a practice match.')}
+                onClick={() => {
+                  router.push('/home');
+                  window.setTimeout(() => useTutorial.getState().start(), 200);
+                }}
+              />
+            )}
             <Row icon={<Shield className="h-4 w-4" />} label={t('Privacy policy')} href="/privacy" />
             <Row icon={<FileText className="h-4 w-4" />} label={t('Terms of use')} href={TERMS_URL} external />
           </Card>

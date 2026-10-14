@@ -94,7 +94,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
     .sort((a, b) => a.k - b.k)
     .map((x) => x.c);
   const used = new Set<string>();
-  const form = () => rand(-2, 2, rng);
+  // a club is as strong as its level says: the OVR shown for a club is the same wherever you meet it
   // never the same club twice in one round, even when the supply of fresh clubs runs out
   const next = (round?: Set<string>, lo = 0, hi = foreign.length): Club => {
     const band = abroad.slice(elite ? lo : lo + 6, elite ? hi : hi + 6);
@@ -114,7 +114,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
   // the group stage is drawn from four pots: you and fifteen clubs, ranked by their real level
   const fifteen = foreign.slice(0, 15).map((c) => {
     used.add(c.id);
-    return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(c.strength + form()), 45, 95) };
+    return { name: c.name, short: c.short, color: c.color, strength: clamp(Math.round(c.strength), 45, 95) };
   });
   const draw = createEuroDraw({ name: club.name, short: club.short, color: club.color, strength: club.strength }, fifteen, rng);
   const group: Fixture[] = draw.potOrder.map((p, i) => {
@@ -145,7 +145,7 @@ function buildEurope(year: number, club: Club, comp: EuroComp, rng: Rng): { fixt
     const round = new Set<string>();
     const pool = Array.from({ length: i === 2 ? 3 : i === 3 ? 1 : 4 }, () => {
       const c = next(round, bands[i][0], bands[i][1]);
-      return cand(c, c.strength + form());
+      return cand(c, c.strength);
     });
     return {
       id: `${year}-E${i + 4}`,
@@ -726,7 +726,7 @@ function nationOpponent(own: Nationality, boost: number, label: string, id: stri
     label,
     opponent: level === 'A' ? opp.name : `${opp.name} ${level}`,
     opponentShort: `${opp.flag} ${opp.code}`,
-    opponentStrength: clamp(Math.round(opp.strength + LEVEL_STRENGTH[level] + boost + rand(-2, 2, rng)), 50, 95),
+    opponentStrength: clamp(Math.round(opp.strength + LEVEL_STRENGTH[level] + boost), 50, 95),
     opponentColor: nationKit(opp.code),
     home: rng() < 0.5,
     knockout,

@@ -30,6 +30,7 @@ const CURATED_CLUBS: Club[] = [
   { id: 'stade-reims', name: 'Stade de Reims', short: 'REI', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 3, strength: 72, budget: 20, color: '#dc2626' },
   { id: 'brighton-hv', name: 'Brighton Harbour', short: 'BRH', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 3, strength: 76, budget: 45, color: '#38bdf8' },
   { id: 'real-sociedad-x', name: 'Real Bahía', short: 'RBA', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 3, strength: 76, budget: 40, color: '#3b82f6' },
+  { id: 'getafe-x', name: 'CD Getares', short: 'GET', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 3, strength: 72, budget: 22, color: '#2563eb' },
   { id: 'sporting-cl', name: 'Sporting Lusitano', short: 'SPL', league: 'Primeira Divisão', country: 'Portugal', flag: '🇵🇹', tier: 3, strength: 75, budget: 35, color: '#16a34a' },
   { id: 'flamengo-x', name: 'CR Carioca', short: 'CAR', league: 'Brasileirão', country: 'Brazil', flag: '🇧🇷', tier: 3, strength: 74, budget: 30, color: '#ef4444' },
 
@@ -37,11 +38,13 @@ const CURATED_CLUBS: Club[] = [
   { id: 'ol-rhone', name: 'Olympique du Rhône', short: 'OLR', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 2, strength: 80, budget: 90, color: '#1d4ed8' },
   { id: 'dortmund-x', name: 'Borussia Rhein', short: 'BRR', league: 'Deutsche Liga', country: 'Germany', flag: '🇩🇪', tier: 2, strength: 82, budget: 110, color: '#facc15' },
   { id: 'napoli-x', name: 'Napoli Azzurri', short: 'NAP', league: 'Prima Divisione', country: 'Italy', flag: '🇮🇹', tier: 2, strength: 81, budget: 100, color: '#38bdf8' },
+  { id: 'atletico-x', name: 'Atlético Norte', short: 'ATN', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 2, strength: 83, budget: 105, color: '#dc2626' },
   { id: 'villa-x', name: 'Aston Vale', short: 'AVL', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 2, strength: 82, budget: 130, color: '#7c3aed' },
 
   /* ── Tier 1 – global elite ── */
   { id: 'psg-x', name: 'Paris Étoile FC', short: 'PEF', league: 'Première Division', country: 'France', flag: '🇫🇷', tier: 1, strength: 88, budget: 300, color: '#1e3a8a' },
   { id: 'madrid-x', name: 'Real Capital CF', short: 'RCC', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 1, strength: 90, budget: 350, color: '#f5f5f5' },
+  { id: 'barca-x', name: 'Barça Blaugrana', short: 'BLA', league: 'Primera División', country: 'Spain', flag: '🇪🇸', tier: 1, strength: 89, budget: 330, color: '#9f1239' },
   { id: 'city-x', name: 'Manchester Sky', short: 'MSK', league: 'Premier Division', country: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', tier: 1, strength: 90, budget: 380, color: '#7dd3fc' },
   { id: 'bayern-x', name: 'Bayern Alpen', short: 'BAL', league: 'Deutsche Liga', country: 'Germany', flag: '🇩🇪', tier: 1, strength: 89, budget: 320, color: '#dc2626' },
 ];

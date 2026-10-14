@@ -71,7 +71,8 @@ export const drawPool = (t: TournamentState, pot: number): DrawCandidate[] => po
 /** Builds the field, the three pots and your three (still undrawn) group matches. */
 export function createTournament(name: string, me: Nationality, level: NationalLevel, year: number, rng: Rng): { tourney: TournamentState; fixtures: Fixture[] } {
   const teams: Record<string, TournamentTeam> = {};
-  const strengthOf = (n: Nationality) => clamp(Math.round(n.strength + LEVEL_STRENGTH[level] + rand(-2, 2, rng)), 50, 95);
+  // a nation is as strong as its level says: no random swing on top of the OVR shown for it
+  const strengthOf = (n: Nationality) => clamp(Math.round(n.strength + LEVEL_STRENGTH[level]), 50, 95);
   // your own side is exactly the strength the match screen shows: no random shift
   teams[me.name] = { name: me.name, short: `${me.flag} ${me.code}`, color: nationKit(me.code), strength: clamp(Math.round(me.strength + LEVEL_STRENGTH[level]), 50, 95) };
   // the strongest nations usually qualify, with the odd surprise; guests only fill the empty places

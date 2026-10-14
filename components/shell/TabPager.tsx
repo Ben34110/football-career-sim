@@ -93,7 +93,9 @@ export function TabPager({ active, onSettle }: { active: number; onSettle: (inde
       if (!w || e.touches.length !== 1 || drag.current || blocked(e.target)) return;
       const p = e.touches[0];
       anim.current?.stop();
-      drag.current = { id: p.identifier, x0: p.clientX, y0: p.clientY, base: x.get(), start: current.current, mode: 'pending', last: [{ x: p.clientX, t: performance.now() }] };
+      // the page the swipe starts from: the one nearest to the strip right now (a settle may still be running)
+      const from = Math.max(0, Math.min(N - 1, Math.round(-x.get() / w)));
+      drag.current = { id: p.identifier, x0: p.clientX, y0: p.clientY, base: x.get(), start: from, mode: 'pending', last: [{ x: p.clientX, t: performance.now() }] };
     };
 
     const move = (e: TouchEvent) => {
@@ -113,10 +115,15 @@ export function TabPager({ active, onSettle }: { active: number; onSettle: (inde
         else return;
       }
       if (e.cancelable) e.preventDefault();
+      // one page at a time: the strip can only travel to the page before or after the one the swipe started on
+      // (past that, or past the first / last page, it resists)
+      const hi = -Math.max(0, d.start - 1) * w;
+      const lo = -Math.min(N - 1, d.start + 1) * w;
       let next = d.base + dx;
-      const min = -(N - 1) * w;
-      if (next > 0) next *= EDGE_RESISTANCE;
-      else if (next < min) next = min + (next - min) * EDGE_RESISTANCE;
+      // past the neighbour page it only gives a little, like a rubber band
+      const give = (excess: number) => Math.min(excess * EDGE_RESISTANCE, w * 0.1);
+      if (next > hi) next = hi + give(next - hi);
+      else if (next < lo) next = lo - give(lo - next);
       x.set(next);
       d.last.push({ x: p.clientX, t: performance.now() });
       if (d.last.length > 6) d.last.shift();

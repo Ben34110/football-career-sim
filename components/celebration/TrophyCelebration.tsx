@@ -15,7 +15,7 @@ import { Beams, CameraFlashes, ConfettiRain, Fireworks, Stars } from './Effects'
 import { TrophyArt } from './TrophyArt';
 
 /** The whole ceremony lasts this long; the Continue button appears at the end. */
-export const CEREMONY_SECONDS = 6;
+export const CEREMONY_SECONDS = 3.6;
 
 /** Trophy ceremony: a 10-second, hands-off cinematic, then a Continue button. */
 export function TrophyCelebration() {
@@ -38,11 +38,14 @@ const ROW_B = [
 ];
 
 /** One of the squad, cheering: heavy to draw, so it only renders again if its props change. */
-const Teammate = memo(function Teammate({ look, kit, height, delay, badge }: { look: Look; kit: string; height: number; delay: number; badge?: { short: string; color: string } }) {
+const Teammate = memo(function Teammate({ look, kit, height, delay, badge, lifted }: { look: Look; kit: string; height: number; delay: number; badge?: { short: string; color: string }; lifted: boolean }) {
   return (
-    // the bounce is a CSS animation on its own compositor layer: the (filtered) drawing is rasterised once, then only moved
-    <div className="cheer" style={{ animationDelay: `${delay}s`, animationDuration: `${(0.56 + ((delay * 1.7) % 0.26)).toFixed(2)}s` }}>
-      <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} badge={badge} />
+    // two CSS animations on their own compositor layers (the filtered drawing is rasterised once, then only moved):
+    // the outer one is the big jump when the trophy goes up, the inner one the cheer that never stops
+    <div className={lifted ? 'cheer-jump' : undefined} style={{ animationDelay: `${(delay * 0.5).toFixed(2)}s` }}>
+      <div className="cheer" style={{ animationDelay: `${delay}s`, animationDuration: `${(0.56 + ((delay * 1.7) % 0.26)).toFixed(2)}s` }}>
+        <MomentScene look={look} kit={kit} pose="arms" expression="cheer" height={height} badge={badge} />
+      </div>
     </div>
   );
 });
@@ -59,12 +62,12 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
     setVh(window.innerHeight);
     const at = (s: number, f: () => void) => setTimeout(f, s * 1000);
     const ids = [
-      at(0.8, () => setPhase(1)),
-      at(2.2, () => {
+      at(0.5, () => setPhase(1)),
+      at(1.5, () => {
         setPhase(2);
         haptic([50, 40, 120]);
       }),
-      at(3.0, () => setPhase(3)),
+      at(2.1, () => setPhase(3)),
       at(CEREMONY_SECONDS, () => setPhase(4)),
     ];
     return () => ids.forEach(clearTimeout);
@@ -119,13 +122,13 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
           {!solo &&
             ROW_B.map((p, i) => (
               <div key={`b${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 34, transform: 'translateX(-50%) scale(0.88)', transformOrigin: '50% 100%' }}>
-                <Teammate look={squad.b[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.11} badge={event.badge} />
+                <Teammate look={squad.b[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.11} badge={event.badge} lifted={lifted} />
               </div>
             ))}
           {!solo &&
             ROW_A.map((p, i) => (
               <div key={`a${i}`} className="absolute" style={{ left: `calc(50% + ${p.x}px)`, bottom: stageH + 8, transform: 'translateX(-50%) scale(0.94)', transformOrigin: '50% 100%' }}>
-                <Teammate look={squad.a[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.09 + 0.05} badge={event.badge} />
+                <Teammate look={squad.a[i]} kit={event.kit} height={Math.round(heroH * p.s)} delay={i * 0.09 + 0.05} badge={event.badge} lifted={lifted} />
               </div>
             ))}
 
@@ -166,9 +169,11 @@ export function CeremonyView({ event, look, playerName, onClose }: { event: Cele
                   animate={{ y: 0, scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 70, damping: 11, mass: 1.1 }}
                 >
-                  <svg viewBox="-20 -30 40 60" className="h-full w-full overflow-visible">
-                    <TrophyArt kind={event.trophyKind} accent={event.accent} />
-                  </svg>
+                  <div className={lifted ? 'trophy-shake h-full w-full' : 'h-full w-full'}>
+                    <svg viewBox="-20 -30 40 60" className="h-full w-full overflow-visible">
+                      <TrophyArt kind={event.trophyKind} accent={event.accent} />
+                    </svg>
+                  </div>
                 </motion.div>
               </>
             )}

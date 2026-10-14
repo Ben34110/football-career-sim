@@ -146,7 +146,7 @@ textarea {
   }
 }
 .ceremony-push {
-  animation: ceremony-push 6.4s ease-in-out forwards;
+  animation: ceremony-push 4.2s ease-out forwards;
   transform-origin: 50% 72%;
   will-change: transform;
 }
@@ -256,5 +256,46 @@ body,
   .fx-burst,
   .fx-flash {
     opacity: 0;
+  }
+}
+
+/* Trophy ceremony: the squad jumps when the cup goes up, and the cup is shaken a little (transform only) */
+@keyframes cheer-jump {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  30% {
+    transform: translate3d(0, -26px, 0) scale(1.03);
+  }
+  60% {
+    transform: translate3d(0, 0, 0) scale(0.99);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+.cheer-jump {
+  animation: cheer-jump 0.55s ease-out 1;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+@keyframes trophy-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-3deg);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0) rotate(3deg);
+  }
+}
+.trophy-shake {
+  animation: trophy-shake 0.5s ease-in-out infinite;
+  transform-origin: 50% 80%;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cheer-jump,
+  .trophy-shake {
+    animation: none;
   }
 }

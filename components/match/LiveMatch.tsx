@@ -540,7 +540,11 @@ function LiveBoardView({ board, myScore, oppScore, minute, finished }: { board: 
             const was = before.findIndex((x) => x.id === r.id);
             const move = was - i;
             return (
-              <div key={r.id} className={cn('grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 px-3 py-2 text-[13px]', r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : 'border-t border-white/[0.04] text-zinc-300')}>
+              <div key={r.id} className={cn(
+                'grid grid-cols-[24px_16px_1fr_26px_26px_34px] items-center gap-1 px-3 py-2 text-[13px]',
+                r.isMe ? 'bg-neon-400/10 font-bold text-neon-300' : r.name === board.opponent ? 'border-t border-crimson-500/20 bg-crimson-500/[0.12] font-bold text-crimson-300' : 'border-t border-white/[0.04] text-zinc-300',
+              )}
+            >
                 <span className="font-num text-zinc-500">{i + 1}</span>
                 <span className={cn('text-[10px] font-bold', move > 0 ? 'text-neon-400' : move < 0 ? 'text-crimson-400' : 'text-zinc-700')}>{move > 0 ? '▲' : move < 0 ? '▼' : '–'}</span>
                 <span className="truncate">{flagOnly(r.short) ? <Flag emoji={flagOnly(r.short)} size={11} /> : null} {t(r.name)}</span>

@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { getClub, setClubBoosts, setClubYear } from './data/clubs';
+import { MAX_NATION_BOOST, nationTitleBonus, setNationBoosts } from './data/nationalities';
+import { expectedReach, performanceShift, roundIndex } from './engine/tournament';
 import { challengeCup, continentOf, eliteCup, wonEliteCup } from './data/continental';
 import { archiveCurrent } from './archive';
 import { squadStatus } from './engine/status';
@@ -109,6 +111,8 @@ interface GameData {
   worldClub: boolean;
   /** The level your clubs have gained (promotion, good seasons) or lost (relegation) on top of their normal strength */
   clubBoost: Record<string, number>;
+  /** The level the national sides have gained from the titles won in this career */
+  nationBoost: Record<string, number>;
   hasCareer: boolean;
   phase: GamePhase;
   year: number;
@@ -182,6 +186,7 @@ const initial: GameData = {
   europe: null,
   worldClub: false,
   clubBoost: {},
+  nationBoost: {},
   hasCareer: false,
   phase: 'playing',
   year: START_YEAR,
@@ -215,6 +220,7 @@ export const useGameStore = create<GameStore>()(
         // the career you were playing goes to the archive before the new one starts
         archiveCurrent(get());
         setClubBoosts({});
+        setNationBoosts({});
         const player = { ...createPlayer(input, Date.now()), careerId: uid('career') };
         const club = getClub(input.clubId)!;
         const season = generateSeason(START_YEAR, club, Math.random);
@@ -243,6 +249,7 @@ export const useGameStore = create<GameStore>()(
       resetCareer: () => {
         archiveCurrent(get());
         setClubBoosts({});
+        setNationBoosts({});
         set({ ...initial });
       },
 
@@ -464,7 +471,42 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        set({ player: updated, season: nextSeason, news: nextNews });
+        // the national side's level follows its results: a title makes it stronger, and so does a run further than
+        // expected; going out earlier than a side of that level should costs points
+        let nationBoost = get().nationBoost ?? {};
+        {
+          const code = player.nationality;
+          let change = newTrophies.reduce((n, trName) => n + nationTitleBonus(trName), 0);
+          let kind: 'title' | 'over' | 'under' = 'title';
+          const t = nextSeason.tourney;
+          const ended = fixture.kind === 'tournament' && season.tournamentAlive && !nextSeason.tournamentAlive && !!t && t.level === 'A';
+          if (ended && t && change === 0) {
+            const reached = fixture.knockout ? roundIndex(fixture.label) + 1 : 0;
+            const shift = performanceShift(expectedReach(t), reached);
+            if (shift !== 0) {
+              change = shift;
+              kind = shift > 0 ? 'over' : 'under';
+            }
+          }
+          if (change !== 0) {
+            const before = nationBoost[code] ?? 0;
+            const next = Math.max(-MAX_NATION_BOOST, Math.min(MAX_NATION_BOOST, before + change));
+            if (next !== before) {
+              nationBoost = { ...nationBoost, [code]: next };
+              setNationBoosts(nationBoost);
+              const n = next - before;
+              const msg =
+                kind === 'title'
+                  ? tr('📈 The national side grows with the title: level +{n}.', { n })
+                  : kind === 'over'
+                    ? tr('📈 The national side exceeded expectations: level +{n}.', { n })
+                    : tr('📉 The national side fell short of expectations: level {n}.', { n });
+              nextNews = addNews(nextNews, mkNews(msg, n > 0 ? 'good' : 'bad'));
+            }
+          }
+        }
+
+        set({ player: updated, season: nextSeason, news: nextNews, nationBoost });
 
         if (seasonFinished(nextSeason)) finishSeason(set, get);
       },
@@ -927,6 +969,7 @@ export const useGameStore = create<GameStore>()(
       skipHydration: true,
       onRehydrateStorage: () => (state) => {
         setClubBoosts(state?.clubBoost ?? {});
+        setNationBoosts(state?.nationBoost ?? {});
         if (state?.season?.year) setClubYear(state.season.year);
         // a career that ended before the archive existed is filed the first time the save loads
         if (state?.phase === 'retired') archiveCurrent(state);

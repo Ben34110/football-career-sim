@@ -960,4 +960,7 @@ export const FR_UI: Record<string, string> = {
   'vs your club': 'vs ton club',
   'Achievements': 'Réalisations',
   'Trophies': 'Trophées',
+  '📈 The national side grows with the title: level +{n}.': '📈 La sélection progresse avec ce titre : niveau +{n}.',
+  '📈 The national side exceeded expectations: level +{n}.': '📈 La sélection a dépassé les attentes : niveau +{n}.',
+  '📉 The national side fell short of expectations: level {n}.': '📉 La sélection est restée en dessous des attentes : niveau {n}.',
 };

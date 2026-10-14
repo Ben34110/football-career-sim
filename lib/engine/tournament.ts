@@ -254,6 +254,30 @@ export function playOut(t: TournamentState, rng: Rng): TournamentState {
 
 export const roundIndex = (label: string) => ROUND_LABELS.indexOf(label);
 
+/**
+ * How far a side of this strength is expected to go among the sixteen: 0 = out in the groups, 1 = quarter-final,
+ * 2 = semi-final, 3 = final. The two strongest are expected in the final, the next two in the semi-finals, the
+ * next four in the quarter-finals; the rest are expected to go out in the groups.
+ */
+export function expectedReach(t: TournamentState, team = t.me): number {
+  const ranked = Object.entries(t.teams)
+    .sort((a, b) => b[1].strength - a[1].strength || a[0].localeCompare(b[0]))
+    .map(([name]) => name);
+  const rank = ranked.indexOf(team) + 1;
+  return rank <= 2 ? 3 : rank <= 4 ? 2 : rank <= 8 ? 1 : 0;
+}
+
+/**
+ * What a run is worth to the national side's level once it is over: going out earlier than expected costs points,
+ * going further than expected earns some. `reached` is 0 (out in the groups), 1 (lost the quarter), 2 (lost the
+ * semi), 3 (lost the final). The winner's title bonus is counted elsewhere.
+ */
+export function performanceShift(expected: number, reached: number): number {
+  const d = reached - expected;
+  if (d === 0) return 0;
+  return d > 0 ? Math.min(2, d) : Math.max(-2, d);
+}
+
 /** Your fixture for a knockout round, with the opponent already known from the bracket. */
 export function knockoutFixture(t: TournamentState, round: number, year: number, rng: Rng): Fixture | null {
   const x = t.rounds[round]?.ties.find((y) => y.a === t.me || y.b === t.me);

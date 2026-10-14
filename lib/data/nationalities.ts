@@ -21,6 +21,34 @@ export const NATIONALITIES: Nationality[] = WORLD.map((w) => ({
   region: REGION[w.confederation],
 }));
 
+/* ───────── A national side gets a little stronger with its titles ───────── */
+
+const BASE_STRENGTH = new Map(NATIONALITIES.map((n) => [n.code, n.strength]));
+/** What a nation has gained (or lost) from its results on top of its normal level (kept per career) */
+let nationBoosts: Record<string, number> = {};
+export const MAX_NATION_BOOST = 6;
+export const getNationBoost = (code: string) => nationBoosts[code] ?? 0;
+
+/** Gives every nation its level again: its own, plus what the titles of this career have added. */
+export function setNationBoosts(next: Record<string, number>) {
+  nationBoosts = next;
+  for (const n of NATIONALITIES) {
+    const base = BASE_STRENGTH.get(n.code) ?? n.strength;
+    n.strength = Math.max(45, Math.min(96, base + Math.max(-MAX_NATION_BOOST, Math.min(MAX_NATION_BOOST, nationBoosts[n.code] ?? 0))));
+  }
+}
+
+/**
+ * What a title adds to the national side: +2 for the World Nations Cup, +1 for the Summer Games and for a continental
+ * championship. Youth tournaments and the Nations Trophy add nothing.
+ */
+export function nationTitleBonus(trophy: string): number {
+  if (/^U\d\d /.test(trophy)) return 0;
+  if (/^World Nations Cup \d{4}$/.test(trophy)) return 2;
+  if (/^(Summer Games|European Championship|African Nations Cup|South American Cup|Asian Nations Cup|North American Cup) \d{4}$/.test(trophy)) return 1;
+  return 0;
+}
+
 export const getNationality = (code: string): Nationality =>
   NATIONALITIES.find((n) => n.code === code) ?? NATIONALITIES[0];
 

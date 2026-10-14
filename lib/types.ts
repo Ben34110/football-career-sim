@@ -296,6 +296,8 @@ export interface Player {
   adsToday?: { day: string; lives: number; boost: number };
   /** Banned after a red card: matches still to miss, for the club or for the national team */
   suspension?: { matches: number; scope: 'club' | 'nation' };
+  /** Things that happened at least once in this career (for the Game Center achievements) */
+  firsts?: { redCard?: boolean; sacked?: boolean };
   /** Permanent upgrades bought with money */
   upgrades?: Upgrades;
   /** Season (start year) of the last charity gala */

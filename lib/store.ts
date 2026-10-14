@@ -343,6 +343,7 @@ export const useGameStore = create<GameStore>()(
           form: [...player.form, result.rating].slice(-5),
           // a red card costs the next matches; playing a match means any earlier ban was waived or served
           suspension: result.ban ? { matches: result.ban, scope: intl ? ('nation' as const) : ('club' as const) } : undefined,
+          firsts: result.sentOff ? { ...player.firsts, redCard: true } : player.firsts,
           morale: clamp(morale + (result.sentOff ? -9 : result.subbedOff ? -4 : 0), 0, 100),
           rep: applyRep(
             player.rep,
@@ -566,7 +567,7 @@ export const useGameStore = create<GameStore>()(
             p = { ...p, rep: applyRep(p.rep, { coachTrust: 20 - p.rep.coachTrust }), contract: p.contract ? { ...p.contract, yearsLeft: 0 } : null };
             set({ player: p, news: addNews(nextNews, mkNews(tr('{club} will not renew your contract after repeated scandals.', { club: club?.name ?? '' }), 'bad')) });
           } else {
-            p = { ...p, clubId: null, contract: null };
+            p = { ...p, clubId: null, contract: null, firsts: { ...p.firsts, sacked: true } };
             set({
               player: p,
               // the season goes on without you: the next club picks it up from where you were

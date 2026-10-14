@@ -11,6 +11,8 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin, GKGameCenterControll
         CAPPluginMethod(name: "signIn", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "submitScore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showLeaderboard", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reportAchievement", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "showAchievements", returnType: CAPPluginReturnPromise),
     ]
 
     @objc func signIn(_ call: CAPPluginCall) {
@@ -66,6 +68,40 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin, GKGameCenterControll
                 return
             }
             self.presentLeaderboard(id, call, nil)
+        }
+    }
+
+    /// Sets how far an achievement is (0...100). 100 unlocks it; Game Center shows the banner once.
+    @objc func reportAchievement(_ call: CAPPluginCall) {
+        guard let id = call.getString("id") else {
+            call.reject("id is required")
+            return
+        }
+        let percent = max(0, min(100, call.getDouble("percent") ?? 0))
+        guard GKLocalPlayer.local.isAuthenticated else {
+            call.resolve(["reported": false])
+            return
+        }
+        let achievement = GKAchievement(identifier: id)
+        achievement.percentComplete = percent
+        achievement.showsCompletionBanner = true
+        GKAchievement.report([achievement]) { error in
+            call.resolve(["reported": error == nil])
+        }
+    }
+
+    @objc func showAchievements(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard GKLocalPlayer.local.isAuthenticated, let host = self.bridge?.viewController else {
+                call.resolve(["shown": false, "reason": "not-signed-in"])
+                return
+            }
+            let controller = GKGameCenterViewController(state: .achievements)
+            controller.gameCenterDelegate = self
+            var top = host
+            while let next = top.presentedViewController { top = next }
+            top.present(controller, animated: true)
+            call.resolve(["shown": true])
         }
     }
 

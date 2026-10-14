@@ -1,6 +1,6 @@
 'use client';
 
-import { Trophy } from 'lucide-react';
+import { Medal, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useT } from '@/lib/i18n';
 import { isNativeApp } from '@/lib/platform';
@@ -8,7 +8,7 @@ import { toast } from '@/lib/toast';
 import { Button } from './Button';
 
 /** Game Center leaderboard of goals (every career on the phone). Only exists in the iPhone app. */
-export function LeaderboardButton({ className }: { className?: string }) {
+export function LeaderboardButton({ className, kind = 'goals' }: { className?: string; kind?: 'goals' | 'achievements' }) {
   const t = useT();
   const [native, setNative] = useState(false);
   useEffect(() => setNative(isNativeApp()), []);
@@ -20,13 +20,13 @@ export function LeaderboardButton({ className }: { className?: string }) {
       className={className}
       onClick={async () => {
         const m = await import('@/lib/native/gamecenter');
-        const r = await m.showGoalsLeaderboard();
+        const r = kind === 'achievements' ? await m.showAchievementList() : await m.showGoalsLeaderboard();
         if (r.ok) return;
         if (r.reason === 'not-signed-in') toast(t('Sign in to Game Center in Settings to see the leaderboard.'), 'bad');
         else toast(`${t('Game Center is not available right now.')} ${r.detail}`.trim(), 'bad');
       }}
     >
-      <Trophy className="h-4 w-4 text-gold-300" /> {t('Goals leaderboard')}
+      {kind === 'achievements' ? <Medal className="h-4 w-4 text-gold-300" /> : <Trophy className="h-4 w-4 text-gold-300" />} {t(kind === 'achievements' ? 'Achievements' : 'Goals leaderboard')}
     </Button>
   );
 }

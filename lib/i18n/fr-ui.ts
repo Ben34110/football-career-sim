@@ -958,4 +958,5 @@ export const FR_UI: Record<string, string> = {
   'scheduled': 'programmées',
   'Team OVR': 'OVR équipe',
   'vs your club': 'vs ton club',
+  'Achievements': 'Réalisations',
 };

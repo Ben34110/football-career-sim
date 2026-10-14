@@ -37,6 +37,7 @@ export function ProfileScreen() {
       <PlayerCard name={player.name} nationality={player.nationality} position={player.position} attrs={player.attrs} xp={player.xp} age={player.age} clubId={player.clubId} look={player.look} />
       <ShareCardButton player={player} />
       <LeaderboardButton />
+      <LeaderboardButton kind="achievements" />
       <SquadStatusCard />
 
       <div className="flex flex-wrap gap-2">

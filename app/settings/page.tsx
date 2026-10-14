@@ -209,8 +209,9 @@ export default function SettingsPage() {
                   }}
                 />
               </div>
-              <div className="px-4 pb-4">
+              <div className="space-y-2 px-4 pb-4">
                 <LeaderboardButton />
+                <LeaderboardButton kind="achievements" />
               </div>
             </Card>
           </div>

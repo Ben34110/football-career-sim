@@ -1,6 +1,7 @@
 import { registerPlugin } from '@capacitor/core';
 import { useArchiveStore } from '../archive';
 import { useGameStore } from '../store';
+import { ACH_PREFIX, ACHIEVEMENTS, collectStats } from './achievementList';
 
 /** The leaderboard created in App Store Connect (Game Center): total goals, every career on this phone. */
 export const GOALS_BOARD = 'com.ben34110.pitchlegacy.goals';
@@ -9,6 +10,8 @@ interface GameCenterPlugin {
   signIn(): Promise<{ signedIn: boolean }>;
   submitScore(o: { leaderboardId: string; score: number }): Promise<{ submitted: boolean }>;
   showLeaderboard(o: { leaderboardId: string }): Promise<{ shown: boolean; reason?: string; detail?: string }>;
+  reportAchievement(o: { id: string; percent: number }): Promise<{ reported: boolean }>;
+  showAchievements(): Promise<{ shown: boolean; reason?: string }>;
 }
 
 /** Implemented in Swift (ios/App/App/GameCenterPlugin.swift). */
@@ -30,8 +33,48 @@ export function totalGoals(): number {
 let signedIn = false;
 let lastSent = -1;
 
+const ACH_KEY = 'fcs-gc-ach-v1';
+
+/** Tells Game Center how far each achievement is (only what moved since the last time). */
+async function reportAchievements() {
+  if (!signedIn) return;
+  let done: Record<string, number> = {};
+  try {
+    done = JSON.parse(window.localStorage.getItem(ACH_KEY) ?? '{}') as Record<string, number>;
+  } catch {
+    done = {};
+  }
+  const g = useGameStore.getState();
+  const stats = collectStats(
+    useArchiveStore.getState().careers.map((c) => ({ player: c.player, history: c.history, retired: c.retired })),
+    g.player ? { player: g.player, history: g.history, retired: g.phase === 'retired' } : null,
+  );
+  let changed = false;
+  for (const a of ACHIEVEMENTS) {
+    const percent = Math.round(a.progress(stats) * 100);
+    if (percent <= (done[a.id] ?? 0)) continue;
+    try {
+      const r = await GameCenter.reportAchievement({ id: ACH_PREFIX + a.id, percent });
+      if (r.reported) {
+        done[a.id] = percent;
+        changed = true;
+      }
+    } catch {
+      /* sent again at the next change */
+    }
+  }
+  if (changed) {
+    try {
+      window.localStorage.setItem(ACH_KEY, JSON.stringify(done));
+    } catch {
+      /* private mode */
+    }
+  }
+}
+
 async function send() {
   if (!signedIn) return;
+  void reportAchievements();
   const score = totalGoals();
   if (score <= 0 || score === lastSent) return;
   try {
@@ -58,6 +101,18 @@ export async function initGameCenter() {
   };
   useGameStore.subscribe(later);
   useArchiveStore.subscribe(later);
+}
+
+/** Opens the Game Center achievements. */
+export async function showAchievementList(): Promise<LeaderboardResult> {
+  try {
+    void reportAchievements();
+    const r = await GameCenter.showAchievements();
+    if (r.shown) return { ok: true };
+    return { ok: false, reason: r.reason === 'not-signed-in' ? 'not-signed-in' : 'error', detail: r.reason ?? '' };
+  } catch (e) {
+    return { ok: false, reason: 'error', detail: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export type LeaderboardResult = { ok: true } | { ok: false; reason: 'not-signed-in' | 'error'; detail: string };

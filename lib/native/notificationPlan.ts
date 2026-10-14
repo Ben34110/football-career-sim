@@ -96,9 +96,12 @@ export function planNotifications(i: PlanInput): { items: PlannedNotification[];
     if (e.bolts <= MAX_BOLTS - 3) {
       const full = outsideQuietHours(e.at + (MAX_BOLTS - e.bolts) * REGEN_MS);
       if (full > now + 5000) {
-        const same = livesFires.some((t) => Math.abs(t - full) < 60_000);
-        if (same || livesFires.length < MAX_LIVES_PINGS_PER_DAY) {
-          if (!same) livesFires.push(full);
+        // the same session re-planned (a life spent, a life back) is the same reminder: it replaces the earlier one
+        // instead of using up the day's three
+        const near = livesFires.findIndex((t) => Math.abs(t - full) < 20 * 60_000);
+        if (near >= 0 || livesFires.length < MAX_LIVES_PINGS_PER_DAY) {
+          if (near >= 0) livesFires[near] = full;
+          else livesFires.push(full);
           items.push({ id: LIVES_ID, at: full, kind: 'lives', body: say(LIVES_MESSAGES[Math.floor(full / 60_000) % LIVES_MESSAGES.length]) });
         }
       }

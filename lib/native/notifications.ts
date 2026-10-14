@@ -112,14 +112,30 @@ export async function rescheduleNotifications() {
   }
 }
 
+/** What the phone says: permission, whether they are switched on, and how many are waiting (for Settings). */
+export async function notificationStatus(): Promise<{ permission: string; on: boolean; pending: number; next?: number }> {
+  try {
+    const p = await LocalNotifications.checkPermissions();
+    const { notifications } = await LocalNotifications.getPending();
+    const times = notifications.map((n) => (n.schedule?.at ? new Date(n.schedule.at).getTime() : 0)).filter((t) => t > 0);
+    return { permission: p.display, on: notificationsOn(), pending: notifications.length, next: times.length ? Math.min(...times) : undefined };
+  } catch {
+    return { permission: 'error', on: notificationsOn(), pending: -1 };
+  }
+}
+
 /** Keeps the reminders in step with the game: every change of lives, season or career re-plans them. */
 export function initNotifications() {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const later = () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => void rescheduleNotifications(), 2500);
+    timer = setTimeout(() => void rescheduleNotifications(), 500);
   };
   useGameStore.subscribe(later);
   useArchiveStore.subscribe(later);
+  // the moment the app is left, plan again right away: a timer would never fire once the app is suspended
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) void rescheduleNotifications();
+  });
   void rescheduleNotifications();
 }

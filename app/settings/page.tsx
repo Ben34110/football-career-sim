@@ -58,6 +58,14 @@ export default function SettingsPage() {
   const [native, setNative] = useState(false);
   const [haptics, setHaptics] = useState(true);
   const [notifs, setNotifs] = useState(false);
+  const [notifInfo, setNotifInfo] = useState('');
+  const refreshNotifInfo = async () => {
+    const m = await import('@/lib/native/notifications');
+    const s = await m.notificationStatus();
+    const perm = s.permission === 'granted' ? t('allowed') : s.permission === 'denied' ? t('refused') : s.permission;
+    const next = s.next ? ` · ${t('next')}: ${new Date(s.next).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '';
+    setNotifInfo(`${t('iPhone permission')}: ${perm} · ${t('scheduled')}: ${s.pending}${next}`);
+  };
   const [wipe, setWipe] = useState(false);
   const router = useRouter();
   // swipe right to go back, like every page of the game
@@ -67,7 +75,11 @@ export default function SettingsPage() {
     const isNative = isNativeApp();
     setNative(isNative);
     setHaptics(hapticsEnabled());
-    if (isNative) void import('@/lib/native/notifications').then((m) => setNotifs(m.notificationsOn()));
+    if (isNative) {
+      void import('@/lib/native/notifications').then((m) => setNotifs(m.notificationsOn()));
+      void refreshNotifInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const eraseAll = () => {
@@ -141,10 +153,12 @@ export default function SettingsPage() {
                     if (notifs) {
                       await m.disableNotifications();
                       setNotifs(false);
+                      void refreshNotifInfo();
                       return;
                     }
                     const ok = await m.enableNotifications();
                     setNotifs(ok);
+                    void refreshNotifInfo();
                     if (!ok) toast(t('Allow notifications for Ultime Player in iPhone Settings › Notifications.'), 'bad');
                   }}
                   className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors', notifs ? 'bg-neon-500' : 'bg-white/15')}
@@ -153,6 +167,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
+            {native && notifInfo && <p className="px-4 py-2 text-[11px] leading-snug text-zinc-500">{notifInfo}</p>}
             {native && (
               <Row
                 icon={<BellRing className="h-4 w-4" />}
@@ -161,6 +176,7 @@ export default function SettingsPage() {
                 onClick={async () => {
                   const m = await import('@/lib/native/notifications');
                   const r = await m.sendTestNotification(t('Test: notifications work on this iPhone.'));
+                  void refreshNotifInfo();
                   toast(r === 'sent' ? t('Sent: leave the app and wait a few seconds.') : t('Allow notifications for Ultime Player in iPhone Settings › Notifications.'), r === 'sent' ? 'good' : 'bad');
                 }}
               />

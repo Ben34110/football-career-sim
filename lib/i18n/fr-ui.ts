@@ -951,4 +951,9 @@ export const FR_UI: Record<string, string> = {
   'It arrives in a few seconds: leave the app to see it.': 'Elle arrive dans quelques secondes : quitte l’app pour la voir.',
   'Test: notifications work on this iPhone.': 'Test : les notifications fonctionnent sur cet iPhone.',
   'Sent: leave the app and wait a few seconds.': 'Envoyée : quitte l’app et patiente quelques secondes.',
+  'allowed': 'autorisées',
+  'refused': 'refusées',
+  'next': 'prochaine',
+  'iPhone permission': 'Autorisation iPhone',
+  'scheduled': 'programmées',
 };

@@ -98,9 +98,13 @@ export function buildOtherGames(season: SeasonState, fixture: Fixture, rng: Rng)
   // a final is the only game on: nothing else is being played while it lasts
   if (/(^| )Final$/.test(fixture.label) && !/Semi|Quarter/.test(fixture.label)) return [];
   // knockouts and internationals: other ties going on elsewhere (flavour only)
+  // a qualifier is played inside one confederation: the other games are between nations of that confederation too
+  const oppName = fixture.opponent.replace(/ (U20|U23)$/, '');
+  const confed = fixture.kind === 'intl' && /Qualifier$|Group Phase$/.test(fixture.label) ? OPPONENT_NATIONS.find((n) => n.name === oppName)?.confederation : undefined;
+  const nations = confed ? OPPONENT_NATIONS.filter((n) => n.confederation === confed) : OPPONENT_NATIONS;
   const names: [string, string][] =
     fixture.kind === 'tournament' || fixture.kind === 'intl'
-      ? shuffle(OPPONENT_NATIONS, rng).map((n) => [n.name, n.code] as [string, string])
+      ? shuffle(nations, rng).map((n) => [n.name, n.code] as [string, string])
       : fixture.kind === 'euro'
         ? shuffle(CLUBS.filter((c) => c.tier <= 3), rng).map((c) => [c.name, c.short] as [string, string])
         : shuffle(season.table, rng).map((r) => [r.name, r.short] as [string, string]);
@@ -109,7 +113,8 @@ export function buildOtherGames(season: SeasonState, fixture: Fixture, rng: Rng)
   for (let i = 0; i < 3 && i * 2 + 1 < pool.length; i++) {
     const a = pool[i * 2];
     const b = pool[i * 2 + 1];
-    games.push(makeGame(`ot${i}`, `x${i}a`, `x${i}b`, [a[0], a[1] || shortOf(a[0]), 60 + randInt(0, 22, rng)], [b[0], b[1] || shortOf(b[0]), 60 + randInt(0, 22, rng)], false, rng));
+    const level = (n: string) => OPPONENT_NATIONS.find((x) => x.name === n)?.strength;
+    games.push(makeGame(`ot${i}`, `x${i}a`, `x${i}b`, [a[0], a[1] || shortOf(a[0]), level(a[0]) ?? 60 + randInt(0, 22, rng)], [b[0], b[1] || shortOf(b[0]), level(b[0]) ?? 60 + randInt(0, 22, rng)], false, rng));
   }
   return games;
 }

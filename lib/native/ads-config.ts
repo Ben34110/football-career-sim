@@ -10,5 +10,5 @@
 export const ADMOB = {
   appId: 'ca-app-pub-2564539089720466~2423151141',
   rewardedUnitId: 'ca-app-pub-2564539089720466/6078580265',
-  testing: true,
+  testing: false,
 };

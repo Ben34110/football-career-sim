@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 type Block = { h: string; p: string[] };
 
-const UPDATED = '13/10/2026';
+const UPDATED = '19/10/2026';
 
 const FR: { title: string; intro: string; blocks: Block[] } = {
   title: 'Politique de confidentialité',
@@ -41,6 +41,13 @@ const FR: { title: string; intro: string; blocks: Block[] } = {
         'L’app propose des vidéos récompensées facultatives (par exemple pour gagner des vies). Elles sont fournies par Google AdMob. Pour afficher et mesurer ces publicités, Google peut traiter, sur votre appareil, des identifiants (dont l’identifiant publicitaire si vous l’autorisez), une localisation approximative déduite de l’adresse IP, des données d’interaction avec la publicité et des données de diagnostic.',
         'Dans l’Espace économique européen et au Royaume-Uni, un formulaire de consentement Google s’affiche avant la première publicité. Sur iPhone, l’app vous demande aussi l’autorisation de suivi (ATT) : vous pouvez refuser et continuer à jouer, avec des publicités moins personnalisées. Vous pouvez la modifier à tout moment dans Réglages › Confidentialité et sécurité › Suivi.',
         'Plus d’informations : https://policies.google.com/privacy',
+      ],
+    },
+    {
+      h: 'Game Center et notifications',
+      p: [
+        'Si vous êtes connecté à Game Center, l’app envoie à Apple votre total de buts et vos réalisations pour le classement et les succès : ces données sont gérées par Apple selon sa politique de confidentialité, avec le pseudo de votre compte Game Center. Rien n’est envoyé si vous n’êtes pas connecté.',
+        'Les notifications (vies de retour, rappel si vous êtes absent) sont facultatives. Elles sont programmées sur votre appareil, sans serveur, et vous pouvez les couper dans Paramètres ou dans les réglages de l’iPhone.',
       ],
     },
     {
@@ -98,6 +105,13 @@ const EN: { title: string; intro: string; blocks: Block[] } = {
         'The app offers optional rewarded videos (for example to earn lives). They are provided by Google AdMob. To show and measure these ads, Google may process, on your device, identifiers (including the advertising identifier if you allow it), an approximate location derived from the IP address, ad interaction data and diagnostics.',
         'In the European Economic Area and the United Kingdom, a Google consent form is shown before the first ad. On iPhone, the app also asks for tracking permission (ATT): you can decline and keep playing, with less personalised ads. You can change it at any time in Settings › Privacy & Security › Tracking.',
         'More information: https://policies.google.com/privacy',
+      ],
+    },
+    {
+      h: 'Game Center and notifications',
+      p: [
+        'If you are signed in to Game Center, the app sends Apple your total goals and your achievements for the leaderboard and the achievements: this data is handled by Apple under its privacy policy, with your Game Center nickname. Nothing is sent if you are not signed in.',
+        'Notifications (lives back, a reminder if you are away) are optional. They are scheduled on your device, with no server, and you can turn them off in Settings or in iPhone settings.',
       ],
     },
     {

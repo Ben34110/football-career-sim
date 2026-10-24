@@ -46,7 +46,7 @@ export function ShopScreen() {
       grantUnlimited(pass.hours);
       toast(t('Unlimited lives for {n} h!', { n: pass.hours }), 'good');
     } else if (r.error !== 'cancelled') {
-      toast(t('Purchase unavailable right now.'), 'bad');
+      toast(`${t('Purchase unavailable right now.')}${r.detail ? ` (${r.detail.slice(0, 120)})` : ''}`, 'bad');
     }
   };
 

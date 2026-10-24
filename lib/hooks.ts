@@ -71,7 +71,7 @@ export function useBoostPurchase() {
     setBusy(null);
     if (!r.ok) {
       // closing the App Store sheet is not an error
-      if (r.error !== 'cancelled') toast(t('Purchase unavailable right now.'), 'bad');
+      if (r.error !== 'cancelled') toast(`${t('Purchase unavailable right now.')}${r.detail ? ` (${r.detail.slice(0, 120)})` : ''}`, 'bad');
       return false;
     }
     const g = grantBoost(id);

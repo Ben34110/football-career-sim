@@ -34,6 +34,8 @@ export const LIFE_PASSES: LifePass[] = [
 export interface PaymentResult {
   ok: boolean;
   error?: string;
+  /** What the store said, to show the player (and the App Review team) why a purchase could not be made */
+  detail?: string;
 }
 
 export interface PaymentProvider {

@@ -26,29 +26,54 @@ export async function initNative() {
   const ids = [...LIFE_PASSES.map((p) => p.id), ...BOOSTS.map((b) => boostProduct(b).id)];
   // the price tier set in App Store Connect is the one to show (it can differ from the euro price written in the game)
   const prices: Record<string, string> = {};
+  const known = new Set<string>();
+
+  /** Asks the App Store for the products. It can fail at launch (no network yet, a slow store): it is tried again at purchase time. */
+  const loadProducts = async (): Promise<string> => {
+    try {
+      const { products } = await NativePurchases.getProducts({ productIdentifiers: ids.map((id) => IAP_PREFIX + id), productType: PURCHASE_TYPE.INAPP });
+      for (const p of products) {
+        prices[p.identifier.replace(IAP_PREFIX, '')] = p.priceString;
+        known.add(p.identifier.replace(IAP_PREFIX, ''));
+      }
+      return products.length ? '' : 'The App Store returned no product.';
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  };
+
   let supported = false;
   try {
     supported = (await NativePurchases.isBillingSupported()).isBillingSupported;
-    if (supported) {
-      const { products } = await NativePurchases.getProducts({ productIdentifiers: ids.map((id) => IAP_PREFIX + id), productType: PURCHASE_TYPE.INAPP });
-      for (const p of products) prices[p.identifier.replace(IAP_PREFIX, '')] = p.priceString;
-    }
   } catch {
-    /* products not set up yet: purchases will report as unavailable */
+    supported = false;
   }
+  if (supported) await loadProducts();
 
   registerPaymentProvider({
     name: 'storekit',
     isReal: true,
     priceOf: (id) => prices[id],
     purchase: async (product: PaymentProduct) => {
-      if (!supported) return { ok: false, error: 'unavailable' };
+      // never trust an answer from launch time: ask again, and load the products if they did not load then
+      try {
+        supported = (await NativePurchases.isBillingSupported()).isBillingSupported;
+      } catch {
+        /* keep the last answer */
+      }
+      if (!supported) return { ok: false, error: 'unavailable', detail: 'In-app purchases are turned off on this device.' };
+      if (!known.has(product.id)) {
+        const why = await loadProducts();
+        if (!known.has(product.id)) {
+          return { ok: false, error: 'not-found', detail: why || 'This product is not available in the App Store yet.' };
+        }
+      }
       try {
         await NativePurchases.purchaseProduct({ productIdentifier: IAP_PREFIX + product.id, productType: PURCHASE_TYPE.INAPP, quantity: 1 });
         return { ok: true };
       } catch (e) {
         const text = e instanceof Error ? e.message : String(e);
-        return { ok: false, error: /cancel/i.test(text) ? 'cancelled' : 'failed' };
+        return { ok: false, error: /cancel/i.test(text) ? 'cancelled' : 'failed', detail: text };
       }
     },
   });

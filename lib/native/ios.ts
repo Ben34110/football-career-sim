@@ -80,8 +80,21 @@ export async function initNative() {
 }
 
 /**
- * Rewarded video. Nothing is asked or loaded at start-up: the first time the player taps "watch an ad" the consent form
- * (GDPR) and the tracking prompt come up in context, then the ad loads and plays.
+ * The App Tracking Transparency prompt, asked once at launch (App Review looks for it when the app opens, before any ad
+ * has been loaded). A short wait lets the app become active first: iOS silently drops the request otherwise.
+ */
+export async function requestTrackingAtLaunch() {
+  try {
+    await new Promise((r) => setTimeout(r, 1500));
+    if ((await AdMob.trackingAuthorizationStatus()).status === 'notDetermined') await AdMob.requestTrackingAuthorization();
+  } catch {
+    /* not asked: it is asked again with the first ad */
+  }
+}
+
+/**
+ * Rewarded video. Nothing is loaded at start-up: the first time the player taps "watch an ad" the consent form (GDPR)
+ * comes up in context (and the tracking prompt, if it was not answered at launch), then the ad loads and plays.
  */
 export function initAds() {
   let setup: Promise<boolean> | null = null;

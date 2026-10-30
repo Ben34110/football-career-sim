@@ -18,6 +18,7 @@ export function NativeBridge() {
     void import('@/lib/native/ios')
       .then(async (m) => {
         m.initAds();
+        void m.requestTrackingAtLaunch();
         await m.initNative();
       })
       .catch(() => undefined);
